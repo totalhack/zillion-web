@@ -1,0 +1,62 @@
+version: "3.3"
+services:
+
+  proxy:
+    ports:
+      - "80:80"
+      - "8090:8080"
+    command: --docker \
+      --docker.watch \
+      --docker.exposedbydefault=false \
+      --constraints=tag==${TRAEFIK_TAG} \
+      --logLevel=DEBUG \
+      --accessLog \
+      --web
+    labels:
+      - traefik.frontend.rule=Host:${DOMAIN}
+      - traefik.enable=true
+      - traefik.port=80
+
+  pgadmin:
+    ports:
+      - "5050:5050"
+  
+  backend:
+    stdin_open: true
+    tty: true
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./backend/app:/app
+    environment:
+      - SERVER_HOST=http://${DOMAIN}
+      - DEBUG=true
+    build:
+      context: ./backend
+      dockerfile: backend.dockerfile
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-true}
+    # command: bash -c "while true; do sleep 1; done"  # Infinite loop to keep container live doing nothing
+    # This command comes with the base image:
+    command: /start-reload.sh
+    labels:
+      - traefik.frontend.rule=PathPrefix:/api,/docs
+      - traefik.enable=true
+      - traefik.port=80
+      - traefik.tags=${TRAEFIK_TAG}
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        FRONTEND_ENV: dev
+    labels:
+      - traefik.frontend.rule=PathPrefix:/
+      - traefik.enable=true
+      - traefik.port=80
+      - traefik.tags=${TRAEFIK_TAG}
+
+networks:
+  traefik-public:
+    # For local dev, don't expect an external Traefik network
+    external: false

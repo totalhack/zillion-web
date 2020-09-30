@@ -1,0 +1,136 @@
+version: "3.3"
+services:
+
+  proxy:
+    image: traefik:v1.7
+    networks:
+      - ${TRAEFIK_PUBLIC_NETWORK}
+      - default
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --docker \
+      --docker.swarmmode \
+      --docker.watch \
+      --docker.exposedbydefault=false \
+      --constraints=tag==${TRAEFIK_TAG} \
+      --logLevel=INFO \
+      --accessLog \
+      --web
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        # For the configured domain
+        - traefik.frontend.rule=Host:${DOMAIN}
+        # For a domain with and without 'www'
+        # Comment the previous line above and un-comment the line below
+        # - "traefik.frontend.rule=Host:www.${DOMAIN},${DOMAIN}"
+        - traefik.enable=true
+        - traefik.port=80
+        - traefik.tags=${TRAEFIK_PUBLIC_TAG}
+        - traefik.docker.network=${TRAEFIK_PUBLIC_NETWORK}
+        - traefik.frontend.entryPoints=http,https
+        - traefik.frontend.redirect.entryPoint=https
+        # Uncomment the config line below to detect and redirect www to non-www (or the contrary)
+        # The lines above for traefik.frontend.rule are needed too
+        # - "traefik.frontend.redirect.regex=^https?://(www.)?(${DOMAIN})/(.*)"
+        # To redirect from non-www to www un-comment the line below
+        # - "traefik.frontend.redirect.replacement=https://www.${DOMAIN}/$$3"
+        # To redirect from www to non-www un-comment the line below
+        # - "traefik.frontend.redirect.replacement=https://${DOMAIN}/$$3"
+  
+  db:
+    image: postgres:12
+    # restart: always
+    volumes:
+      - app-db-data:/var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - POSTGRES_SERVER=${POSTGRES_SERVER}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    deploy:
+      placement:
+        constraints:
+          - node.labels.${STACK_NAME}.app-db-data == true
+
+  pgadmin:
+    image: dpage/pgadmin4
+    networks:
+      - ${TRAEFIK_PUBLIC_NETWORK}
+      - default
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      - PGADMIN_LISTEN_PORT=${PGADMIN_LISTEN_PORT}
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+    deploy:
+      labels:
+        - traefik.frontend.rule=Host:pgadmin.${DOMAIN}
+        - traefik.enable=true
+        - traefik.port=5050
+        - traefik.tags=${TRAEFIK_PUBLIC_TAG}
+        - traefik.docker.network=${TRAEFIK_PUBLIC_NETWORK}
+        - traefik.frontend.entryPoints=http,https
+        - traefik.frontend.redirect.entryPoint=https
+
+  backend:
+    image: '${DOCKER_IMAGE_BACKEND}:${TAG-latest}'
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      - SERVER_NAME=${DOMAIN}
+      - SERVER_HOST=https://${DOMAIN}
+      - SECRET_KEY=${SECRET_KEY}
+      - FIRST_SUPERUSER=${FIRST_SUPERUSER}
+      - FIRST_SUPERUSER_PASSWORD=${FIRST_SUPERUSER_PASSWORD}
+      - SMTP_TLS=${SMTP_TLS}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - POSTGRES_SERVER=${POSTGRES_SERVER}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    build:
+      context: ./backend
+      dockerfile: backend.dockerfile
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-false}
+    deploy:
+      labels:
+        - traefik.frontend.rule=PathPrefix:/api,/docs
+        - traefik.enable=true
+        - traefik.port=80
+        - traefik.tags=${TRAEFIK_TAG}
+    
+  frontend:
+    image: '${DOCKER_IMAGE_FRONTEND}:${TAG-latest}'
+    build:
+      context: ./frontend
+      args:
+        FRONTEND_ENV: ${FRONTEND_ENV-production}
+    deploy:
+      labels:
+        - traefik.frontend.rule=PathPrefix:/
+        - traefik.enable=true
+        - traefik.port=80
+        - traefik.tags=${TRAEFIK_TAG}
+
+volumes:
+  app-db-data:
+
+networks:
+  traefik-public:
+    # Allow setting it to false for testing
+    external: ${TRAEFIK_PUBLIC_NETWORK_IS_EXTERNAL-true}

@@ -1,0 +1,413 @@
+/* Is this a bad idea? Prevents firefox warning in console. */
+
+* {
+    will-change: auto !important;
+}
+
+.option-select-title {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.operation-item {
+    min-height: 24px !important;
+}
+
+.operation-item .v-list-item__title {
+    font-size: 14px !important;
+}
+
+.rollup-row {
+    font-weight: bold;
+    background-color: #d7d7d7 !important;
+}
+
+.multiselect {
+    font-size: 14px;
+    letter-spacing: 0px;
+    font-weight: 400px;
+    color: #272727;
+}
+
+.multiselect__tags {
+    border: none;
+    padding: 0px;
+    margin-right: 35px;
+    font-size: 14px;
+}
+
+.multiselect__input {
+    padding-top: 8px;
+}
+
+.multiselect__placeholder {
+    padding-top: 8px;
+}
+
+.multiselect__content-wrapper {
+    min-height: 100px;
+    background: #fbfbfb;
+    border-top: 1px solid #e8e8e8;
+}
+
+.multiselect__select {
+    top: auto;
+    bottom: 1px;
+}
+
+.multiselect__option {
+    min-height: 24px;
+    padding: 4px 12px 4px 12px;
+}
+
+.multiselect__option:after {
+    line-height: 24px;
+}
+
+.multiselect__option--highlight {
+    background: #d4d4d4;
+    color: #272727;
+    outline: none;
+}
+
+.multiselect__option--highlight:after {
+    content: attr(data-select);
+    background: #d4d4d4;
+    color: #272727;
+}
+
+.multiselect__option--selected {
+    color: #272727;
+}
+
+.multiselect__option--selected.multiselect__option--highlight {
+    background: #272727;
+    color: #fff;
+}
+
+.multiselect__option--selected.multiselect__option--highlight:after {
+    background: #272727;
+    content: attr(data-deselect);
+    color: #fff;
+}
+
+.multiselect__option--group {
+    background: #fff;
+    color: #272727;
+    font-weight: bold;
+    border-bottom: solid 1px;
+    text-align: center;
+}
+
+.multiselect__option--group.multiselect__option--highlight {
+    background: #d4d4d4;
+    color: #272727;
+}
+
+.multiselect__option--group.multiselect__option--highlight:after {
+    background: #d4d4d4;
+    color: #272727;
+}
+
+.multiselect__option--disabled {
+    background: #fff !important;
+    color: #272727 !important;
+}
+
+/* TODO: supposed to do this with scss: https://github.com/mengxiong10/vue2-datepicker#theme */
+
+.mx-datepicker-main {
+    color: #272727;
+}
+
+.mx-btn {
+    color: #272727;
+    font-size: 14px;
+}
+
+.mx-input {
+    color: #272727;
+    border: 1px solid #9e9e9e;
+}
+
+.mx-input:focus, .mx-input:hover {
+    border-color: rgb(0, 0, 0, 0.65);
+}
+
+.mx-calendar-content .cell.active {
+    color: #d4d4d4;
+    background: #272727;
+}
+
+.mx-datepicker-sidebar {
+    width: 150px;
+}
+
+.mx-datepicker-sidebar+.mx-datepicker-content {
+    margin-left: 150px;
+}
+
+body {
+    font-family: Helvetica !important;
+}
+
+.v-application {
+    font-family: Helvetica !important;
+}
+
+.v-application .text-body-1 {
+    font-family: Helvetica !important;
+}
+
+.v-application .text-subtitle-1 {
+    font-family: Roboto !important;
+    letter-spacing: unset !important;
+}
+
+.v-application .text-subtitle-2 {
+    font-family: Roboto !important;
+    letter-spacing: unset !important;
+    font-size: 14px !important;
+}
+
+.theme--dark.v-navigation-drawer {
+    background-color: #272727 !important;
+}
+
+.theme--dark.v-bottom-navigation {
+    background-color: #272727 !important;
+}
+
+.theme--dark.v-list {
+    background-color: #272727 !important;
+}
+
+.theme--light.v-chip:not(.v-chip--active) {
+    background: #eee !important;
+}
+
+.theme--light.v-btn:not(.v-btn--flat):not(.v-btn--text):not(.v-btn--outlined) {
+    background-color: #eee !important;
+}
+
+.theme--light.v-btn {
+    color: #272727 !important;
+}
+
+.theme--light.v-tabs>.v-tabs-bar {
+    background-color: transparent !important;
+}
+
+.theme--light.v-tabs-items {
+    background-color: transparent !important;
+}
+
+.theme--light.v-input input {
+    color: #272727 !important;
+}
+
+.theme--light.v-icon {
+    color: rgba(0, 0, 0, 0.65) !important;
+}
+
+.theme--light.v-btn-toggle:not(.v-btn-toggle--group) .v-btn.v-btn:not(.v-btn--disabled) .v-icon {
+    color: #272727 !important;
+}
+
+.v-btn {
+    letter-spacing: inherit !important;
+    text-indent: inherit !important;
+    text-transform: inherit !important;
+}
+
+.theme--dark.v-btn.v-btn--disabled:not(.v-btn--flat):not(.v-btn--text):not(.v-btn--outlined) {
+    background-color: inherit !important;
+}
+
+.v-input {
+    font-size: 14px !important;
+}
+
+.v-input__control {
+    min-height: 30px !important;
+}
+
+.v-input__slot {
+    min-height: 30px !important;
+}
+
+.v-textarea textarea {
+    line-height: unset !important;
+    min-height: unset !important;
+}
+
+.v-label, .v-label.theme--light {
+    font-size: 15px !important;
+    letter-spacing: 0px !important;
+    color: #bebebe !important;
+}
+
+.v-card input {
+    font-size: 14px !important;
+    letter-spacing: 0px !important;
+}
+
+.v-card input::placeholder {
+    font-size: 14px !important;
+    letter-spacing: 0px !important;
+}
+
+.v-card__title {
+    letter-spacing: unset !important;
+}
+
+.v-card__subtitle, .v-card__text {
+    letter-spacing: unset !important;
+}
+
+.v-tooltip, .v-tooltip__content {
+    font-size: 14px !important;
+    background-color: black !important;
+    color: #fff !important;
+    text-align: center !important;
+}
+
+tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.datatable.v-data-table>.v-data-table__wrapper>table {
+    width: auto !important;
+    min-width: 25% !important;
+    word-wrap: break-word !important;
+    margin-right: auto !important;
+    text-align: left !important;
+}
+
+.criteriatable.v-data-table>.v-data-table__wrapper>table {
+    width: auto !important;
+    word-wrap: break-word !important;
+    margin-right: auto !important;
+    text-align: left !important;
+}
+
+.v-data-table>.v-data-table__wrapper>table>tbody>tr>td, .v-data-table>.v-data-table__wrapper>table>thead>tr>td, .v-data-table>.v-data-table__wrapper>table>tfoot>tr>td {
+    font-size: 14px !important;
+}
+
+.theme--light.v-data-table>.v-data-table__wrapper>table>thead>tr>th {
+    font-size: 14px;
+    color: white !important;
+    background-color: #272727 !important;
+}
+
+.v-data-table-header__sort-badge {
+    color: white !important;
+}
+
+.theme--light.v-data-table .v-data-table-header th.sortable.active .v-data-table-header__icon {
+    color: white !important
+}
+
+/* NOTE: hiding the inactive sort icons because they ruin
+header vertical alignment */
+
+.theme--light.v-data-table .v-data-table-header th.sortable:not(.active) .v-data-table-header__icon {
+    display: none !important;
+    color: white !important
+}
+
+.v-application--is-ltr .v-data-footer__pagination {
+    /* Hack to prevent footer nav wrapping on mobile */
+    margin: 0 0px 0 0px !important;
+}
+
+.tab-wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.tab-wrapper .v-window {
+    flex: 1;
+}
+
+.tab-wrapper .v-window__container, .tab-wrapper .v-window-item {
+    height: 100%;
+}
+
+.tab-wrapper .v-card {
+    height: 100%;
+}
+
+.settings-drawer {
+    background-color: #f4f4f4 !important;
+    height: 100% !important;
+    max-height: 100vh !important;
+    min-width: 45% !important;
+    max-width: 45% !important;
+    border-bottom: 1px solid #d9d9d9 !important;
+    transition-duration: unset !important;
+    transition-timing-function: unset !important;
+    transition-property: unset !important;
+    -webkit-transition-duration: unset !important;
+    -webkit-transition-timing-function: unset !important;
+    -webkit-transition-property: unset !important;
+}
+
+.settings-drawer-mobile {
+    background-color: #f4f4f4 !important;
+    height: 100% !important;
+    max-height: 100vh !important;
+    min-width: 45% !important;
+    border-bottom: 1px solid #d9d9d9 !important;
+    transition-duration: unset !important;
+    transition-timing-function: unset !important;
+    transition-property: unset !important;
+    -webkit-transition-duration: unset !important;
+    -webkit-transition-timing-function: unset !important;
+    -webkit-transition-property: unset !important;
+}
+
+.content-container {
+    background-color: #f0f0f0 !important;
+    height: 100% !important;
+}
+
+.chiptext {
+    margin-left: 3px;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0px;
+    color: #272727;
+}
+
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    padding: 5px 10px;
+    border-radius: 6px;
+    opacity: 0;
+    transition: opacity 1s;
+    /* Position the tooltip text */
+    position: absolute;
+    z-index: 1;
+    top: 150%;
+    left: 0%;
+    margin-left: 0px;
+    /* Use half of the width (120/2 = 60), to center the tooltip */
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}

@@ -1,0 +1,21 @@
+Generic single-database configuration.
+
+After changing a model (for example, adding a column), inside the container,
+create a revision, e.g.:
+
+```console $ alembic revision --autogenerate -m "Add column last_name to User
+model" ```
+
+Commit to the git repository the files generated in the alembic directory.
+
+After creating the revision, run the migration in the database (this is what
+will actually change the database):
+
+```console $ alembic upgrade head ```
+
+If you don't want to use migrations at all, uncomment the line in the file at
+`./backend/app/app/db/init_db.py` with:
+
+and comment the line in the file `prestart.sh` that contains:
+
+```console $ alembic upgrade head ```
