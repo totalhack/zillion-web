@@ -1,4 +1,4 @@
-version: "3.3"
+version: "3.7"
 services:
 
   proxy:
@@ -84,15 +84,15 @@ services:
     deploy:
       placement:
         constraints:
-          - node.labels.${STACK_NAME}.app-db-data == true
+          - node.role == manager
+          # This didn't work locally
+          # - node.labels.${STACK_NAME}.app-db-data == true
 
   pgadmin:
     image: dpage/pgadmin4
     networks:
       - ${TRAEFIK_PUBLIC_NETWORK}
       - default
-    depends_on:
-      - db
     env_file:
       - .env
     environment:
@@ -115,8 +115,6 @@ services:
 
   backend:
     image: '${DOCKER_IMAGE_BACKEND}:${TAG-latest}'
-    depends_on:
-      - db
     env_file:
       - .env
     environment:
