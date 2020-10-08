@@ -25,8 +25,8 @@ services:
       - --api.insecure=true
     labels:
       - traefik.enable=true
-      - traefik.http.routers.${STACK_NAME}-traefik-public-http.rule=Host(`${DOMAIN}`)
-      - traefik.http.services.${STACK_NAME}-traefik-public.loadbalancer.server.port=80
+      - traefik.http.routers.${STACK_NAME?Variable not set}-traefik-public-http.rule=Host(`${DOMAIN?Variable not set}`)
+      - traefik.http.services.${STACK_NAME?Variable not set}-traefik-public.loadbalancer.server.port=80
 
   pgadmin:
     ports:
@@ -63,7 +63,7 @@ services:
         FRONTEND_ENV: dev
     labels:
       - traefik.enable=true
-      - traefik.constraint-label-stack=${TRAEFIK_TAG}
+      - traefik.constraint-label-stack=${TRAEFIK_TAG?Variable not set}
       - traefik.http.routers.${STACK_NAME}-frontend-http.rule=PathPrefix(`/`)
       - traefik.http.services.${STACK_NAME}-frontend.loadbalancer.server.port=80
 

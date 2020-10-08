@@ -506,18 +506,18 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
       const selections = this.selections;
     } catch (err) {
       if (err instanceof ValidationError) {
-        return false;
+        return { valid: false, error: err };
       } else {
         throw err;
       }
     }
-    return true;
+    return { valid: true, error: null };
   }
 
-  addValidationErrorNotification() {
+  addValidationErrorNotification(msg = 'Please fix validation errors') {
     dispatchAddNotification(
       this.$store,
-      { content: 'Please fix validation errors', color: 'error' }
+      { content: msg, color: 'error' }
     );
   }
 
@@ -526,7 +526,8 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
   }
 
   openReportSaveDialog() {
-    if (!this.validate()) {
+    const vresult = this.validate();
+    if (!vresult.valid) {
       this.addValidationErrorNotification();
       return;
     }
@@ -555,8 +556,9 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
       dispatchAddWarning(this.$store, 'Please activate a warehouse to run reports');
       return;
     }
-    if (!this.validate()) {
-      this.addValidationErrorNotification();
+    const vresult = this.validate();
+    if (!vresult.valid) {
+      this.addValidationErrorNotification(vresult.error?.message);
       return;
     }
 
@@ -580,7 +582,8 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
       dispatchAddWarning(this.$store, 'Please activate a warehouse to save reports');
       return;
     }
-    if (!this.validate()) {
+    const vresult = this.validate();
+    if (!vresult.valid) {
       this.addValidationErrorNotification();
       return;
     }
@@ -708,7 +711,8 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
   }
 
   beforeRouteLeave(to, from, next) {
-    if (this.validate()) {
+    const vresult = this.validate();
+    if (vresult.valid) {
       const selections = this.selections;
       if (selections) {
         saveSessionReportRequest(selections);

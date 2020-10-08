@@ -4,7 +4,11 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
-from zillion.core import UnsupportedGrainException, InvalidDimensionValueException
+from zillion.core import (
+    UnsupportedGrainException,
+    InvalidDimensionValueException,
+    ZillionException,
+)
 
 from app import app
 from app.api.api_v1.api import api_router
@@ -18,6 +22,8 @@ async def catch_exceptions_middleware(request: Request, call_next):
     except UnsupportedGrainException as e:
         return Response(str(e), status_code=500)
     except InvalidDimensionValueException as e:
+        return Response(str(e), status_code=500)
+    except ZillionException as e:
         return Response(str(e), status_code=500)
     except Exception as e:
         tb.print_exc()

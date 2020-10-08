@@ -6,3 +6,15 @@ ADHOC_DATASOURCE_DIRECTORY: /tmp
 DATASOURCE_QUERY_MODE: sequential
 DATASOURCE_QUERY_TIMEOUT: 120
 DATASOURCE_QUERY_WORKERS: 4
+
+DATASOURCE_CONTEXTS:
+    baseball_data_bank:
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+      host: ${POSTGRES_SERVER}
+      schema: ${POSTGRES_DB}
+    glide_covid_19:
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+      host: ${POSTGRES_SERVER}
+      schema: ${POSTGRES_DB}

@@ -1,0 +1,693 @@
+{
+    "metrics": [
+        {
+            "name": "cases",
+            "description": "Sum of cases",
+            "type": "integer",
+            "aggregation": "sum"
+        },
+        {
+            "name": "cases_ma_7",
+            "display_name": "Cases MA-7",
+            "description": "7-day moving average of cases",
+            "type": "numeric(10,2)",
+            "aggregation": "sum",
+            "rounding": 0,
+            "technical": "mean(7)"
+        },
+        {
+            "name": "deaths",
+            "description": "Sum of deaths",
+            "type": "integer",
+            "aggregation": "sum"
+        },
+        {
+            "name": "deaths_ma_7",
+            "display_name": "Deaths MA-7",
+            "description": "7-day moving average of deaths",
+            "type": "numeric(10,2)",
+            "aggregation": "sum",
+            "rounding": 0,
+            "technical": "mean(7)"
+        },
+        {
+            "name": "hospitalized",
+            "description": "Sum of hospitalizations",
+            "type": "integer",
+            "aggregation": "sum"
+        },
+        {
+            "name": "hospitalized_ma_7",
+            "display_name": "Hospitalized MA-7",
+            "description": "7-day moving average of hospitalizations",
+            "type": "numeric(10,2)",
+            "aggregation": "sum",
+            "rounding": 0,
+            "technical": "mean(7)"
+        },
+        {
+            "name": "in_icu",
+            "description": "Sum of patients in ICU. This data seems unreliable.",
+            "type": "integer",
+            "aggregation": "sum"
+        },
+        {
+            "name": "on_ventilator",
+            "description": "Sum of patients on a ventilator. This data seems unreliable.",
+            "type": "integer",
+            "aggregation": "sum"
+        },
+        {
+            "name": "recovered",
+            "description": "Sum of recovered cases",
+            "type": "integer",
+            "aggregation": "sum"
+        },
+        {
+            "name": "negative_tests",
+            "description": "Sum of negatives test results",
+            "type": "integer",
+            "aggregation": "sum"
+        },
+        {
+            "name": "test_results",
+            "description": "Sum of total test results",
+            "type": "integer",
+            "aggregation": "sum"
+        },
+        {
+            "name": "hospital_beds",
+            "description": "Sum of total hospital beds",
+            "type": "integer",
+            "aggregation": "sum"
+        },
+        {
+            "name": "hospitals",
+            "description": "Sum of total hospitals",
+            "type": "integer",
+            "aggregation": "sum"
+        },
+        {
+            "name": "icu_beds",
+            "description": "Sum of total ICU beds",
+            "type": "integer",
+            "aggregation": "sum"
+        },
+        {
+            "name": "cumulative_cases",
+            "description": "Cumulative case count",
+            "type": "integer",
+            "aggregation": "sum",
+            "meta": {
+                "group": "Cumulative Metrics"
+            }
+        },
+        {
+            "name": "cumulative_deaths",
+            "description": "Cumulative death count",
+            "type": "integer",
+            "aggregation": "sum",
+            "meta": {
+                "group": "Cumulative Metrics"
+            }
+        },
+        {
+            "name": "cumulative_hospitalized",
+            "description": "Cumulative hospitalization count",
+            "type": "integer",
+            "aggregation": "sum",
+            "meta": {
+                "group": "Cumulative Metrics"
+            }
+        },
+        {
+            "name": "cumulative_in_icu",
+            "description": "Cumulative count of cases in ICU",
+            "type": "integer",
+            "aggregation": "sum",
+            "meta": {
+                "group": "Cumulative Metrics"
+            }
+        },
+        {
+            "name": "cumulative_recovered",
+            "description": "Cumulative count of recovered cases",
+            "type": "integer",
+            "aggregation": "sum",
+            "meta": {
+                "group": "Cumulative Metrics"
+            }
+        },
+        {
+            "name": "cumulative_on_ventilator",
+            "description": "Cumulative count of cases on a ventilator",
+            "type": "integer",
+            "aggregation": "sum",
+            "meta": {
+                "group": "Cumulative Metrics"
+            }
+        },
+        {
+            "name": "cumulative_negative_tests",
+            "description": "Cumulative count of negative tests",
+            "type": "integer",
+            "aggregation": "sum",
+            "meta": {
+                "group": "Cumulative Metrics"
+            }
+        },
+        {
+            "name": "cumulative_test_results",
+            "description": "Cumulative count of total tests",
+            "type": "integer",
+            "aggregation": "sum",
+            "meta": {
+                "group": "Cumulative Metrics"
+            }
+        },
+        {
+            "name": "currently_hospitalized",
+            "description": "Count of cases currently in the hospital",
+            "type": "integer",
+            "aggregation": "sum"
+        },
+        {
+            "name": "currently_in_icu",
+            "description": "Count of cases currently in the ICU",
+            "type": "integer",
+            "aggregation": "sum"
+        },
+        {
+            "name": "currently_on_ventilator",
+            "description": "Count of cases currently on a ventilator",
+            "type": "integer",
+            "aggregation": "sum"
+        },
+        {
+            "name": "death_rate",
+            "description": "Simple ratio of deaths per case",
+            "aggregation": "mean",
+            "rounding": 3,
+            "formula": "1.0*{deaths}/{cases}"
+        },
+        {
+            "name": "hospitalized_rate",
+            "description": "Simple ratio of hospitalizations per case",
+            "aggregation": "mean",
+            "rounding": 2,
+            "formula": "1.0*{hospitalized}/{cases}"
+        },
+        {
+            "name": "hospitalized_death_rate",
+            "description": "Simple ratio of deaths per hospitalized case",
+            "aggregation": "mean",
+            "rounding": 2,
+            "formula": "1.0*{deaths}/{hospitalized}"
+        },
+        {
+            "name": "negative_test_rate",
+            "description": "Simple ratio of negative tests per test",
+            "aggregation": "mean",
+            "rounding": 2,
+            "formula": "1.0*{negative_tests}/{test_results}"
+        },
+        {
+            "name": "positive_test_rate",
+            "description": "Simple ratio of cases per test",
+            "aggregation": "mean",
+            "rounding": 2,
+            "formula": "1.0*{cases}/{test_results}"
+        },
+        {
+            "name": "hospital_capacity_used",
+            "description": "Simple ratio of currently hospitalized cases per hospital bed",
+            "aggregation": "mean",
+            "rounding": 3,
+            "formula": "1.0*{currently_hospitalized}/{hospital_beds}"
+        },
+        {
+            "name": "icu_bed_capacity_used",
+            "description": "Simple ratio of current ICU cases per ICU bed",
+            "aggregation": "mean",
+            "rounding": 2,
+            "formula": "1.0*{currently_in_icu}/{icu_beds}"
+        },
+        {
+            "name": "cumulative_recovered_rate",
+            "description": "Simple ratio of cumulative recovered per cumulative case",
+            "aggregation": "mean",
+            "rounding": 2,
+            "formula": "1.0*{cumulative_recovered}/{cumulative_cases}"
+        },
+        {
+            "name": "cumulative_ventilator_rate",
+            "description": "Simple ratio of cumulative cases on a ventilator per cumulative case",
+            "aggregation": "mean",
+            "rounding": 2,
+            "formula": "1.0*{cumulative_on_ventilator}/{cumulative_cases}"
+        },
+        {
+            "name": "cumulative_negative_test_rate",
+            "description": "Simple ratio of cumulative negative tests per cumulative test",
+            "aggregation": "mean",
+            "rounding": 2,
+            "formula": "1.0*{cumulative_negative_tests}/{cumulative_test_results}"
+        },
+        {
+            "name": "cumulative_positive_test_rate",
+            "description": "Simple ratio of cumulative cases per cumulative test",
+            "aggregation": "mean",
+            "rounding": 2,
+            "formula": "1.0*{cumulative_cases}/{cumulative_test_results}"
+        },
+        {
+            "name": "cumulative_icu_rate",
+            "description": "Simple ratio of cumulative cases in ICU per cumulative case",
+            "aggregation": "mean",
+            "rounding": 2,
+            "formula": "1.0*{cumulative_in_icu}/{cumulative_cases}"
+        },
+        {
+            "name": "cumulative_death_rate",
+            "description": "Simple ratio of cumulative deaths per cumulative case",
+            "aggregation": "mean",
+            "rounding": 3,
+            "formula": "1.0*{cumulative_deaths}/{cumulative_cases}"
+        },
+        {
+            "name": "cumulative_hospitalized_rate",
+            "description": "Simple ratio of cumulative hospitalizations per cumulative case",
+            "aggregation": "mean",
+            "rounding": 2,
+            "formula": "1.0*{cumulative_hospitalized}/{cumulative_cases}"
+        }
+    ],
+    "dimensions": [
+        {
+            "name": "date",
+            "type": "date"
+        },
+        {
+            "name": "iso1",
+            "type": "string(3)"
+        },
+        {
+            "name": "iso2",
+            "type": "string(6)"
+        },
+        {
+            "name": "fips",
+            "type": "string(5)"
+        },
+        {
+            "name": "iso1_name",
+            "type": "string(50)"
+        },
+        {
+            "name": "country",
+            "type": "string(50)"
+        },
+        {
+            "name": "iso2_name",
+            "type": "string(50)"
+        },
+        {
+            "name": "state",
+            "type": "string(50)"
+        },
+        {
+            "name": "fips",
+            "type": "string(5)"
+        },
+        {
+            "name": "us_county_name",
+            "type": "string(50)"
+        },
+        {
+            "name": "us_county_name_long",
+            "type": "string(50)"
+        },
+        {
+            "name": "us_county_code",
+            "type": "string(5)"
+        },
+        {
+            "name": "iso1_lat",
+            "type": "numeric(9,6)"
+        },
+        {
+            "name": "iso1_long",
+            "type": "numeric(9,6)"
+        },
+        {
+            "name": "iso1_timezone",
+            "type": "string(30)"
+        },
+        {
+            "name": "iso2_lat",
+            "type": "numeric(9,6)"
+        },
+        {
+            "name": "iso2_long",
+            "type": "numeric(9,6)"
+        },
+        {
+            "name": "iso2_timezone",
+            "type": "string(30)"
+        },
+        {
+            "name": "fips_lat",
+            "type": "numeric(9,6)"
+        },
+        {
+            "name": "fips_long",
+            "type": "numeric(9,6)"
+        },
+        {
+            "name": "fips_timezone",
+            "type": "string(30)"
+        }
+    ],
+    "datasources": {
+        "glide_covid_19": {
+            "connect": "postgresql+psycopg2://{user}:{password}@{host}/{schema}",
+            "tables": {
+                "public.iso1_geos": {
+                    "type": "dimension",
+                    "data_url": "https://raw.githubusercontent.com/kmatarese/glide-covid-19/master/glide_covid_19/data/iso1.csv",
+                    "if_exists": "ignore",
+                    "drop_dupes": true,
+                    "primary_key": [
+                        "iso1"
+                    ],
+                    "columns": {
+                        "iso1": {
+                            "fields": [
+                                "iso1"
+                            ]
+                        },
+                        "name": {
+                            "fields": [
+                                "iso1_name",
+                                "country"
+                            ]
+                        },
+                        "timezone": {
+                            "fields": [
+                                "iso1_timezone"
+                            ]
+                        },
+                        "lat": {
+                            "fields": [
+                                "iso1_lat"
+                            ]
+                        },
+                        "long": {
+                            "fields": [
+                                "iso1_long"
+                            ]
+                        }
+                    }
+                },
+                "public.iso2_geos": {
+                    "type": "dimension",
+                    "data_url": "https://raw.githubusercontent.com/kmatarese/glide-covid-19/master/glide_covid_19/data/iso2.csv",
+                    "if_exists": "ignore",
+                    "drop_dupes": true,
+                    "primary_key": [
+                        "iso2"
+                    ],
+                    "parent": "public.iso1_geos",
+                    "columns": {
+                        "iso2": {
+                            "fields": [
+                                "iso2"
+                            ]
+                        },
+                        "iso1": {
+                            "fields": [
+                                "iso1"
+                            ]
+                        },
+                        "name": {
+                            "fields": [
+                                "iso2_name",
+                                "state"
+                            ]
+                        },
+                        "timezone": {
+                            "fields": [
+                                "iso2_timezone"
+                            ]
+                        },
+                        "lat": {
+                            "fields": [
+                                "iso2_lat"
+                            ]
+                        },
+                        "long": {
+                            "fields": [
+                                "iso2_long"
+                            ]
+                        }
+                    }
+                },
+                "public.fips": {
+                    "type": "dimension",
+                    "data_url": "https://raw.githubusercontent.com/kmatarese/glide-covid-19/master/glide_covid_19/data/fips.csv",
+                    "if_exists": "ignore",
+                    "drop_dupes": true,
+                    "primary_key": [
+                        "fips"
+                    ],
+                    "parent": "public.iso2_geos",
+                    "columns": {
+                        "fips": {
+                            "fields": [
+                                "fips"
+                            ]
+                        },
+                        "county_code": {
+                            "fields": [
+                                "us_county_code"
+                            ]
+                        },
+                        "name": {
+                            "fields": [
+                                "us_county_name"
+                            ]
+                        },
+                        "name_long": {
+                            "fields": [
+                                "us_county_name_long"
+                            ]
+                        },
+                        "timezone": {
+                            "fields": [
+                                "fips_timezone"
+                            ]
+                        },
+                        "lat": {
+                            "fields": [
+                                "fips_lat"
+                            ]
+                        },
+                        "long": {
+                            "fields": [
+                                "fips_long"
+                            ]
+                        },
+                        "state_code_iso": {
+                            "fields": [
+                                "iso2"
+                            ]
+                        }
+                    }
+                },
+                "public.fips_timeseries": {
+                    "type": "metric",
+                    "data_url": "https://raw.githubusercontent.com/kmatarese/glide-covid-19/master/glide_covid_19/data/fips_timeseries.csv",
+                    "if_exists": "ignore",
+                    "drop_dupes": true,
+                    "convert_types": {
+                        "date": "datetime64"
+                    },
+                    "primary_key": [
+                        "date",
+                        "fips"
+                    ],
+                    "use_full_column_names": false,
+                    "columns": {
+                        "date": {
+                            "fields": [
+                                "date"
+                            ],
+                            "allow_type_conversions": true
+                        },
+                        "fips": {
+                            "fields": [
+                                "fips"
+                            ]
+                        },
+                        "cases": {
+                            "fields": [
+                                "cases",
+                                "cases_ma_7"
+                            ]
+                        },
+                        "deaths": {
+                            "fields": [
+                                "deaths",
+                                "deaths_ma_7"
+                            ]
+                        },
+                        "cumulative_cases": {
+                            "required_grain": [
+                                "date"
+                            ]
+                        },
+                        "cumulative_deaths": {
+                            "required_grain": [
+                                "date"
+                            ]
+                        }
+                    }
+                },
+                "public.iso2_timeseries": {
+                    "type": "metric",
+                    "data_url": "https://raw.githubusercontent.com/kmatarese/glide-covid-19/master/glide_covid_19/data/iso2_timeseries.csv",
+                    "if_exists": "ignore",
+                    "drop_dupes": true,
+                    "convert_types": {
+                        "date": "datetime64"
+                    },
+                    "primary_key": [
+                        "date",
+                        "iso1",
+                        "iso2"
+                    ],
+                    "incomplete_dimensions": [
+                        "iso2"
+                    ],
+                    "use_full_column_names": false,
+                    "columns": {
+                        "date": {
+                            "fields": [
+                                "date"
+                            ],
+                            "allow_type_conversions": true
+                        },
+                        "iso1": {
+                            "fields": [
+                                "iso1"
+                            ]
+                        },
+                        "iso2": {
+                            "fields": [
+                                "iso2"
+                            ]
+                        },
+                        "cases": {
+                            "fields": [
+                                "cases",
+                                "cases_ma_7"
+                            ]
+                        },
+                        "deaths": {
+                            "fields": [
+                                "deaths",
+                                "deaths_ma_7"
+                            ]
+                        },
+                        "hospitalized": {
+                            "fields": [
+                                "hospitalized",
+                                "hospitalized_ma_7"
+                            ]
+                        },
+                        "in_icu": {
+                            "fields": [
+                                "in_icu"
+                            ]
+                        },
+                        "on_ventilator": {
+                            "fields": [
+                                "on_ventilator"
+                            ]
+                        },
+                        "recovered": {
+                            "fields": [
+                                "recovered"
+                            ]
+                        },
+                        "test_results": {
+                            "fields": [
+                                "test_results"
+                            ]
+                        },
+                        "negative_tests": {
+                            "fields": [
+                                "negative_tests"
+                            ]
+                        },
+                        "cumulative_cases": {
+                            "required_grain": [
+                                "date"
+                            ]
+                        },
+                        "cumulative_deaths": {
+                            "required_grain": [
+                                "date"
+                            ]
+                        },
+                        "cumulative_negative_tests": {
+                            "required_grain": [
+                                "date"
+                            ]
+                        },
+                        "cumulative_hospitalized": {
+                            "required_grain": [
+                                "date"
+                            ]
+                        },
+                        "cumulative_in_icu": {
+                            "required_grain": [
+                                "date"
+                            ]
+                        },
+                        "cumulative_on_ventilator": {
+                            "required_grain": [
+                                "date"
+                            ]
+                        },
+                        "cumulative_test_results": {
+                            "required_grain": [
+                                "date"
+                            ]
+                        },
+                        "cumulative_recovered": {
+                            "required_grain": [
+                                "date"
+                            ]
+                        },
+                        "currently_hospitalized": {
+                            "required_grain": [
+                                "date"
+                            ]
+                        },
+                        "currently_in_icu": {
+                            "required_grain": [
+                                "date"
+                            ]
+                        },
+                        "currently_on_ventilator": {
+                            "required_grain": [
+                                "date"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
