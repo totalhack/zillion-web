@@ -28,6 +28,13 @@ export default class DateRangeCriteriaValueSelect extends BaseDateCriteriaValueS
     return null;
   }
 
+  validate() {
+    if (!this.syncedValue || (!this.syncedValue[0] || !this.syncedValue[1])) {
+      return { valid: false, error: 'Please select a valid date range' };
+    }
+    return { valid: true, error: '' };
+  }
+
   get criteriaValue() {
     return [
       this.formatDate(this.syncedValue[0]),

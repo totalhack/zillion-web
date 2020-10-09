@@ -4,6 +4,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
 from pydantic.networks import EmailStr
 from sqlalchemy.orm import Session
+from zillion.core import ZillionException
 
 from app import crud, models, schemas
 from app.api import deps
@@ -65,6 +66,10 @@ def update_user_me(
     """
     current_user_data = jsonable_encoder(current_user)
     user_in = schemas.UserUpdate(**current_user_data)
+    if user_in.email.lower() == "demouser@example.com" and not crud.user.is_superuser(
+        current_user
+    ):
+        raise ZillionException("Demo user can't be edited, silly!")
     if password is not None:
         user_in.password = password
     if full_name is not None:

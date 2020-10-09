@@ -510,7 +510,7 @@
                     "if_exists": "ignore",
                     "drop_dupes": true,
                     "convert_types": {
-                        "date": "datetime64"
+                        "date": "date"
                     },
                     "primary_key": [
                         "date",
@@ -559,7 +559,7 @@
                     "if_exists": "ignore",
                     "drop_dupes": true,
                     "convert_types": {
-                        "date": "datetime64"
+                        "date": "date"
                     },
                     "primary_key": [
                         "date",

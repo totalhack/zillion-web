@@ -67,7 +67,7 @@ export const actions = {
   },
   async actionUpdateUserProfile(context: MainContext, payload) {
     try {
-      const loadingNotification = { content: 'saving', showProgress: true };
+      const loadingNotification = { content: 'Saving', showProgress: true };
       commitAddNotification(context, loadingNotification);
       const response = (await Promise.all([
         api.updateMe(context.state.token, payload),

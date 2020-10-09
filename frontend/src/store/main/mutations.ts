@@ -49,7 +49,6 @@ export const mutations = {
     state.activeWarehouseId = payload;
   },
   setWarehouseStructure(state: MainState, payload: any) {
-    // state.warehouseStructures[payload.id] = payload.warehouse;
     Vue.set(state.warehouseStructures, payload.id, payload.warehouse);
   },
   setReportResult(state: MainState, payload: IReportResult) {

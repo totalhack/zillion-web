@@ -36,7 +36,7 @@ export default class BaseCriteriaValueSelect extends Mixins(RulesMixin) {
         result = false;
       }
     }
-    return result;
+    return { valid: result, error: 'Please fix validation issues' };
   }
 
   get criteriaValue() {

@@ -9,6 +9,8 @@ import {
 import {
   dispatchSetActiveWarehouseId,
   dispatchSetDefaultWarehouseId,
+  dispatchSetReportRequest,
+  dispatchSetReportResult
 } from '@/store/main/actions';
 
 @Component
@@ -30,6 +32,8 @@ export default class WarehouseManagerMixin extends Vue {
 
   changeWarehouse(obj) {
     dispatchSetActiveWarehouseId(this.$store, obj.id);
+    dispatchSetReportRequest(this.$store, null);
+    dispatchSetReportResult(this.$store, null);
   }
 
   get warehouseDimensions() {

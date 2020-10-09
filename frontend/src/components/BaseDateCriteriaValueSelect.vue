@@ -142,6 +142,13 @@ export default class BaseDateCriteriaValueSelect extends BaseCriteriaValueSelect
     this.showTimeRangePanel = false;
   }
 
+  validate() {
+    if (!this.syncedValue) {
+      return { valid: false, error: 'Please select a valid date' };
+    }
+    return { valid: true, error: '' };
+  }
+
   formatDate(value) {
     return value;
   }

@@ -286,9 +286,9 @@ export default class CriteriaSelect extends BaseSelect {
       if (selected.active) {
         // NOTE: $refs become arrays when used in v-for.
         const input = this.$refs[selected.name][0] as any;
-        const valid = input.validate();
-        if (!valid) {
-          throw new ValidationError();
+        const vresult = input.validate();
+        if (!vresult.valid) {
+          throw new ValidationError(vresult?.error);
         }
         result.push([
           selected.name,
