@@ -27,7 +27,7 @@ python-jose = {extras = ["cryptography"], version = "^3.1.0"}
 tlbx = ">= 0.1.14"
 # https://github.com/python-poetry/poetry/issues/2687
 black = "^19.10b0"
-zillion = ">= 0.4.8"
+zillion = ">= 0.4.9"
 orjson = "^3.3.0"
 
 [tool.poetry.dev-dependencies]
