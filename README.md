@@ -1,6 +1,8 @@
 Zillion Web: A Web UI/API for Zillion
 =====================================
 
+![Zillion Web Demo UI](https://github.com/totalhack/zillion-web/blob/master/docs/images/zillion_web_demo_ui.png?raw=true)
+
 **Table of Contents**
 ---------------------
 
@@ -58,14 +60,14 @@ The demo UI is deployed [here](https://zillionweb.totalhack.org/). A demo user h
 Two example `Warehouses` have been loaded:
 
 * A slightly modified version of the [Zillion Covid-19](https://github.com/totalhack/zillion-covid-19) demo warehouse.
-* The [Zillion Baseball] demo warehouse, which has a subset of data from the [Baseball Data Bank](https://github.com/chadwickbureau/baseballdatabank).
+* The [Zillion Baseball](https://github.com/totalhack/zillion-baseball) demo warehouse, which has a subset of data from the [Baseball Data Bank](https://github.com/chadwickbureau/baseballdatabank).
 
 Note that the sample data is not being automatically updated at this time. 
 
 Below are some basic reports to demonstrate the core functionality of the Data Explorer tab. You
 can use the control bar at the bottom to run/save/configure/download reports, or utilize the keyboard shortcuts if on desktop (hover over the buttons to see shortcuts). 
 
-Since this is just a frontend to the main report execution API that [Zillion](https://github.com/totalhack/zillion) exposes it is recommended to read the Zillion docs for a better understanding of the fields, options, and general theory/approach.
+Since this is just a frontend to the main report execution API that [Zillion](https://github.com/totalhack/zillion) exposes it is recommended to read the more thorough Zillion docs for a better understanding of the fields, options, and general theory/approach.
 
 * [US Cases By State](https://zillionweb.totalhack.org/main/explorer?warehouse=1&report=3)
 * [Cases and Deaths by Month](https://zillionweb.totalhack.org/main/explorer?warehouse=1&report=6) - MultiAxis
