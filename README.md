@@ -38,8 +38,7 @@ work on recent non-IE browsers and most recent mobile devices.
 * The backend is a [FastAPI](https://fastapi.tiangolo.com/) python server. You can run this
 separately if you are just looking for a web API to access a `Zillion` backend.
 * Docker / Docker Compose/ Docker Swarm Mode are utilized as described in the docs for the
-project generator and at [dockerswarm.rocks](https://dockerswarm.rocks/). In my research I
-came to find out Docker Swarm Mode is not a very popular approach in 2020, but I stuck with
+project generator and at [dockerswarm.rocks](https://dockerswarm.rocks/). Docker Swarm Mode is not the most popular approach in 2020, but I stuck with
 it for the purposes of the demo deployment.
 * This is deployed on a minimally sized VPS. Go easy please.
 
