@@ -253,7 +253,7 @@
     ],
     "datasources": {
         "baseball_data_bank": {
-            "connect": "postgresql+psycopg2://{user}:{password}@{host}/{schema}",
+            "connect": "{conn_url}",
             "tables": {
                 "public.people": {
                     "type": "dimension",

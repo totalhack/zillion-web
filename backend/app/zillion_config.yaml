@@ -1,6 +1,6 @@
 DEBUG: false
 LOAD_TABLE_CHUNK_SIZE: 5000
-ZILLION_DB_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}/${POSTGRES_DB}
+ZILLION_DB_URL: ${SQLALCHEMY_DATABASE_URI}
 ADHOC_DATASOURCE_DIRECTORY: /tmp
 
 DATASOURCE_QUERY_MODE: sequential
@@ -9,12 +9,7 @@ DATASOURCE_QUERY_WORKERS: 4
 
 DATASOURCE_CONTEXTS:
     baseball_data_bank:
-      user: ${POSTGRES_USER}
-      password: ${POSTGRES_PASSWORD}
-      host: ${POSTGRES_SERVER}
-      schema: ${POSTGRES_DB}
+      conn_url: ${SQLALCHEMY_DATABASE_URI}
     glide_covid_19:
-      user: ${POSTGRES_USER}
-      password: ${POSTGRES_PASSWORD}
-      host: ${POSTGRES_SERVER}
-      schema: ${POSTGRES_DB}
+      conn_url: ${SQLALCHEMY_DATABASE_URI}
+
