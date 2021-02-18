@@ -30,16 +30,14 @@ Some general things to know:
 * This was my first Vue/Typescript project. Part of the goal was to learn, and there are
 most certainly things that could have been done better and/or shortcuts taken.
 * The frontend is currently Vue 2.6+ with Vuetify 2.3+. It utilizes `vue-property-decorator`
-and `vue-class-component`. While this approach was inherited from the project generator, I later found out it is not "officially" supported by the Vue community. If I started a new
-project from scratch or moved to Vue 3, I would probably change this.
+and `vue-class-component`. While this approach was inherited from the project generator, it is not "officially" supported by the Vue community.
 * [Billboard JS](https://github.com/naver/billboard.js/) is used for charting.
 * Frontend automated testing is pretty minimal at the moment. It is expected that the basics
 work on recent non-IE browsers and most recent mobile devices.
 * The backend is a [FastAPI](https://fastapi.tiangolo.com/) python server. You can run this
 separately if you are just looking for a web API to access a `Zillion` backend.
 * Docker / Docker Compose/ Docker Swarm Mode are utilized as described in the docs for the
-project generator and at [dockerswarm.rocks](https://dockerswarm.rocks/). Docker Swarm Mode is not the most popular approach in 2020, but I stuck with
-it for the purposes of the demo deployment.
+project generator and at [dockerswarm.rocks](https://dockerswarm.rocks/).
 * This is deployed on a minimally sized VPS. Go easy please.
 
 While I will likely continue building on this project, it is currently viewed as just a demo
@@ -72,6 +70,8 @@ You can use the control bar at the bottom to run/save/configure/download reports
 
 Clone this repo. Generally speaking you should follow the docs for the base [project generator](https://github.com/tiangolo/full-stack-fastapi-postgresql). You will need to change variables in the `.env` file at the project root, including adding the ones commented out or setting them otherwise in your
 environment before starting the project locally with `docker-compose up`.
+
+I've also added a "light" version of the deployment that may be more flexibly integrated with existing infrastructures. It leaves out some of the extras from the dockerswarm.rocks approach. See docker-compose.light.yml. This would be useful if, for example, you had an existing load balancer / proxy and database in the cloud that you wanted to use.
 
 <a name="how-to-contribute"></a>
 
