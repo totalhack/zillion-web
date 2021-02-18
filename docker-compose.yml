@@ -113,6 +113,8 @@ services:
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SQLALCHEMY_DATABASE_URI=${SQLALCHEMY_DATABASE_URI}
+      - PRE_PRESTART_CMD=${PRE_PRESTART_CMD}
+      - INITIAL_WAREHOUSES_FILE=${INITIAL_WAREHOUSES_FILE}
     build:
       context: ./backend
       dockerfile: backend.dockerfile
@@ -127,10 +129,15 @@ services:
     
   frontend:
     image: '${DOCKER_IMAGE_FRONTEND}:${TAG-latest}'
+    environment:
+      - VUE_APP_DOMAIN=${DOMAIN}
+      - VUE_APP_NAME=${VUE_APP_NAME-Zillion}
     build:
       context: ./frontend
       args:
         FRONTEND_ENV: ${FRONTEND_ENV-production}
+        VUE_APP_DOMAIN: ${DOMAIN}
+        VUE_APP_NAME: ${VUE_APP_NAME-Zillion}
     deploy:
       labels:
         - traefik.enable=true

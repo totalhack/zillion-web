@@ -1,0 +1,50 @@
+version: "3.7"
+services:
+
+  backend:
+    stdin_open: true
+    tty: true
+    image: '${DOCKER_IMAGE_BACKEND}:${TAG-latest}'
+    ports:
+      - "8000:80"
+    volumes:
+      - ./backend/app:/app
+    env_file:
+      - .env
+    environment:
+      - DEBUG=true
+      - SERVER_NAME=${DOMAIN}
+      - SERVER_HOST=https://${DOMAIN}
+      - SECRET_KEY=${SECRET_KEY}
+      - FIRST_SUPERUSER=${FIRST_SUPERUSER}
+      - FIRST_SUPERUSER_PASSWORD=${FIRST_SUPERUSER_PASSWORD}
+      - SMTP_TLS=${SMTP_TLS}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SQLALCHEMY_DATABASE_URI=${SQLALCHEMY_DATABASE_URI}
+      - ZILLION_CONFIG=${ZILLION_CONFIG}
+      - PRE_PRESTART_CMD=${PRE_PRESTART_CMD}
+      - INITIAL_WAREHOUSES_FILE=${INITIAL_WAREHOUSES_FILE}
+    command: /start-reload.sh
+    build:
+      context: ./backend
+      dockerfile: backend.dockerfile
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-true}
+    
+  frontend:
+    image: '${DOCKER_IMAGE_FRONTEND}:${TAG-latest}'
+    ports:
+      - "80:80"
+    environment:
+      - VUE_APP_DOMAIN=${DOMAIN}
+      - VUE_APP_NAME=${VUE_APP_NAME-Zillion}
+    build:
+      context: ./frontend
+      args:
+        FRONTEND_ENV: development
+        VUE_APP_DOMAIN: ${DOMAIN}
+        VUE_APP_NAME: ${VUE_APP_NAME-Zillion}
+

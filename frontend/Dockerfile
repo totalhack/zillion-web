@@ -10,8 +10,12 @@ RUN npm install
 COPY ./ /app/
 
 ARG FRONTEND_ENV=production
+ARG VUE_APP_NAME=Zillion
+ARG VUE_APP_DOMAIN=localhost
 
 ENV VUE_APP_ENV=${FRONTEND_ENV}
+ENV VUE_APP_NAME=${VUE_APP_NAME}
+ENV VUE_APP_DOMAIN=${VUE_APP_DOMAIN}
 
 # Comment out the next line to disable tests
 RUN npm run test:unit

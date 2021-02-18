@@ -4,7 +4,7 @@ describe('/explorer', () => {
   beforeEach(() => {
     cy.loginAdmin();
     // TODO: how to guarantee this report exists in test env?
-    cy.visit('http://localhost:8080/main/explorer?warehouse=1&report=29')
+    cy.visit('http://localhost:8080/main/explorer?warehouse=1&report=1')
   })
 
   it('load a report for the provided ID', () => {

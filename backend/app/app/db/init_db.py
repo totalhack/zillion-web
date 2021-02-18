@@ -1,6 +1,8 @@
 import json
+import os
 
 from sqlalchemy.orm import Session
+from zillion.core import read_filepath_or_buffer
 from zillion.model import Warehouses
 from zillion.warehouse import Warehouse
 
@@ -14,32 +16,29 @@ from app.db import base  # noqa: F401
 
 
 def init_warehouse_data(db: Session) -> None:
-    print("#### Adding initial Warehouses")
+    whs_json_file = os.getenv("INITIAL_WAREHOUSES_FILE", None)
+    if not whs_json_file:
+        print("#### No INITIAL_WAREHOUSES_FILE set")
+        return
+
+    print(f"#### Adding Initial Warehouses from {whs_json_file}")
+
+    whs = json.loads(read_filepath_or_buffer(whs_json_file))
     engine = db.get_bind()
 
-    params = {"config": "/app/covid_warehouse.json"}
-    engine.execute(
-        Warehouses.insert(),
-        id=1,
-        name="Zillion Covid-19 Warehouse",
-        params=json.dumps(params),
-        meta=None,
-    )
+    for wh in whs:
+        print("Adding Warehouse...")
+        print(wh)
+        engine.execute(
+            Warehouses.insert(),
+            id=wh["id"],
+            name=wh["name"],
+            params=json.dumps(wh["params"]),
+            meta=None,
+        )
 
-    # Load to make sure any required data syncs occur before app start
-    Warehouse.load(1)
-
-    params = {"config": "/app/baseball_warehouse.json"}
-    engine.execute(
-        Warehouses.insert(),
-        id=2,
-        name="Zillion Baseball Warehouse",
-        params=json.dumps(params),
-        meta=None,
-    )
-
-    # Load to make sure any required data syncs occur before app start
-    Warehouse.load(2)
+        # Load to make sure any required data syncs occur before app start
+        Warehouse.load(wh["id"])
 
 
 def init_user_data(db: Session) -> None:
@@ -62,4 +61,3 @@ def init_db(db: Session) -> None:
     if not user:
         init_user_data(db)
         init_warehouse_data(db)
-
