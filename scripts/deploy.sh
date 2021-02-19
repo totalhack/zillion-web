@@ -1,4 +1,4 @@
-#! /usr/bin/env sh
+#! /usr/bin/env bash
 
 # Exit in case of error
 set -e
@@ -10,7 +10,7 @@ TAG=${TAG-latest} \
 DOCKER_IMAGE_FRONTEND=${DOCKER_IMAGE_FRONTEND-"totalhack/zillion-web-frontend"} \
 DOCKER_IMAGE_BACKEND=${DOCKER_IMAGE_BACKEND-"totalhack/zillion-web-backend"} \
 docker-compose \
--f docker-compose.yml \
+-f ${1:-docker-compose.yml} \
 config | \
 DOCKER_CONTEXT=${DOCKER_CONTEXT-zillion-web} \
 docker stack deploy -c - --with-registry-auth "${STACK_NAME-zillion-web}"

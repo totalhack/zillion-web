@@ -1,3 +1,5 @@
 .DS_Store
 .env.local*
 docker-stack.yml
+docker-compose.custom.yml
+docker-compose.custom.dev.yml
