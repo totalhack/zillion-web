@@ -6,5 +6,5 @@
 set -e
 
 DOCKER_CONTEXT=${DOCKER_CONTEXT?Variable not set} \
-docker exec -it $(DOCKER_CONTEXT=${DOCKER_CONTEXT?Variable not set} docker ps -q -f name=zillion-web_backend) "$@"
+docker exec -it $(DOCKER_CONTEXT=${DOCKER_CONTEXT?Variable not set} docker ps -q -f name=zillion-web-prod_backend) "$@"
 

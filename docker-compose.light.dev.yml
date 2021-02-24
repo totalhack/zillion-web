@@ -12,7 +12,7 @@ services:
     env_file:
       - .env
     environment:
-      - DEBUG=true
+      - DEBUG=${DEBUG-true}
       - SERVER_NAME=${DOMAIN}
       - SERVER_HOST=https://${DOMAIN}
       - SECRET_KEY=${SECRET_KEY}
