@@ -15,6 +15,13 @@ from app.api.api_v1.api import api_router
 from app.core.config import settings
 
 
+if settings.ROLLBAR_ENABLED:
+    print("Initializing Rollbar")
+    import rollbar
+
+    rollbar.init(settings.ROLLBAR_KEY, environment=settings.ROLLBAR_ENV)
+
+
 # https://github.com/tiangolo/fastapi/issues/775#issuecomment-592946834
 async def catch_exceptions_middleware(request: Request, call_next):
     try:
@@ -27,6 +34,8 @@ async def catch_exceptions_middleware(request: Request, call_next):
         return Response(str(e), status_code=500)
     except Exception as e:
         tb.print_exc()
+        if settings.ROLLBAR_ENABLED:
+            rollbar.report_exc_info()
         if settings.DEBUG:
             return Response(tb.format_exc(), status_code=500)
         return Response("Internal server error", status_code=500)

@@ -20,3 +20,11 @@ def test_email(
     """
     send_test_email(email_to=email_to)
     return {"msg": "Test email sent"}
+
+
+@router.get("/ok/", status_code=200)
+def test_email() -> Any:
+    """
+    Healthcheck
+    """
+    return {"status": "OK"}

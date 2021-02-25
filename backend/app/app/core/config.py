@@ -26,6 +26,9 @@ class Settings(BaseSettings):
         raise ValueError(v)
 
     PROJECT_NAME: str
+    ROLLBAR_ENABLED: bool = False
+    ROLLBAR_ENV: str = None
+    ROLLBAR_KEY: str = None
 
     SQLALCHEMY_DATABASE_URI: str
 
