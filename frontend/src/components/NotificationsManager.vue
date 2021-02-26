@@ -5,14 +5,17 @@
       :timeout="currentNotificationTimeout"
       :color="currentNotificationColor"
       max-width="90vh"
-      style="overflow-x:scroll"
+      style="overflow-x: scroll; white-space: pre-line"
     >
       <div class="d-flex justify-center align-center">
-        <span v-if="$debug" v-html="currentNotificationContent"></span>
-        <span v-else>{{ currentNotificationContent }}</span>
+        <span>{{ currentNotificationContent }}</span>
       </div>
       <div class="d-flex justify-center align-center mt-3">
-        <v-progress-circular class="ma-2" indeterminate v-show="showProgress"></v-progress-circular>
+        <v-progress-circular
+          class="ma-2"
+          indeterminate
+          v-show="showProgress"
+        ></v-progress-circular>
         <v-btn text @click.native="close">Close</v-btn>
       </div>
     </v-snackbar>

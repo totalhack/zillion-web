@@ -1,10 +1,15 @@
 <template>
-  <div v-if="reportQueryCount" style="display:flex; align-items:center">
-    <span class="mx-2 text-subtitle-2 hidden-sm-and-down">{{ reportRowCount }} rows in {{ reportDuration }}s</span>
+  <div v-if="reportQueryCount" style="display: flex; align-items: center">
+    <span class="mx-2 text-subtitle-2 hidden-sm-and-down"
+      >{{ reportRowCount }} rows in {{ reportDuration }}s</span
+    >
     <v-dialog v-model="dialog" scrollable max-width="70%">
       <template v-slot:activator="{ on, attrs }">
         <v-btn class="hidden-sm-and-down" v-bind="attrs" v-on="on">
-          <span style="line-height: 1.375rem; color: white" class="text-subtitle-2">
+          <span
+            style="line-height: 1.375rem; color: white"
+            class="text-subtitle-2"
+          >
             SQL
             <v-icon right>keyboard_arrow_up</v-icon>
           </span>
@@ -12,10 +17,21 @@
       </template>
       <v-card class="pa-2">
         <v-card-title>Query Details</v-card-title>
-        <pre style="font-size:0.85em" class="mx-5" :key="index" v-for="(summary, index) in querySummaries">{{ summary }}</pre>
-        <v-card-actions class="mt-4">
-          <v-btn color="grey darken-3" text @click="dialog = false">Close</v-btn>
-        </v-card-actions>
+        <v-card-text>
+          <v-container>
+            <pre
+              style="font-size: 0.95em"
+              class="mx-5"
+              :key="index"
+              v-for="(summary, index) in querySummaries"
+            ><br>{{ summary }}</pre>
+            <v-card-actions class="mt-4">
+              <v-btn color="grey darken-3" text @click="dialog = false"
+                >Close</v-btn
+              >
+            </v-card-actions>
+          </v-container>
+        </v-card-text>
       </v-card>
     </v-dialog>
   </div>

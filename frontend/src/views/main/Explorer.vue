@@ -56,7 +56,10 @@
           </v-tooltip>
         </v-card-subtitle>
         <v-card-text class="py-0 my-0">
-          <dimension-select ref="dimensions" data-cy="dimensions"></dimension-select>
+          <dimension-select
+            ref="dimensions"
+            data-cy="dimensions"
+          ></dimension-select>
         </v-card-text>
       </v-card>
 
@@ -87,14 +90,22 @@
             <v-col class="py-1" cols="12" sm="4">
               <div class="mx-1 px-1 mt-1 pt-1 mb-0 pb-0">
                 <p class="text-subtitle-2 option-select-title">Rollup Type</p>
-                <rollup-select class="mt-1 pt-1 mb-0 pb-0" ref="rollup" data-cy="rollup"></rollup-select>
+                <rollup-select
+                  class="mt-1 pt-1 mb-0 pb-0"
+                  ref="rollup"
+                  data-cy="rollup"
+                ></rollup-select>
               </div>
             </v-col>
 
             <v-col class="py-1" cols="12" sm="8">
               <div class="mx-1 px-1 mt-1 pt-1 mb-0 pb-0">
                 <p class="text-subtitle-2 option-select-title">Order By</p>
-                <order-by-select :order-by-options="selectedFields" ref="order_by" data-cy="order_by"></order-by-select>
+                <order-by-select
+                  :order-by-options="selectedFields"
+                  ref="order_by"
+                  data-cy="order_by"
+                ></order-by-select>
               </div>
             </v-col>
           </v-row>
@@ -102,7 +113,11 @@
             <v-col class="py-1" cols="12" sm="2">
               <div class="mx-1 px-1 mt-1 pt-1 mb-0 pb-0">
                 <p class="text-subtitle-2 option-select-title">Row Limit</p>
-                <limit-select class="my-1 py-1" ref="limit" data-cy="limit"></limit-select>
+                <limit-select
+                  class="my-1 py-1"
+                  ref="limit"
+                  data-cy="limit"
+                ></limit-select>
               </div>
             </v-col>
 
@@ -110,9 +125,17 @@
               <div class="mx-1 px-1 mt-1 pt-1 mb-0 pb-0">
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on, attrs }">
-                    <p v-bind="attrs" v-on="on" class="text-subtitle-2 option-select-title">Limit First</p>
+                    <p
+                      v-bind="attrs"
+                      v-on="on"
+                      class="text-subtitle-2 option-select-title"
+                    >
+                      Limit First
+                    </p>
                   </template>
-                  <span>Apply limits and row filters before rollups/ordering</span>
+                  <span
+                    >Apply limits and row filters before rollups/ordering</span
+                  >
                 </v-tooltip>
                 <v-switch
                   class="mt-1 pt-1 mb-0 pb-0"
@@ -129,7 +152,13 @@
               <div class="mx-1 px-1 mt-1 pt-1 mb-0 pb-0">
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on, attrs }">
-                    <p v-bind="attrs" v-on="on" class="text-subtitle-2 option-select-title">Row Filters</p>
+                    <p
+                      v-bind="attrs"
+                      v-on="on"
+                      class="text-subtitle-2 option-select-title"
+                    >
+                      Row Filters
+                    </p>
                   </template>
                   <span>Metric value filters applied on the final result</span>
                 </v-tooltip>
@@ -147,7 +176,9 @@
       </v-card>
 
       <v-card class="ma-3 pa-2">
-        <v-card-subtitle class="text-subtitle-2 py-0">Vizualization</v-card-subtitle>
+        <v-card-subtitle class="text-subtitle-2 py-0"
+          >Vizualization</v-card-subtitle
+        >
         <v-container class="py-0">
           <v-row>
             <v-col class="py-1">
@@ -179,9 +210,18 @@
               <div class="mx-1 px-1 my-0 py-0">
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on, attrs }">
-                    <p v-bind="attrs" v-on="on" class="text-subtitle-2 option-select-title">Multi-axis</p>
+                    <p
+                      v-bind="attrs"
+                      v-on="on"
+                      class="text-subtitle-2 option-select-title"
+                    >
+                      Multi-axis
+                    </p>
                   </template>
-                  <span>Graph right half of metrics list on a secondary Y axis</span>
+                  <span
+                    >Graph right half of metrics list on a secondary Y
+                    axis</span
+                  >
                 </v-tooltip>
                 <v-switch
                   class="mt-1 pt-1 mb-0 pb-0"
@@ -209,11 +249,17 @@
       </v-card>
 
       <!-- Spacer div -->
-      <div style="height:200px"></div>
+      <div style="height: 200px"></div>
     </v-navigation-drawer>
 
-    <div :style="showSettingsDrawer ? { opacity: 0.46, 'height': '100%' } : { height: '100%' }">
-      <div v-if="hasReportData()" style="height:100%; margin-bottom:20px">
+    <div
+      :style="
+        showSettingsDrawer
+          ? { opacity: 0.46, height: '100%' }
+          : { height: '100%' }
+      "
+    >
+      <div v-if="hasReportData()" style="height: 100%; margin-bottom: 20px">
         <template v-if="this.resultLayout !== 'tabs'">
           <v-row>
             <v-col v-show="showGraph" class="pt-0 mt-0" cols="12">
@@ -225,18 +271,23 @@
               ></report-result-graph-card>
             </v-col>
             <v-col class="pt-0 mt-0" cols="12">
-              <report-result-table-card ref="reportResultTableCard" data-cy="reportResultTableCard"></report-result-table-card>
+              <report-result-table-card
+                ref="reportResultTableCard"
+                data-cy="reportResultTableCard"
+              ></report-result-table-card>
             </v-col>
           </v-row>
         </template>
         <template v-else>
-          <div style="height:100%">
+          <div style="height: 100%">
             <v-tabs v-model="tab" centered class="pt-0 mt-0">
               <v-tabs-slider color="grey darken-3"></v-tabs-slider>
               <v-tab href="#graphTab" :disabled="!showGraph">
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" color="grey darken-3">analytics</v-icon>
+                    <v-icon v-bind="attrs" v-on="on" color="grey darken-3"
+                      >analytics</v-icon
+                    >
                   </template>
                   <span>Graph</span>
                 </v-tooltip>
@@ -244,17 +295,24 @@
               <v-tab href="#tableTab">
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on, attrs }">
-                    <v-icon v-bind="attrs" v-on="on" color="grey darken-3">table_view</v-icon>
+                    <v-icon v-bind="attrs" v-on="on" color="grey darken-3"
+                      >table_view</v-icon
+                    >
                   </template>
                   <span>Table</span>
                 </v-tooltip>
               </v-tab>
             </v-tabs>
 
-            <v-tabs-items style="height:97%" v-model="tab">
-              <v-tab-item style="height:100%" :value="'graphTab'" :reverse-transition="false" :transition="false">
+            <v-tabs-items style="height: 97%" v-model="tab">
+              <v-tab-item
+                style="height: 100%"
+                :value="'graphTab'"
+                :reverse-transition="false"
+                :transition="false"
+              >
                 <report-result-graph-card
-                  style="max-height:84vh; height:84vh"
+                  style="max-height: 84vh; height: 84vh"
                   ref="reportResultGraphCard"
                   data-cy="reportResultGraphCard"
                   :graph-options="graphOptions"
@@ -264,7 +322,12 @@
                   v-on:complete="graphComplete = true"
                 ></report-result-graph-card>
               </v-tab-item>
-              <v-tab-item eager :value="'tableTab'" :reverse-transition="false" :transition="false">
+              <v-tab-item
+                eager
+                :value="'tableTab'"
+                :reverse-transition="false"
+                :transition="false"
+              >
                 <report-result-table-card
                   ref="reportResultTableCard"
                   data-cy="reportResultTableCard"
@@ -279,17 +342,33 @@
       <span
         v-else
         class="d-flex mt-5 ml-5 justify-start align-start text-subtitle-1"
-        style="height:100%"
-      >No Data. Awaiting instructions...</span>
+        style="height: 100%"
+        >No Data. Awaiting instructions...</span
+      >
     </div>
 
     <report-loading-overlay></report-loading-overlay>
 
-    <report-save-dialog @input="save($event)" ref="reportSaveDialog" data-cy="reportSaveDialog"></report-save-dialog>
+    <report-save-dialog
+      @input="save($event)"
+      ref="reportSaveDialog"
+      data-cy="reportSaveDialog"
+    ></report-save-dialog>
 
-    <v-bottom-navigation fixed dark height="30">
-      <query-summaries style="flex:1" ref="querySummaries" data-cy="querySummaries"></query-summaries>
-      <div style="flex:1; display:flex; justify-content:center; align-items:center;">
+    <v-bottom-navigation fixed dark height="auto" min-height="30">
+      <query-summaries
+        style="flex: 1"
+        ref="querySummaries"
+        data-cy="querySummaries"
+      ></query-summaries>
+      <div
+        style="
+          flex: 1;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        "
+      >
         <v-tooltip top>
           <template v-slot:activator="{ on, attrs }">
             <v-btn
@@ -306,7 +385,13 @@
         </v-tooltip>
         <v-tooltip top>
           <template v-slot:activator="{ on, attrs }">
-            <v-btn v-bind="attrs" v-on="on" :disabled="!isMounted" @click="run" data-cy="runButton">
+            <v-btn
+              v-bind="attrs"
+              v-on="on"
+              :disabled="!isMounted"
+              @click="run"
+              data-cy="runButton"
+            >
               <v-icon color="white">play_arrow</v-icon>
             </v-btn>
           </template>
@@ -314,7 +399,13 @@
         </v-tooltip>
         <v-tooltip top>
           <template v-slot:activator="{ on, attrs }">
-            <v-btn v-bind="attrs" v-on="on" :disabled="!isMounted" @click="openReportSaveDialog" data-cy="saveButton">
+            <v-btn
+              v-bind="attrs"
+              v-on="on"
+              :disabled="!isMounted"
+              @click="openReportSaveDialog"
+              data-cy="saveButton"
+            >
               <v-icon color="white">save</v-icon>
             </v-btn>
           </template>
@@ -322,14 +413,22 @@
         </v-tooltip>
         <v-tooltip top>
           <template v-slot:activator="{ on, attrs }">
-            <v-btn v-bind="attrs" v-on="on" :disabled="!isMounted" @click="downloadReport" data-cy="downloadButton">
+            <v-btn
+              v-bind="attrs"
+              v-on="on"
+              :disabled="!isMounted"
+              @click="downloadReport"
+              data-cy="downloadButton"
+            >
               <v-icon color="white">get_app</v-icon>
             </v-btn>
           </template>
           <span>Download Data (ctrl+shft+d)</span>
         </v-tooltip>
       </div>
-      <div style="display:flex; justify-content:end; align-items:right; flex:1"></div>
+      <div
+        style="display: flex; justify-content: end; align-items: right; flex: 1"
+      ></div>
     </v-bottom-navigation>
   </v-container>
 </template>
@@ -350,6 +449,7 @@ import {
 } from '@/store/main/getters';
 import {
   dispatchAddNotification,
+  dispatchClearNotifications,
   dispatchAddWarning,
   dispatchExecuteReport,
   dispatchSaveReport,
@@ -552,10 +652,14 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     if (!this.isMounted) {
       return;
     }
+
+    dispatchClearNotifications(this.$store);
+
     if (!this.warehouseActive) {
       dispatchAddWarning(this.$store, 'Please activate a warehouse to run reports');
       return;
     }
+
     const vresult = this.validate();
     if (!vresult.valid) {
       this.addValidationErrorNotification(vresult.error?.message);

@@ -41,6 +41,9 @@ export const mutations = {
   removeNotification(state: MainState, payload: AppNotification) {
     state.notifications = state.notifications.filter((notification) => notification !== payload);
   },
+  clearNotifications(state: MainState) {
+    state.notifications = state.notifications.filter((notification) => false);
+  },
   setWarehouses(state: MainState, payload: object) {
     // Freeze prevents reactivity - https://github.com/vuejs/vue/issues/2637
     state.warehouses = Object.freeze(payload);
@@ -76,6 +79,7 @@ export const commitSetToken = commit(mutations.setToken);
 export const commitSetUserProfile = commit(mutations.setUserProfile);
 export const commitAddNotification = commit(mutations.addNotification);
 export const commitRemoveNotification = commit(mutations.removeNotification);
+export const commitClearNotifications = commit(mutations.clearNotifications);
 export const commitSetWarehouses = commit(mutations.setWarehouses);
 export const commitSetActiveWarehouseId = commit(mutations.setActiveWarehouseId);
 export const commitSetWarehouseStructure = commit(mutations.setWarehouseStructure);

@@ -16,6 +16,7 @@ import {
 import {
   commitAddNotification,
   commitRemoveNotification,
+  commitClearNotifications,
   commitSetLoggedIn,
   commitSetLogInError,
   commitSetToken,
@@ -134,9 +135,11 @@ export const actions = {
         } else {
           if (Vue.prototype.$debug) {
             timeout = -1;
-            msg = 'Error: <pre>' + payload.response?.data + '</pre>\n';
+          }
+          if (typeof (payload.response?.data) === 'string') {
+            msg = 'Error: ' + payload.response?.data;
           } else {
-            msg = 'Error: ' + JSON.stringify(payload.response?.data);
+            msg = 'Error: ' + JSON.stringify(payload.response?.data, null, 2);
           }
         }
         const notification = { content: msg, color: 'error' };
@@ -154,6 +157,9 @@ export const actions = {
   },
   async addNotification(context: MainContext, payload: AppNotification) {
     commitAddNotification(context, payload);
+  },
+  async clearNotifications(context: MainContext) {
+    commitClearNotifications(context);
   },
   async addWarning(context: MainContext, payload: string) {
     commitAddNotification(context, { content: payload, color: 'warning' });
@@ -402,6 +408,7 @@ export const dispatchRouteLoggedIn = dispatch(actions.actionRouteLoggedIn);
 export const dispatchRouteLogOut = dispatch(actions.actionRouteLogOut);
 export const dispatchUpdateUserProfile = dispatch(actions.actionUpdateUserProfile);
 export const dispatchAddNotification = dispatch(actions.addNotification);
+export const dispatchClearNotifications = dispatch(actions.clearNotifications);
 export const dispatchAddWarning = dispatch(actions.addWarning);
 export const dispatchAddError = dispatch(actions.addError);
 export const dispatchRemoveNotification = dispatch(actions.removeNotification);
