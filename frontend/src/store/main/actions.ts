@@ -305,6 +305,10 @@ export const actions = {
         setTimeout(() => {
           dispatchSetReportRequest(context, payload);
           dispatchSetReportResult(context, response.data);
+          if (response.data.data === undefined) {
+            console.warn('Unexpected response:');
+            console.warn(response);
+          }
           if (response.data.data.length) {
             dispatchExplorerCloseSettingsDrawer(context);
           }

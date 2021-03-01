@@ -1,14 +1,12 @@
-from collections import defaultdict
-from typing import Any, List, Dict, Union
+from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, Path
-from tlbx import st, pp, get_string_format_args
+from fastapi import APIRouter, Depends, Response
+from tlbx import st, pp, get_string_format_args, json
 
 from zillion.core import InvalidFieldException
 
 # TODO: perhaps should be config driven
 from zillion.report import ROLLUP_INDEX_DISPLAY_LABEL
-from zillion.warehouse import Warehouse
 
 from app import crud, models
 from app.schemas.warehouse import *
@@ -21,6 +19,7 @@ def process_report_result(result):
     df = result.df_display
     if result.dimensions:
         df = df.reset_index()
+
     data = df.to_dict(orient="split")
     del data["index"]
     data["rollup_marker"] = ROLLUP_INDEX_DISPLAY_LABEL
@@ -125,7 +124,7 @@ def check_formula(
     return {}
 
 
-@router.post("/{warehouse_id}/execute", response_model=ReportResponse)
+@router.post("/{warehouse_id}/execute")
 def execute(
     warehouse_id: int,
     request: ReportRequest,
@@ -141,11 +140,15 @@ def execute(
         replace_report_formula_display_names(wh, request)
         pp(request)
         result = wh.execute(**request)
-        return process_report_result(result)
+        data = process_report_result(result)
+        # Need to use a custom json response to handle numpy dtypes
+        json_str = json.dumps(data, ignore_nan=True)
+        return Response(media_type="application/json", content=json_str)
+
     return {}
 
 
-@router.post("/{warehouse_id}/execute_id", response_model=ReportResponse)
+@router.post("/{warehouse_id}/execute_id")
 def execute_id(
     warehouse_id: int,
     request: ReportIDRequest,
@@ -158,8 +161,12 @@ def execute_id(
     if crud.user.is_active(current_user):
         wh = whs[warehouse_id]
         result = wh.execute_id(request.spec_id)
-        return process_report_result(result)
-    return []
+        data = process_report_result(result)
+        # Need to use a custom json response to handle numpy dtypes
+        json_str = json.dumps(data, ignore_nan=True)
+        return Response(media_type="application/json", content=json_str)
+
+    return {}
 
 
 @router.post("/{warehouse_id}/save", response_model=ReportSaveResponse)
