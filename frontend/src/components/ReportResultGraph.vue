@@ -223,8 +223,6 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
       const zDimIndexes = Object.keys(zDims);
 
       for (const row of nonRollupRows) {
-        // tslint:disable-next-line no-debugger
-        // debugger;
         for (const metric of metrics) {
           let bucketName: string = metric;
           const metricValue = row[columnIndexes[metric]];
@@ -239,14 +237,21 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
           if (!(bucketName in columns)) {
             columns[bucketName] = new Array(1 + xDimLength).fill(null); // Add 1 for bucketName
             columns[bucketName][0] = bucketName;
+            metricBucketStats[bucketName] = {
+              yMin: metricValue,
+              yMax: metricValue
+            };
+          } else {
+            metricBucketStats[bucketName].yMin = Math.min(metricBucketStats[bucketName].yMin, metricValue);
+            metricBucketStats[bucketName].yMax = Math.max(metricBucketStats[bucketName].yMax, metricValue);
           }
 
           if (this.xDim) {
             const xIndex = xDimValueMap.get(row[this.xDimIndex!]);
-            columns[bucketName][xIndex + 1] = row[columnIndexes[metric]]; // Add 1 for bucketName
+            columns[bucketName][xIndex + 1] = metricValue; // Add 1 for bucketName
           } else {
             // Only zDims
-            columns[bucketName].push(row[columnIndexes[metric]]);
+            columns[bucketName].push(metricValue);
           }
 
           if (!(metric in metricBuckets)) {
@@ -258,7 +263,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
       }
     }
 
-    return { columns: Object.values(columns), metricBuckets };
+    return { columns: Object.values(columns), metricBuckets, metricBucketStats };
   }
 
   get chartDataColumns() {
@@ -289,20 +294,32 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     return (this.chartData as any).metricBuckets;
   }
 
+  get chartDataMetricBucketStats() {
+    return (this.chartData as any).metricBucketStats;
+  }
+
   getMultiAxisAxesConfig(currentAxes) {
     const axes = currentAxes || {};
     let yAxis = 'y';
+    let yMin;
+    let yMax;
     const metricBuckets = Object.values(this.chartDataMetricBuckets);
+    const metricBucketStats = this.chartDataMetricBucketStats;
+
     metricBuckets.forEach((metricBucket, index) => {
       if (index >= (metricBuckets.length / 2)) {
         // Put right "half" of metrics on y2
         yAxis = 'y2';
       }
       for (const bucket of (metricBucket as any)) {
+        // Track absolute min/max across all Y axes
+        yMin = Math.min(isNaN(yMin) ? null : yMin, metricBucketStats[(bucket as any)].yMin);
+        yMax = Math.max(isNaN(yMax) ? null : yMax, metricBucketStats[(bucket as any)].yMax);
         axes[bucket] = yAxis;
       }
     });
-    return axes;
+
+    return { axes, yMin, yMax };
   }
 
   get showY2() {
@@ -586,8 +603,15 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     const options = this.getBaseChartOptions();
 
     if (this.showY2) {
-      const axes = this.getMultiAxisAxesConfig(null);
-      options.data['axes'] = axes;
+      const axesConfig = this.getMultiAxisAxesConfig(null);
+      options.data['axes'] = axesConfig.axes;
+      // This doesn't have the desired effect, was hoping it would line up
+      // the zero position when negative numbers are present but that doesnt
+      // work since the scales are different.
+      // if (axesConfig.yMin) {
+      //   (options.axis.y as any).min = axesConfig.yMin;
+      //   (options.axis.y2 as any).min = axesConfig.yMin;
+      // }
     }
 
     if (this.logYScale) {
@@ -627,6 +651,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
         { content: 'Unable to build chart: ' + err.message, color: 'error' }
       );
       this.destroyChart();
+      this.$emit('complete');
       throw (err);
     }
 
