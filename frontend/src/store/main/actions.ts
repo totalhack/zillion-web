@@ -311,6 +311,10 @@ export const actions = {
           }
           if (response.data.data.length) {
             dispatchExplorerCloseSettingsDrawer(context);
+          } else {
+            // HACK: thought other events would trigger this.
+            dispatchExplorerCloseLoadingOverlay(context);
+            dispatchExplorerSetReportState(context, '');
           }
         }, 0);
       } else {

@@ -347,7 +347,7 @@ header vertical alignment */
     height: 100% !important;
     max-height: 100vh !important;
     min-width: 45% !important;
-    max-width: 45% !important;
+    max-width: 70% !important;
     border-bottom: 1px solid #d9d9d9 !important;
     transition-duration: unset !important;
     transition-timing-function: unset !important;

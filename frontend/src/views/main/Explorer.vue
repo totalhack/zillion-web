@@ -839,7 +839,7 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
   }
 
   @Watch('graphComplete')
-  onGraphCompletChanged(val: object, oldVal: object) {
+  onGraphCompleteChanged(val: object, oldVal: object) {
     if (val) {
       dispatchExplorerCloseLoadingOverlay(this.$store);
       dispatchExplorerSetReportState(this.$store, '');

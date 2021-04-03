@@ -4,9 +4,9 @@ import { Component, Vue } from 'vue-property-decorator';
 @Component
 export default class RulesMixin extends Vue {
   rules = {
-    required: (v) => !!v || 'Required.',
-    isInteger: (v) => (!v || /^[+-]?\d+$/.test(v)) || 'Must be an integer',
-    isNumber: (v) => (!v || /^[+-]?\d+(\.\d+)?$/.test(v)) || 'Must be a number',
+    required: (v) => (String(v).trim() !== '' && (Boolean(v) || v === 0)) || 'Required.',
+    isInteger: (v) => (String(v).trim() !== '' && (!v || /^[+-]?\d+$/.test(v))) || 'Must be an integer',
+    isNumber: (v) => (String(v).trim() !== '' && (!v || /^[+-]?\d+(\.\d+)?$/.test(v))) || 'Must be a number',
   };
 }
 </script>

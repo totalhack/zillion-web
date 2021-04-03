@@ -1,7 +1,11 @@
 <template>
   <div id="bb-container">
     <div id="graph" @mouseleave="hideToolTip" class="mx-4"></div>
-    <div id="legend" @touchstart="hideToolTip" class="ml-6 pl-5 legend-container d-flex flex-wrap justify-center"></div>
+    <div
+      id="legend"
+      @touchstart="hideToolTip"
+      class="ml-6 pl-5 legend-container d-flex flex-wrap justify-center"
+    ></div>
   </div>
 </template>
 
@@ -170,6 +174,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   get chartData() {
     const columns: object = {};
     const metricBuckets: object = {};
+    const metricBucketStats: object = {};
     const reportResult = this.reportResult;
 
     if (!(this.xDim || this.zDims)) {
@@ -218,8 +223,11 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
       const zDimIndexes = Object.keys(zDims);
 
       for (const row of nonRollupRows) {
+        // tslint:disable-next-line no-debugger
+        // debugger;
         for (const metric of metrics) {
           let bucketName: string = metric;
+          const metricValue = row[columnIndexes[metric]];
 
           for (const zDimIndex of zDimIndexes) {
             // In multi-dimensional case, we create a series for each combination of
@@ -606,6 +614,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
       this.destroyChart();
     }
     if (!this.chartData) {
+      this.$emit('complete');
       return;
     }
 
@@ -676,7 +685,11 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
 
   @Watch('reportResult')
   onReportResultChanged(val: object, oldVal: object) {
-    if (this.graphTypeName && this.reportResult) {
+    if (this.graphTypeName) {
+      if (!this.reportResult) {
+        this.$emit('complete');
+        return;
+      }
       let height: any = null;
       if (this.resultLayout === 'tabs' && this.tab === 'tableTab') {
         // HACK: get the graph height closer to what it should be. By
