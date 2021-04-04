@@ -151,7 +151,9 @@ export const actions = {
     }
   },
   actionRouteLoggedIn(context: MainContext) {
-    if (router.currentRoute.path === '/login' || router.currentRoute.path === '/') {
+    if (router.currentRoute.query && router.currentRoute.query.redirect) {
+      router.push((router.currentRoute.query.redirect as any));
+    } else if (router.currentRoute.path === '/login' || router.currentRoute.path === '/') {
       router.push('/main/explorer');
     }
   },
