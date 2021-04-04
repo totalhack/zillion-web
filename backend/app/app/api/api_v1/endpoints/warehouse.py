@@ -1,8 +1,8 @@
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Response
+from marshmallow.exceptions import ValidationError
 from tlbx import st, pp, get_string_format_args, json
-
 from zillion.core import InvalidFieldException
 
 # TODO: perhaps should be config driven
@@ -119,6 +119,8 @@ def check_formula(
         try:
             result = wh.get_metric(request)
         except InvalidFieldException as e:
+            return {"success": False, "reason": str(e)}
+        except ValidationError as e:
             return {"success": False, "reason": str(e)}
         return {"success": True, "reason": None}
     return {}

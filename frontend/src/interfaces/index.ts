@@ -25,6 +25,8 @@ export interface IUserProfileCreate {
 export interface ICheckFormulaRequest {
   name: string;
   formula: string;
+  rounding: number | null;
+  technical: string | null;
 }
 
 export interface IReportRequest {

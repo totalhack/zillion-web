@@ -10,7 +10,10 @@
       :taggable="true"
       @tag="openAdHocMetricDialog"
     ></draggable-multi-select>
-    <ad-hoc-metric-dialog @input="addAdHocMetric($event)" ref="adHocMetricDialog"></ad-hoc-metric-dialog>
+    <ad-hoc-metric-dialog
+      @input="addAdHocMetric($event)"
+      ref="adHocMetricDialog"
+    ></ad-hoc-metric-dialog>
   </div>
 </template>
 

@@ -18,6 +18,7 @@
                     persistent-hint
                     :rules="[rules.required]"
                     required
+                    @input="errorMessages = ''"
                   ></v-text-field>
                 </v-col>
                 <v-col cols="12" sm="6">
@@ -27,6 +28,7 @@
                     placeholder="My Metric"
                     :rules="[rules.required]"
                     required
+                    @input="errorMessages = ''"
                   ></v-text-field>
                 </v-col>
               </v-row>
@@ -39,32 +41,59 @@
                     hint="A formula in the SQL dialect of the combined layer DB"
                     persistent-hint
                     :rules="[rules.required]"
-                    :error-messages="formulaErrorMessages"
-                    @input="formulaErrorMessages = ''"
+                    @input="errorMessages = ''"
                     required
                   ></v-text-field>
                 </v-col>
               </v-row>
               <v-row>
                 <v-col cols="12" sm="6">
-                  <v-text-field label="Rounding" placeholder="0" hint="Integer metric precision" persistent-hint></v-text-field>
+                  <v-text-field
+                    v-model="rounding"
+                    label="Rounding"
+                    placeholder="0"
+                    hint="Integer metric precision"
+                    persistent-hint
+                    @input="errorMessages = ''"
+                  ></v-text-field>
                 </v-col>
                 <v-col cols="12" sm="6">
                   <v-text-field
+                    v-model="technical"
                     label="Technical"
-                    placeholder="MA:5"
+                    placeholder="mean(5)"
                     hint="Technical string. See Zillion docs."
                     persistent-hint
+                    @input="errorMessages = ''"
                   ></v-text-field>
                 </v-col>
               </v-row>
               <small>* Indicates required field</small>
+              <v-alert
+                dense
+                text
+                outlined
+                type="error"
+                :value="!!errorMessages"
+              >
+                {{ errorMessages }}
+              </v-alert>
             </v-container>
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
-            <v-btn color="grey darken-3" text @click="dialog = false">Cancel</v-btn>
-            <v-btn color="grey darken-3" text @click="addAdHocMetric">Add</v-btn>
+            <v-btn
+              color="grey darken-3"
+              text
+              @click="
+                dialog = false;
+                errorMessages = '';
+              "
+              >Cancel</v-btn
+            >
+            <v-btn color="grey darken-3" text @click="addAdHocMetric"
+              >Add</v-btn
+            >
           </v-card-actions>
         </v-card>
       </v-form>
@@ -88,7 +117,7 @@ export default class AdHocMetricDialog extends Mixins(RulesMixin) {
   private technical: string | null = null;
 
   private valid: boolean = false;
-  private formulaErrorMessages = '';
+  private errorMessages = '';
 
   clear() {
     this.name = null;
@@ -128,14 +157,19 @@ export default class AdHocMetricDialog extends Mixins(RulesMixin) {
     if (!this.valid) {
       return;
     }
-    const checkFormula = { name: this.name, formula: this.formula };
+    const checkFormula = {
+      name: this.name,
+      formula: this.formula,
+      rounding: this.rounding,
+      technical: this.technical
+    };
     const result = await dispatchCheckFormula(this.$store, checkFormula);
     if (!(result as any).success) {
       const reason = (result as any).reason;
       if (reason) {
-        this.formulaErrorMessages = reason;
+        this.errorMessages = reason;
       } else {
-        this.formulaErrorMessages = 'Invalid formula';
+        this.errorMessages = 'Invalid formula';
       }
       return;
     }
