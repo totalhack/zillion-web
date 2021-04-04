@@ -113,7 +113,7 @@ export default class BaseMultiSelect extends BaseSelect {
       'group-select': false,
       'option-height': 24,
       'show-labels': false,
-      'blockKeys': '[\'Delete\']',
+      'blockKeys': ['Delete'],
       'taggable': this.taggable,
       'tag-placeholder': this.tagPlaceholder,
       'key': this.componentKey,

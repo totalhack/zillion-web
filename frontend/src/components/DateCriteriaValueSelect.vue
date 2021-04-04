@@ -17,7 +17,7 @@ import BaseDateCriteriaValueSelect from './BaseDateCriteriaValueSelect.vue';
 @Component
 export default class DateCriteriaValueSelect extends BaseDateCriteriaValueSelect {
   static criteriaToOptionValue(criteria) {
-    this.ensureOptionValue(criteria);
+    return this.ensureOptionValue(criteria);
   }
 
   static ensureOptionValue(value) {

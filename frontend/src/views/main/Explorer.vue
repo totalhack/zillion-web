@@ -726,6 +726,7 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
   }
 
   load(report, autorun = false) {
+    console.log(report);
     for (const selector of this.reportSelectors) {
       (this.$refs[selector] as any).selected = report[selector];
     }

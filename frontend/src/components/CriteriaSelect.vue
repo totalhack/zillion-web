@@ -7,17 +7,35 @@
       v-bind="multiSelectProps"
       @select="initComponent"
     >
-      <template slot="selection" slot-scope="{ values, search, isOpen, remove }">
+      <template
+        slot="selection"
+        slot-scope="{ values, search, isOpen, remove }"
+      >
         <div class="multiselect__tags-wrap" v-show="values.length > 0">
           <v-simple-table class="criteriatable pa-0">
             <template v-for="(option, index) of values">
-              <tr :key="index" class="tagrow" style="height:40px" :style="option.active ? '' : { 'opacity': 0.5 }">
+              <tr
+                :key="index"
+                class="tagrow"
+                style="height: 40px"
+                :style="option.active ? '' : { opacity: 0.5 }"
+              >
                 <td cols="12" sm="4">
                   <v-chip class="tagchip mx-2 ml-0" label>
-                    <span class="pr-1" style="cursor: pointer" @mousedown.prevent @click="doRemove(remove, option)">
+                    <span
+                      class="pr-1"
+                      style="cursor: pointer"
+                      @mousedown.prevent
+                      @click="doRemove(remove, option)"
+                    >
                       <v-icon size="21">delete</v-icon>
                     </span>
-                    <span class="pr-1" style="cursor: pointer" @mousedown.prevent @click="doPause(option)">
+                    <span
+                      class="pr-1"
+                      style="cursor: pointer"
+                      @mousedown.prevent
+                      @click="doPause(option)"
+                    >
                       <v-icon size="22">pause</v-icon>
                     </span>
                     <span class="chiptext">{{ option.display_name }}</span>
@@ -26,7 +44,13 @@
                 <td cols="12" sm="2">
                   <v-menu offset-y>
                     <template v-slot:activator="{ on, attrs, value }">
-                      <v-chip class="mx-2" v-bind="attrs" v-on="on" @mousedown.prevent label>
+                      <v-chip
+                        class="mx-2"
+                        v-bind="attrs"
+                        v-on="on"
+                        @mousedown.prevent
+                        label
+                      >
                         <span class="chiptext">{{ option.operation }}</span>
                         <v-icon right>arrow_drop_down</v-icon>
                       </v-chip>
@@ -63,10 +87,14 @@
       </template>
       <template slot="option" slot-scope="props">
         <div class="option__desc">
-          <span v-if="props.option.$isLabel">{{ props.option.$groupLabel }}</span>
+          <span v-if="props.option.$isLabel">{{
+            props.option.$groupLabel
+          }}</span>
           <div v-else class="tooltip">
             <span class="option__title">{{ props.option.display_name }}</span>
-            <span class="tooltiptext">{{ props.option.description || 'No description' }}</span>
+            <span class="tooltiptext">{{
+              props.option.description || "No description"
+            }}</span>
           </div>
         </div>
       </template>

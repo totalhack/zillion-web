@@ -11,10 +11,9 @@
     @input="onInput"
   >
     <template v-slot:footer>
-      <button
-        class="mx-btn mx-btn-text"
-        @click="toggleTimeRangePanel"
-      >{{ showTimeRangePanel ? 'select date' : 'select time' }}</button>
+      <button class="mx-btn mx-btn-text" @click="toggleTimeRangePanel">
+        {{ showTimeRangePanel ? "select date" : "select time" }}
+      </button>
     </template>
   </date-picker>
 </template>
@@ -61,7 +60,7 @@ export default class BaseDateCriteriaValueSelect extends BaseCriteriaValueSelect
     {
       text: 'Start of Last Month',
       onClick() {
-        return getLastMonthEnd();
+        return getLastMonthStart();
       },
     },
     {

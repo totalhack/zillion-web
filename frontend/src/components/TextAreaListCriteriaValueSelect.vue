@@ -3,7 +3,8 @@
     :value="syncedValue"
     @input="onInput"
     :rules="getRules()"
-    label="Enter Text"
+    :label="label"
+    ref="input"
     rows="1"
     hide-details="auto"
     auto-grow
@@ -49,5 +50,8 @@ export default class TextAreaListCriteriaValueSelect extends TextAreaCriteriaVal
 
     return result;
   }
+
+  label = 'Enter Text';
+  inputRefs = ['input'];
 }
 </script>

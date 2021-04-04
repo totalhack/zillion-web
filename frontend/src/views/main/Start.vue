@@ -18,10 +18,14 @@ const startRouteGuard = async (to, from, next) => {
     }
   } else if (readIsLoggedIn(store) === false) {
     if (to.path === '/' || (to.path as string).startsWith('/main')) {
-      next({
-        path: '/login',
-        query: { redirect: to.fullPath }
-      });
+      if (!to.fullPath || to.fullPath === '/' || to.fullPath === '/login') {
+        next('/login');
+      } else {
+        next({
+          path: '/login',
+          query: { redirect: to.fullPath }
+        });
+      }
     } else {
       next();
     }
