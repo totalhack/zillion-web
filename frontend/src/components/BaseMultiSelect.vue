@@ -102,6 +102,7 @@ export default class BaseMultiSelect extends BaseSelect {
     return {
       'multiple': true,
       'close-on-select': false,
+      'clear-on-select': false,
       'max-height': this.maxHeight,
       'options-limit': this.optionsLimit,
       'track-by': 'name',
@@ -112,6 +113,7 @@ export default class BaseMultiSelect extends BaseSelect {
       'group-select': false,
       'option-height': 24,
       'show-labels': false,
+      'blockKeys': '[\'Delete\']',
       'taggable': this.taggable,
       'tag-placeholder': this.tagPlaceholder,
       'key': this.componentKey,
