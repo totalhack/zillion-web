@@ -588,6 +588,17 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
       report[selector] = (this.$refs[selector] as any).selected;
     }
     report['limit_first'] = this.limitFirst;
+
+    const rollup = (report as any).rollup;
+    const dimensions = (report as any).dimensions;
+    if (rollup && !(dimensions && dimensions.length > 0)) {
+      dispatchAddNotification(
+        this.$store,
+        { content: 'No Dimensions specified, ignoring Rollup', color: 'warning' }
+      );
+      (report as any).rollup = null;
+    }
+
     return report;
   }
 
