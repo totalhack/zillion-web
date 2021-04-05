@@ -39,6 +39,14 @@
         </td>
       </tr>
     </template>
+    <template
+      v-for="(column, index) of reportColumns"
+      v-slot:[`item.${column}`]="{ item }"
+    >
+      <td :key="index" :style="getCellStyle(column, item[column])">
+        {{ item[column] }}
+      </td>
+    </template>
   </v-data-table>
 </template>
 
@@ -152,6 +160,32 @@ export default class ReportResultTable extends Mixins(ReportManagerMixin) {
       return ['rollup-row'];
     }
     return [];
+  }
+
+  getCellStyle(column, value) {
+    const fName = this.reportReverseDisplayNameMap[column];
+    const fDef = this.fieldDefFromName(fName);
+    if (!(fDef.meta && fDef.meta.display_colors)) {
+      return '';
+    }
+
+    const conf = fDef.meta.display_colors;
+    for (const color of Object.keys(conf)) {
+      const hasMin = !isNaN(conf[color].min);
+      const hasMax = !isNaN(conf[color].max);
+      const useColor = (
+        (hasMin || hasMax) &&
+        (
+          (hasMax && value <= conf[color].max && !(hasMin && value < conf[color].min)) ||
+          (hasMin && value >= conf[color].min && !(hasMax && value > conf[color].max))
+        )
+      );
+      if (useColor) {
+        return 'color: ' + color;
+      }
+    }
+
+    return '';
   }
 
   get reportHeaders() {
