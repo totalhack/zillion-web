@@ -608,7 +608,6 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     meta['graphOptions'] = this.graphOptions;
     meta['resultLayout'] = readExplorerResultLayout(this.$store);
     selections['meta'] = meta;
-    console.log(JSON.stringify(selections));
     return selections;
   }
 
@@ -711,6 +710,7 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
       }
     }
 
+    console.log('Save:', selections);
     const result = await dispatchSaveReport(this.$store, selections);
     saveSessionWarehouseId(this.activeWarehouseId!);
     saveSessionReportRequest(selections);
@@ -737,7 +737,7 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
   }
 
   load(report, autorun = false) {
-    console.log(report);
+    console.log('Load:', report);
     for (const selector of this.reportSelectors) {
       (this.$refs[selector] as any).selected = report[selector];
     }

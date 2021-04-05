@@ -36,7 +36,11 @@ export default class RollupSelect extends Vue {
     return this.rollup;
   }
 
-  set selected(rollup) {
+  set selected(rollup: any) {
+    if (!isNaN(rollup) && parseInt(rollup, 10)) {
+      // HACK: all gets converted and saved as a number on the back end
+      rollup = 'all';
+    }
     this.rollup = rollup;
   }
 }
