@@ -10,16 +10,20 @@
     :item-class="getRowClass"
     :items-per-page="100"
     :footer-props="{
-          itemsPerPageText: 'Per page:',
-          itemsPerPageOptions: [25, 100, 500, -1],
-      }"
+      itemsPerPageText: 'Per page:',
+      itemsPerPageOptions: [25, 100, 500, -1],
+    }"
     item-key="_id"
     :mobile-breakpoint="null"
     ref="datatable"
   >
     <template v-slot:body.prepend>
       <tr>
-        <td v-for="(column, index) of reportColumns" :key="index" style="border-right:thin solid rgba(0, 0, 0, 0.12)">
+        <td
+          v-for="(column, index) of reportColumns"
+          :key="index"
+          style="border-right: thin solid rgba(0, 0, 0, 0.12)"
+        >
           <v-text-field
             :value="filters[column]"
             @input="handleFilterInput(column, $event)"
@@ -207,7 +211,7 @@ export default class ReportResultTable extends Mixins(ReportManagerMixin) {
     // Hack until this is supported officially. This maintains filter
     // and sort settings.
     // https://github.com/vuetifyjs/vuetify/issues/8731
-    const rawData = (this.$refs.datatable as any).$children[0].computedItems;
+    const rawData = (this.$refs.datatable as any).$children[0].filteredItems;
     const data: any[] = [];
     for (const row of rawData) {
       // Eliminate extra columns

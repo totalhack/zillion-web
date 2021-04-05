@@ -641,7 +641,7 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     }
     const dataString = (this.$refs.reportResultTableCard as any).getActiveDataString();
     const blob = new Blob([dataString], { type: 'text/csv;charset=utf-8' });
-    let fName = 'report';
+    let fName = 'report.csv';
     if (this.reportTitle && this.reportTitle.length) {
       fName = this.reportTitle + '.csv';
     }
