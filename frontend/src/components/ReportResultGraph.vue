@@ -37,7 +37,8 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
 
   public $chart: any = null;
   public showLegend: boolean = true;
-  public maxXCharsAllowed = 16;
+  public maxXCharsAllowed = 40;
+  public defaultChartHeight = 320;
 
   getLegendElement() {
     return document.getElementById('legend');
@@ -93,7 +94,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     return document.getElementById('legend')?.clientHeight || 0;
   }
 
-  resize(height = null) {
+  resize(height: number | null = null) {
     // When the legend is in a separate div, billboard.js doesn't seem
     // to account for it when setting chart height.
     this.$chart.resize({ height: height || (this.getParentHeight() - this.getLegendHeight()) });
@@ -298,6 +299,15 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     return (this.chartData as any).metricBucketStats;
   }
 
+  get maxBucketNameLength() {
+    let max = 0;
+    const buckets = (this.chartData as any).metricBucketStats;
+    for (const bucketName of Object.keys(buckets)) {
+      max = Math.max(bucketName.length, max);
+    }
+    return max;
+  }
+
   getMultiAxisAxesConfig(currentAxes) {
     const axes = currentAxes || {};
     let yAxis = 'y';
@@ -341,21 +351,45 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
       case 'biginteger':
       case 'float':
       case 'numeric':
-        // Leave defaults
+        options = {
+          clipPath: false,
+          tick: {
+            rotate: 60,
+            culling: {
+              max: this.$vuetify.breakpoint.mobile ? 20 : 100
+            }
+          },
+        };
         break;
       case 'date':
         options = {
           type: 'timeseries',
+          clipPath: false,
           tick: {
+            fit: false,
+            count: 100,
+            multiline: false,
             format: '%Y-%m-%d',
+            rotate: 60,
+            culling: {
+              max: this.$vuetify.breakpoint.mobile ? 20 : 100
+            }
           },
         };
         break;
       case 'datetime':
         options = {
           type: 'timeseries',
+          clipPath: false,
           tick: {
+            fit: false,
+            count: 100,
+            multiline: false,
             format: '%Y-%m-%d %H:%M:%S',
+            rotate: 60,
+            culling: {
+              max: this.$vuetify.breakpoint.mobile ? 20 : 100
+            }
           },
         };
         break;
@@ -370,8 +404,9 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
             fit: true,
             multiline: false,
             rotate: 60,
-            autororate: true,
-            culling: false,
+            culling: {
+              max: this.$vuetify.breakpoint.mobile ? 20 : 100
+            },
             format: (index, name) => {
               if (name === null) {
                 return 'null';
@@ -387,6 +422,30 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   }
 
   getBaseChartOptions() {
+    let legendItemClass = 'legend-item-span';
+    if (this.maxBucketNameLength) {
+      const px = this.maxBucketNameLength * 7;
+      if (px > 550) {
+        legendItemClass = legendItemClass + ' width-600';
+      } else if (px > 500) {
+        legendItemClass = legendItemClass + ' width-550';
+      } else if (px > 450) {
+        legendItemClass = legendItemClass + ' width-500';
+      } else if (px > 400) {
+        legendItemClass = legendItemClass + ' width-450';
+      } else if (px > 350) {
+        legendItemClass = legendItemClass + ' width-400';
+      } else if (px > 300) {
+        legendItemClass = legendItemClass + ' width-350';
+      } else if (px > 250) {
+        legendItemClass = legendItemClass + ' width-300';
+      } else if (px > 200) {
+        legendItemClass = legendItemClass + ' width-250';
+      }
+    } else {
+      legendItemClass = legendItemClass + ' width-200';
+    }
+
     const options = {
       bindto: this.getGraphElement(),
       data: {
@@ -427,7 +486,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
         contents: {
           bindto: this.getLegendElement(),
           template: (
-            '<span class="legend-item-span">' +
+            '<span class="' + legendItemClass + '">' +
             '<div class="legend-color-box" style="background-color:{=COLOR};"></div>' +
             '{=TITLE}</span>'
           )
@@ -471,6 +530,10 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
         enabled: zoom(),
         type: 'drag',
       };
+    }
+
+    if (this.xDim && this.xDimType === 'datetime') {
+      (options as any).data.xFormat = '%Y-%m-%d %H:%M:%S';
     }
 
     return options;
@@ -569,6 +632,12 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     }
   }
 
+  get xAxisMaxLength() {
+    const xData = this.chartDataXDimColumn;
+    const maxXLen = Math.max(...(xData.map((el) => el === null ? null : el.length)));
+    return Math.min(maxXLen, this.maxXCharsAllowed);
+  }
+
   setXAxisHeight(options) {
     const xData = this.chartDataXDimColumn;
     const maxXLen = Math.max(...(xData.map((el) => el === null ? null : el.length)));
@@ -578,7 +647,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     // x ticks or they have long values
     if (xData.length > maxCategories || maxXLen > this.maxXCharsAllowed) {
       // Multiplier is somewhat arbitrary. Needs more testing.
-      const height = 6 * Math.min(maxXLen, this.maxXCharsAllowed);
+      const height = 10 + 6 * Math.min(maxXLen, this.maxXCharsAllowed);
       options.axis.x['height'] = height;
     }
   }
@@ -633,7 +702,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     this.destroyChart();
   }
 
-  initChart(height = null) {
+  initChart(height: number | null = null) {
     if (this.$chart) {
       this.destroyChart();
     }
@@ -642,8 +711,9 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
       return;
     }
 
+    let options;
     try {
-      const options = this.chartOptions;
+      options = this.chartOptions;
       this.$chart = bb.generate(options);
     } catch (err) {
       dispatchAddNotification(
@@ -662,7 +732,10 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
 
     // TODO: It would be better if we could draw the right height initially
     // but it will require some work to get that working correctly.
-    this.resize(height = height);
+    if (this.resultLayout !== 'tabs') {
+      height = (height || this.defaultChartHeight) + options.axis.x.height;
+    }
+    this.resize(height);
     this.$emit('complete');
   }
 
@@ -782,9 +855,36 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
 .legend-item-span {
   padding-left: 10px;
   white-space: nowrap;
-  width: 150px;
   overflow: hidden;
 }
+.width-200 {
+  width: 200px;
+}
+.width-250 {
+  width: 250px;
+}
+.width-300 {
+  width: 300px;
+}
+.width-350 {
+  width: 350px;
+}
+.width-400 {
+  width: 400px;
+}
+.width-450 {
+  width: 450px;
+}
+.width-500 {
+  width: 500px;
+}
+.width-550 {
+  width: 550px;
+}
+.width-600 {
+  width: 600px;
+}
+
 .legend-item-span:hover {
   overflow: visible;
 }
