@@ -632,7 +632,33 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
   }
 
   setPageTitle(title) {
-    document.title = 'Report: ' + title;
+    document.title = title;
+  }
+
+  defaultTitle() {
+    const metrics = this.selectedMetrics;
+    const dimensions = (this.$refs.dimensions as any).selected;
+    const metricParts: any[] = [];
+    const dimParts: any[] = [];
+    let title = '';
+
+    for (const field of metrics) {
+      const def = this.fieldDefFromName(field);
+      metricParts.push(def.display_name);
+    }
+    title = metricParts.join(', ');
+
+    if (metricParts.length && dimensions.length) {
+      title += ' by ';
+    }
+
+    for (const field of dimensions) {
+      const def = this.fieldDefFromName(field);
+      dimParts.push(def.display_name);
+    }
+    title += dimParts.join(', ');
+
+    return title;
   }
 
   openReportSaveDialog() {
@@ -641,7 +667,7 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
       this.addValidationErrorNotification();
       return;
     }
-    (this.$refs.reportSaveDialog as any).open(this.reportTitle);
+    (this.$refs.reportSaveDialog as any).open(this.reportTitle || this.defaultTitle());
   }
 
   downloadReport() {
