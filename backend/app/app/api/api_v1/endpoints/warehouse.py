@@ -2,10 +2,9 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Response
 from marshmallow.exceptions import ValidationError
-from tlbx import st, raiseifnot, pp, get_string_format_args, json
+import numpy as np
+from tlbx import st, pp, get_string_format_args, json
 from zillion.core import InvalidFieldException
-
-# TODO: perhaps should be config driven
 from zillion.model import zillion_engine, ReportSpecs
 from zillion.report import Report, ROLLUP_INDEX_DISPLAY_LABEL
 
@@ -14,6 +13,18 @@ from app.schemas.warehouse import *
 from app.api import deps
 
 router = APIRouter()
+
+
+class JSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return super(JSONEncoder, self).default(obj)
 
 
 def process_report_result(result):
@@ -145,7 +156,7 @@ def execute(
         result = wh.execute(**request)
         data = process_report_result(result)
         # Need to use a custom json response to handle numpy dtypes
-        json_str = json.dumps(data, ignore_nan=True)
+        json_str = json.dumps(data, ignore_nan=True, cls=JSONEncoder)
         return Response(media_type="application/json", content=json_str)
 
     return {}
