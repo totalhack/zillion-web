@@ -708,6 +708,11 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
       if (options.title) {
         selections['meta']['title'] = options.title;
       }
+      if (options.update) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const report = urlParams.get('report');
+        selections['report_id'] = report;
+      }
     }
 
     console.log('Save:', selections);

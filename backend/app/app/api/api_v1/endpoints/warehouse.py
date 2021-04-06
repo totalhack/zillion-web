@@ -2,11 +2,12 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Response
 from marshmallow.exceptions import ValidationError
-from tlbx import st, pp, get_string_format_args, json
+from tlbx import st, raiseifnot, pp, get_string_format_args, json
 from zillion.core import InvalidFieldException
 
 # TODO: perhaps should be config driven
-from zillion.report import ROLLUP_INDEX_DISPLAY_LABEL
+from zillion.model import zillion_engine, ReportSpecs
+from zillion.report import Report, ROLLUP_INDEX_DISPLAY_LABEL
 
 from app import crud, models
 from app.schemas.warehouse import *
@@ -171,6 +172,24 @@ def execute_id(
     return {}
 
 
+def update_report(warehouse, report_id, meta=None, **kwargs):
+    # Workaround until wh.update_report() is added
+    report = Report(warehouse, **kwargs)
+    conn = zillion_engine.connect()
+    try:
+        conn.execute(
+            ReportSpecs.update().where(ReportSpecs.columns.id == report_id),
+            warehouse_id=warehouse.id,
+            params=report.get_json(),
+            meta=json.dumps(meta),
+        )
+    finally:
+        conn.close()
+    report.spec_id = report_id
+    report.meta = meta
+    return report
+
+
 @router.post("/{warehouse_id}/save", response_model=ReportSaveResponse)
 def save(
     warehouse_id: int,
@@ -186,7 +205,16 @@ def save(
         request = dict(request)
         replace_report_formula_display_names(wh, request)
         pp(request)
-        report = wh.save_report(**request)
+
+        report_id = None
+        if "report_id" in request:
+            report_id = request["report_id"]
+            del request["report_id"]
+
+        if report_id:
+            report = update_report(wh, report_id, **request)
+        else:
+            report = wh.save_report(**request)
         return {"spec_id": report.spec_id}
     return {}
 

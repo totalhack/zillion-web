@@ -59,6 +59,7 @@ export interface IReportSaveRequest {
   limit?: number;
   limit_first?: boolean;
   meta?: object;
+  report_id?: number;
 }
 
 export interface IReportSaveResult {

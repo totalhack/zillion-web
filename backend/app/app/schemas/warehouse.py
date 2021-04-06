@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from tlbx import st, raiseifnot
+from tlbx import st
 from zillion.configs import (
     DataSourceConfigSchema,
     DimensionConfigSchema,
@@ -44,6 +44,7 @@ class ReportSaveRequest(BaseModel):
     limit: int = None
     limit_first: bool = False
     meta: dict = None
+    report_id: int = None
 
 
 class ReportIDRequest(BaseModel):
