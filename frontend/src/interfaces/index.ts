@@ -47,6 +47,8 @@ export interface IReportResult {
   display_name_map: object;
   query_summaries: string[];
   duration: number;
+  unsupported_grain_metrics: object;
+  is_partial: boolean;
 }
 
 export interface IReportSaveRequest {

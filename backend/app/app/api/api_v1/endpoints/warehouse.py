@@ -38,6 +38,8 @@ def process_report_result(result):
     data["display_name_map"] = result.display_name_map
     data["query_summaries"] = [q.format() for q in result.query_summaries]
     data["duration"] = result.duration
+    data["is_partial"] = result.is_partial
+    data["unsupported_grain_metrics"] = result.unsupported_grain_metrics
     return data
 
 
@@ -153,7 +155,7 @@ def execute(
         wh = whs[warehouse_id]
         replace_report_formula_display_names(wh, request)
         pp(request)
-        result = wh.execute(**request)
+        result = wh.execute(allow_partial=True, **request)
         data = process_report_result(result)
         # Need to use a custom json response to handle numpy dtypes
         json_str = json.dumps(data, ignore_nan=True, cls=JSONEncoder)

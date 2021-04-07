@@ -323,6 +323,22 @@ export const actions = {
         dispatchExplorerCloseLoadingOverlay(context);
         dispatchExplorerSetReportState(context, '');
       }
+
+      if (response.data.is_partial) {
+        const msg = (
+          'Not all metrics could meet the requested grain.\n' +
+          JSON.stringify(response.data.unsupported_grain_metrics)
+        );
+        dispatchAddNotification(
+          context,
+          {
+            content: msg,
+            color: 'warning',
+            timeout: -1
+          }
+        );
+      }
+
       return true;
     } catch (error) {
       // TODO: consider changing to catch more cases:
