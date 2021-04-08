@@ -1,9 +1,15 @@
 <template>
   <div id="bb-container">
-    <div id="graph" @mouseleave="hideToolTip" class="mx-4"></div>
+    <div
+      id="graph"
+      @mouseleave="hideToolTip"
+      @dblclick.stop="resetLegendSelections()"
+      class="mx-4"
+    ></div>
     <div
       id="legend"
       @touchstart="hideToolTip"
+      @dblclick.stop="resetLegendSelections()"
       class="ml-6 pl-5 legend-container d-flex flex-wrap justify-center"
     ></div>
   </div>
@@ -94,6 +100,12 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     return document.getElementById('legend')?.clientHeight || 0;
   }
 
+  resetLegendSelections() {
+    if (this.$chart) {
+      this.$chart.show();
+    }
+  }
+
   resize(height: number | null = null) {
     // When the legend is in a separate div, billboard.js doesn't seem
     // to account for it when setting chart height.
@@ -106,9 +118,9 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
 
   get metricsToGraph() {
     if (this.graphTypeName === 'scatter') {
-      return this.reportMetricsDisplay.slice(0, 2);
+      return this.reportResultMetricsDisplay.slice(0, 2);
     }
-    return this.reportMetricsDisplay;
+    return this.reportResultMetricsDisplay;
   }
 
   get graphHasNoXDim() {
@@ -342,6 +354,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
       return {};
     }
 
+    const xLen = this.chartDataXDimColumn.length - 1;
     const dimType = this.xDimType;
     let options = {};
 
@@ -367,7 +380,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
           clipPath: false,
           tick: {
             fit: false,
-            count: 100,
+            count: Math.min(xLen, 100),
             multiline: false,
             format: '%Y-%m-%d',
             rotate: 60,
@@ -383,7 +396,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
           clipPath: false,
           tick: {
             fit: false,
-            count: 100,
+            count: Math.min(xLen, 100),
             multiline: false,
             format: '%Y-%m-%d %H:%M:%S',
             rotate: 60,

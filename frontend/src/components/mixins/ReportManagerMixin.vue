@@ -16,6 +16,14 @@ export default class ReportManagerMixin extends WarehouseManagerMixin {
     return readReportRequest(this.$store);
   }
 
+  get reportIsPartial() {
+    return this.reportResult?.is_partial || false;
+  }
+
+  get reportUnsupportedGrainMetrics() {
+    return this.reportResult?.unsupported_grain_metrics || {};
+  }
+
   get reportDisplayNameMap() {
     return this.reportResult?.display_name_map || {};
   }
@@ -51,6 +59,28 @@ export default class ReportManagerMixin extends WarehouseManagerMixin {
       );
     }
     return metrics;
+  }
+
+  get reportResultMetrics() {
+    let metrics: string[] = [];
+    if (this.reportRequest != null) {
+      if (this.reportIsPartial) {
+        for (const metric of (this.reportRequest?.metrics || [])) {
+          if (metric in this.reportUnsupportedGrainMetrics) {
+            continue;
+          }
+          metrics.push(metric);
+        }
+      } else {
+        metrics = this.reportRequest?.metrics || [];
+      }
+    }
+    return metrics;
+  }
+
+  get reportResultMetricsDisplay() {
+    const metrics = this.reportResultMetrics;
+    return this.getFieldsDisplay(metrics, this.reportDisplayNameMap);
   }
 
   get reportDimensions() {
