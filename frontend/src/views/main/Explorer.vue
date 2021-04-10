@@ -702,6 +702,8 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
       return;
     }
 
+    console.log('Run:', this.reportSelections);
+
     // TODO: we use this to help manage the loading overlay. This may be
     // better off in vuex, or the loading overlay state brought out of vuex.
     this.graphComplete = false;

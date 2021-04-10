@@ -165,7 +165,7 @@ export default class ReportResultTable extends Mixins(ReportManagerMixin) {
   getCellStyle(column, value) {
     const fName = this.reportReverseDisplayNameMap[column];
     const fDef = this.fieldDefFromName(fName);
-    if (!(fDef.meta && fDef.meta.display_colors)) {
+    if (!fDef || !(fDef.meta && fDef.meta.display_colors)) {
       return '';
     }
 
