@@ -138,7 +138,7 @@ import TextAreaListCriteriaValueSelect from './TextAreaListCriteriaValueSelect.v
 export default class CriteriaSelect extends BaseSelect {
   @Prop({ default: () => ({}) }) rawOptionsMap!: object;
   @Prop({
-    default: () => (['=', '!=', '>', '>=', '<', '<=', 'in', 'not in', 'like', 'not like', 'between', 'not between'])
+    default: () => (['=', '!=', '>', '>=', '<', '<=', 'in', 'not in', 'like', 'not like', 'between', 'not between', 'is null', 'is not null'])
   }) supportedOperations!: string[];
   @Prop({ default: 'Fields' }) defaultGroup!: string;
   @Prop({ default: 'Select Criteria' }) placeholder!: string;
@@ -207,7 +207,7 @@ export default class CriteriaSelect extends BaseSelect {
     if (option.operation !== operation) {
       option.operation = operation;
       this.setComponent(option);
-      if (option.value !== null) {
+      if (option.value !== null && (option as any).component) {
         // Try to reuse the value if the new component can handle it
         option.value = (option as any).component.ensureOptionValue(option.value);
       }
@@ -223,6 +223,10 @@ export default class CriteriaSelect extends BaseSelect {
     let componentOverrides = {};
     let defaultOperation = '=';
     let defaultComponent: any = TextCriteriaValueSelect;
+
+    if (operation === 'is null' || operation === 'is not null') {
+      return { component: null, operation };
+    }
 
     switch (fieldType) {
       case 'integer':
@@ -312,12 +316,22 @@ export default class CriteriaSelect extends BaseSelect {
     const result: any[] = [];
     for (const selected of (this.rawSelected || []) as any[]) {
       if (selected.active) {
+        if (selected.operation === 'is null') {
+          result.push([selected.name, '=', null]);
+          continue;
+        }
+        if (selected.operation === 'is not null') {
+          result.push([selected.name, '!=', null]);
+          continue;
+        }
+
         // NOTE: $refs become arrays when used in v-for.
         const input = this.$refs[selected.name][0] as any;
         const vresult = input.validate();
         if (!vresult.valid) {
           throw new ValidationError(vresult?.error);
         }
+
         result.push([
           selected.name,
           selected.operation,
