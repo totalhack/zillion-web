@@ -27,8 +27,12 @@ class JSONEncoder(json.JSONEncoder):
             return super(JSONEncoder, self).default(obj)
 
 
-def process_report_result(result):
-    df = result.df_display
+def process_report_result(result, display_names=True):
+    if display_names:
+        df = result.df_display
+    else:
+        df = result.df
+
     if result.dimensions:
         df = df.reset_index()
 
@@ -152,11 +156,13 @@ def execute(
         raise Exception("No warehouses have been loaded")
     if crud.user.is_active(current_user):
         request = dict(request)
+        pp(request)
         wh = whs[warehouse_id]
         replace_report_formula_display_names(wh, request)
-        pp(request)
+        display_names = request.get("display_names", False)
+        del request["display_names"]
         result = wh.execute(allow_partial=True, **request)
-        data = process_report_result(result)
+        data = process_report_result(result, display_names=display_names)
         # Need to use a custom json response to handle numpy dtypes
         json_str = json.dumps(data, ignore_nan=True, cls=JSONEncoder)
         return Response(media_type="application/json", content=json_str)
@@ -177,9 +183,9 @@ def execute_id(
     if crud.user.is_active(current_user):
         wh = whs[warehouse_id]
         result = wh.execute_id(request.spec_id)
-        data = process_report_result(result)
+        data = process_report_result(result, display_names=request.display_names)
         # Need to use a custom json response to handle numpy dtypes
-        json_str = json.dumps(data, ignore_nan=True)
+        json_str = json.dumps(data, ignore_nan=True, cls=JSONEncoder)
         return Response(media_type="application/json", content=json_str)
 
     return {}

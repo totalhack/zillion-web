@@ -32,6 +32,7 @@ class ReportRequest(BaseModel):
     order_by: list = None
     limit: int = None
     limit_first: bool = False
+    display_names: bool = True
 
 
 class ReportSaveRequest(BaseModel):
@@ -49,6 +50,7 @@ class ReportSaveRequest(BaseModel):
 
 class ReportIDRequest(BaseModel):
     spec_id: int
+    display_names: bool = True
 
 
 class ReportResponse(BaseModel):
