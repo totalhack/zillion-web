@@ -1,21 +1,19 @@
 <template>
   <date-picker
-    :value="syncedValue"
+    v-model="dateValue"
     value-type="YYYY-MM-DD HH:mm:ss"
     format="YYYY-MM-DD HH:mm:ss"
-    type="datetime"
+    :type="dateType"
     placeholder="Select Date/Time Range"
     :show-time-panel="showTimeRangePanel"
     :shortcuts="rangeShortcuts"
     range
     @close="handleRangeClose"
-    @input="onInput"
   >
     <template v-slot:footer>
-      <button
-        class="mx-btn mx-btn-text"
-        @click="toggleTimeRangePanel"
-      >{{ showTimeRangePanel ? 'select date' : 'select time' }}</button>
+      <button class="mx-btn mx-btn-text" @click="toggleTimeRangePanel">
+        {{ showTimeRangePanel ? "select date" : "select time" }}
+      </button>
     </template>
   </date-picker>
 </template>
@@ -31,6 +29,9 @@ export default class DateTimeRangeCriteriaValueSelect extends BaseDateCriteriaVa
   }
 
   static ensureOptionValue(value) {
+    if (typeof value === 'string') {
+      return value;
+    }
     if (Array.isArray(value) && value.length === 2) {
       return [value[0], value[1]];
     }
@@ -38,6 +39,10 @@ export default class DateTimeRangeCriteriaValueSelect extends BaseDateCriteriaVa
   }
 
   validate() {
+    if (typeof this.syncedValue === 'string') {
+      // Assume its a shortcut string
+      return { valid: true, error: '' };
+    }
     if (!this.syncedValue || (!this.syncedValue[0] || !this.syncedValue[1])) {
       return { valid: false, error: 'Please select a valid date range' };
     }
@@ -45,6 +50,9 @@ export default class DateTimeRangeCriteriaValueSelect extends BaseDateCriteriaVa
   }
 
   get criteriaValue() {
+    if (typeof this.syncedValue === 'string') {
+      return this.syncedValue;
+    }
     return [
       this.formatDate(this.syncedValue[0]),
       this.formatDate(this.syncedValue[1]),

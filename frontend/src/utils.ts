@@ -96,30 +96,39 @@ export class ValidationError extends Error {
   }
 }
 
-export function getNDaysAgo(N) {
-  return moment().subtract(N, 'day').startOf('day').toDate();
+function dateTypeToFormat(type) {
+  if (type === 'date') {
+    return 'YYYY-MM-DD';
+  } else if (type === 'datetime') {
+    return 'YYYY-MM-DD HH:mm:ss';
+  }
+  throw Error('Unrecognized type: ' + type);
 }
 
-export function getDateStartOf(type) {
-  return moment().startOf(type).toDate();
+export function getNDaysAgo(N, type) {
+  return moment().subtract(N, 'day').startOf('day').format(dateTypeToFormat(type));
 }
 
-export function getDateEndOf(type) {
-  return moment().endOf(type).toDate();
+export function getDateStartOf(type, dateType) {
+  return moment().startOf(type).format(dateTypeToFormat(dateType));
 }
 
-export function getToday() {
-  return moment().startOf('day').toDate();
+export function getDateEndOf(type, dateType) {
+  return moment().endOf(type).format(dateTypeToFormat(dateType));
 }
 
-export function getTomorrow() {
-  return moment().add(1, 'day').startOf('day').toDate();
+export function getToday(type) {
+  return moment().startOf('day').format(dateTypeToFormat(type));
 }
 
-export function getLastMonthStart() {
-  return moment().startOf('month').subtract(1, 'month').toDate();
+export function getTomorrow(type) {
+  return moment().add(1, 'day').startOf('day').format(dateTypeToFormat(type));
 }
 
-export function getLastMonthEnd() {
-  return moment().startOf('month').subtract(1, 'day').toDate();
+export function getLastMonthStart(type) {
+  return moment().startOf('month').subtract(1, 'month').format(dateTypeToFormat(type));
+}
+
+export function getLastMonthEnd(type) {
+  return moment().startOf('month').subtract(1, 'day').format(dateTypeToFormat(type));
 }

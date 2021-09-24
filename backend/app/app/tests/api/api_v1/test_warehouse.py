@@ -74,3 +74,20 @@ def test_save_and_execute_id(client: TestClient, superuser_token_headers: dict) 
     assert resp.status_code == 200
     data = resp.json()
     pp(data)
+
+
+def test_execute_shortcut_criteria(
+    client: TestClient, superuser_token_headers: dict
+) -> None:
+    resp = client.post(
+        f"{settings.API_V1_STR}/warehouse/1/execute",
+        headers=superuser_token_headers,
+        json={
+            "metrics": ["cases"],
+            "dimensions": ["month"],
+            "criteria": [("date", ">=", "StartofMonth")],
+        },
+    )
+    assert resp.status_code == 200, resp.content
+    data = resp.json()
+    pp(data)

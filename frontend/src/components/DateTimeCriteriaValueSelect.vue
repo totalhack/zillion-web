@@ -1,3 +1,22 @@
+<template>
+  <date-picker
+    v-model="dateValue"
+    value-type="YYYY-MM-DD HH:mm:ss"
+    format="YYYY-MM-DD HH:mm:ss"
+    :type="dateType"
+    placeholder="Select Date/Time"
+    :show-time-panel="showTimeRangePanel"
+    :shortcuts="nonRangeShortcuts"
+    @close="handleRangeClose"
+  >
+    <template v-slot:footer>
+      <button class="mx-btn mx-btn-text" @click="toggleTimeRangePanel">
+        {{ showTimeRangePanel ? "select date" : "select time" }}
+      </button>
+    </template>
+  </date-picker>
+</template>
+
 <script lang="ts">
 import { Component } from 'vue-property-decorator';
 import BaseDateCriteriaValueSelect from './BaseDateCriteriaValueSelect.vue';
@@ -13,6 +32,12 @@ export default class DateTimeCriteriaValueSelect extends BaseDateCriteriaValueSe
       return value;
     }
     return null;
+  }
+
+  dateType: string = 'datetime';
+
+  getShortCuts() {
+    return this.nonRangeShortcuts;
   }
 }
 </script>

@@ -1,12 +1,11 @@
 <template>
   <date-picker
-    :value="syncedValue"
+    v-model="dateValue"
     value-type="YYYY-MM-DD"
     format="YYYY-MM-DD"
-    type="date"
+    :type="dateType"
     placeholder="Select Date"
     :shortcuts="nonRangeShortcuts"
-    @input="onInput"
   ></date-picker>
 </template>
 
@@ -25,6 +24,12 @@ export default class DateCriteriaValueSelect extends BaseDateCriteriaValueSelect
       return value;
     }
     return null;
+  }
+
+  dateType: string = 'date';
+
+  getShortCuts() {
+    return this.nonRangeShortcuts;
   }
 }
 </script>

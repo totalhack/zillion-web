@@ -3,7 +3,7 @@
     :value="syncedValue"
     value-type="YYYY-MM-DD HH:mm:ss"
     format="YYYY-MM-DD HH:mm:ss"
-    type="datetime"
+    :type="dateType"
     placeholder="Select Date/Time"
     :show-time-panel="showTimeRangePanel"
     :shortcuts="nonRangeShortcuts"
@@ -32,98 +32,118 @@ import BaseCriteriaValueSelect from './BaseCriteriaValueSelect.vue';
 
 @Component
 export default class BaseDateCriteriaValueSelect extends BaseCriteriaValueSelect {
-  nonRangeShortcuts: object[] = [
+  dateType: string = 'datetime';
+
+  nonRangeShortcuts: any[] = [
     {
       text: 'Today',
-      onClick() {
-        return getToday();
+      getValue(type) {
+        return getToday(type);
       },
+      onClick: () => this.handleShortcutInput('Today'),
     },
     {
       text: 'Yesterday',
-      onClick() {
-        return getNDaysAgo(1);
+      getValue(type) {
+        return getNDaysAgo(1, type);
       },
+      onClick: () => this.handleShortcutInput('Yesterday'),
     },
     {
       text: 'Start of Week',
-      onClick() {
-        return getDateStartOf('isoWeek');
+      getValue(type) {
+        return getDateStartOf('isoWeek', type);
       },
+      onClick: () => this.handleShortcutInput('Start of Week'),
     },
     {
       text: 'Start of Month',
-      onClick() {
-        return getDateStartOf('month');
+      getValue(type) {
+        return getDateStartOf('month', type);
       },
+      onClick: () => this.handleShortcutInput('Start of Month'),
     },
     {
       text: 'Start of Last Month',
-      onClick() {
-        return getLastMonthStart();
+      getValue(type) {
+        return getLastMonthStart(type);
       },
+      onClick: () => this.handleShortcutInput('Start of Last Month'),
     },
     {
       text: 'Start of Year',
-      onClick() {
-        return getDateStartOf('year');
+      getValue(type) {
+        return getDateStartOf('year', type);
       },
+      onClick: () => this.handleShortcutInput('Start of Year'),
     },
   ];
 
-  rangeShortcuts: object[] = [
+  rangeShortcuts: any[] = [
     {
       text: 'Today',
-      onClick() {
-        return [getToday(), getToday()];
+      getValue(type) {
+        return [getToday(type), getToday(type)];
       },
+      onClick: () => this.handleShortcutInput('Today'),
     },
     {
       text: 'Yesterday',
-      onClick() {
-        return [getNDaysAgo(1), getNDaysAgo(1)];
+      getValue(type) {
+        return [getNDaysAgo(1, type), getNDaysAgo(1, type)];
       },
+      onClick: () => this.handleShortcutInput('Yesterday'),
     },
     {
       text: 'Last 7 Days',
-      onClick() {
-        return [getNDaysAgo(7), getNDaysAgo(1)];
+      getValue(type) {
+        return [getNDaysAgo(7, type), getNDaysAgo(1, type)];
       },
+      onClick: () => this.handleShortcutInput('Last 7 Days'),
     },
     {
       text: 'Last 30 Days',
-      onClick() {
-        return [getNDaysAgo(30), getNDaysAgo(1)];
+      getValue(type) {
+        return [getNDaysAgo(30, type), getNDaysAgo(1, type)];
       },
+      onClick: () => this.handleShortcutInput('Last 30 Days'),
     },
     {
       text: 'This Week',
-      onClick() {
-        return [getDateStartOf('isoWeek'), getToday()];
+      getValue(type) {
+        return [getDateStartOf('isoWeek', type), getToday(type)];
       },
+      onClick: () => this.handleShortcutInput('This Week'),
     },
     {
       text: 'This Month',
-      onClick() {
-        return [getDateStartOf('month'), getToday()];
+      getValue(type) {
+        return [getDateStartOf('month', type), getToday(type)];
       },
+      onClick: () => this.handleShortcutInput('This Month'),
     },
     {
       text: 'Last Month',
-      onClick() {
-        return [getLastMonthStart(), getLastMonthEnd()];
+      getValue(type) {
+        return [getLastMonthStart(type), getLastMonthEnd(type)];
       },
+      onClick: () => this.handleShortcutInput('Last Month'),
     },
     {
       text: 'This Year',
-      onClick() {
-        return [getDateStartOf('year'), getToday()];
+      getValue(type) {
+        return [getDateStartOf('year', type), getToday(type)];
       },
+      onClick: () => this.handleShortcutInput('This Year'),
     },
   ];
 
   private showTimePanel: boolean = false;
   private showTimeRangePanel: boolean = false;
+
+  handleShortcutInput(newValue) {
+    this.onInput(newValue);
+  }
 
   toggleTimePanel() {
     this.showTimePanel = !this.showTimePanel;
@@ -152,8 +172,28 @@ export default class BaseDateCriteriaValueSelect extends BaseCriteriaValueSelect
     return value;
   }
 
+  getShortCuts() {
+    return this.rangeShortcuts;
+  }
+
   get criteriaValue() {
+    if (typeof this.syncedValue === 'string') {
+      return this.syncedValue;
+    }
     return this.formatDate(this.syncedValue);
+  }
+
+  get dateValue() {
+    const shortcut = this.getShortCuts().find((v) => v.text === this.syncedValue);
+    if (shortcut) {
+      const value = shortcut.getValue(this.dateType);
+      return value;
+    }
+    return this.syncedValue;
+  }
+
+  set dateValue(value) {
+    this.onInput(value);
   }
 }
 </script>

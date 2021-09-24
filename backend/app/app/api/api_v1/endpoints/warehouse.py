@@ -1,3 +1,4 @@
+import datetime
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Response
@@ -47,6 +48,9 @@ def process_report_result(result, display_names=True):
     return data
 
 
+# TODO move these utils
+
+
 def replace_display_names(warehouse, formula, display_map=None):
     format_args = get_string_format_args(formula)
     if not display_map:
@@ -71,6 +75,119 @@ def replace_report_formula_display_names(warehouse, request):
             metric["formula"] = replace_display_names(
                 warehouse, metric["formula"], display_map=display_map
             )
+
+
+# NOTE: this needs to stay in sync with the UI criteria options
+
+
+def get_today():
+    return str(datetime.date.today())
+
+
+def get_yesterday():
+    return str(datetime.date.today() - datetime.timedelta(days=1))
+
+
+def get_start_of_week():
+    today = datetime.date.today()
+    return str(today - datetime.timedelta(days=today.weekday()))
+
+
+def get_start_of_month():
+    return str(datetime.date.today().replace(day=1))
+
+
+def get_start_of_last_month():
+    som = datetime.date.today().replace(day=1)
+    solm = (som - datetime.timedelta(days=1)).replace(day=1)
+    return str(solm)
+
+
+def get_end_of_last_month():
+    som = datetime.date.today().replace(day=1)
+    eolm = som - datetime.timedelta(days=1)
+    return str(eolm)
+
+
+def get_start_of_year():
+    return str(datetime.date.today().replace(month=1, day=1))
+
+
+def get_n_days_ago(n):
+    return str(datetime.date.today() - datetime.timedelta(days=n))
+
+
+NON_RANGE_DATE_SHORTCUTS = {
+    "today": get_today(),
+    "yesterday": get_yesterday(),
+    "startofweek": get_start_of_week(),
+    "startofmonth": get_start_of_month(),
+    "startoflastmonth": get_start_of_last_month(),
+    "startofyear": get_start_of_year(),
+}
+
+RANGE_DATE_SHORTCUTS = {
+    "today": [get_today(), get_today()],
+    "yesterday": [get_yesterday(), get_yesterday()],
+    "last7days": [get_n_days_ago(7), get_n_days_ago(1)],
+    "last30days": [get_n_days_ago(30), get_n_days_ago(1)],
+    "thisweek": [get_start_of_week(), get_today()],
+    "thismonth": [get_start_of_month(), get_today()],
+    "lastmonth": [get_start_of_last_month(), get_end_of_last_month()],
+    "thisyear": [get_start_of_year(), get_today()],
+}
+
+DATE_SHORTCUT_VALUES = {
+    "=": NON_RANGE_DATE_SHORTCUTS,
+    "!=": NON_RANGE_DATE_SHORTCUTS,
+    ">": NON_RANGE_DATE_SHORTCUTS,
+    "<": NON_RANGE_DATE_SHORTCUTS,
+    ">=": NON_RANGE_DATE_SHORTCUTS,
+    "<=": NON_RANGE_DATE_SHORTCUTS,
+    "between": RANGE_DATE_SHORTCUTS,
+    "not between": RANGE_DATE_SHORTCUTS,
+}
+
+SHORTCUT_VALUES = dict(date=DATE_SHORTCUT_VALUES, datetime=DATE_SHORTCUT_VALUES)
+
+
+def clean_shortcut(val):
+    return str(val).lower().replace(" ", "")
+
+
+def handle_shortcut_criteria(warehouse, request):
+    """HACK: perhaps this should be passed through and handled in Zillion"""
+    if not request.get("criteria", None):
+        return
+
+    has_shortcuts = False
+    fields = warehouse.get_fields()
+    ui_criteria = []
+    final_criteria = []
+    for field_name, op, value in request["criteria"]:
+        ui_criteria.append(
+            [field_name, op, value.copy() if hasattr(value, "copy") else value]
+        )
+        field = fields[field_name]
+        field_type = field.type.lower()
+        if field_type not in SHORTCUT_VALUES:
+            final_criteria.append([field_name, op, value])
+            continue
+
+        shortcut_val = clean_shortcut(value)
+        if shortcut_val not in SHORTCUT_VALUES[field_type].get(op, {}):
+            final_criteria.append([field_name, op, value])
+            continue
+
+        has_shortcuts = True
+        value = SHORTCUT_VALUES[field_type][op][shortcut_val]
+        final_criteria.append([field_name, op, value])
+
+    if has_shortcuts and "meta" in request:
+        # Denotes that we had special criteria for the UI. Saved on the report
+        # so we can take appropriate action on load.
+        request["meta"]["ui_criteria"] = ui_criteria
+    request["criteria"] = final_criteria
 
 
 @router.get("/", response_model=Dict[str, Any])
@@ -159,6 +276,7 @@ def execute(
         pp(request)
         wh = whs[warehouse_id]
         replace_report_formula_display_names(wh, request)
+        handle_shortcut_criteria(wh, request)
         display_names = request.get("display_names", False)
         del request["display_names"]
         result = wh.execute(allow_partial=True, **request)
@@ -182,7 +300,16 @@ def execute_id(
         raise Exception("No warehouses have been loaded")
     if crud.user.is_active(current_user):
         wh = whs[warehouse_id]
-        result = wh.execute_id(request.spec_id)
+        # HACK to handle saved shortcut criteria
+        report = wh.load_report(request.spec_id)
+        params = report.get_params()["kwargs"]
+        params["meta"] = report.meta
+        handle_shortcut_criteria(wh, params)
+        if "meta" in params:
+            # HACK
+            del params["meta"]
+        result = wh.execute(**params)
+
         data = process_report_result(result, display_names=request.display_names)
         # Need to use a custom json response to handle numpy dtypes
         json_str = json.dumps(data, ignore_nan=True, cls=JSONEncoder)
@@ -223,6 +350,7 @@ def save(
         wh = whs[warehouse_id]
         request = dict(request)
         replace_report_formula_display_names(wh, request)
+        handle_shortcut_criteria(wh, request)
         pp(request)
 
         report_id = None
@@ -254,5 +382,8 @@ def load(
         # TODO: this is a bit hacky
         params = report.get_params()["kwargs"]
         params["meta"] = report.meta
+        if report.meta.get("ui_criteria", None):
+            # Override the saved criteria with the specified UI criteria values
+            params["criteria"] = report.meta["ui_criteria"]
         return params
     return {}
