@@ -35,7 +35,11 @@
                 >
                   <v-icon size="22">pause</v-icon>
                 </span>
-                <span class="chiptext">{{ option.display_name }}</span>
+                <span
+                  class="chiptext"
+                  @dblclick="handleTagDblClick(option, $event)"
+                  >{{ option.display_name }}</span
+                >
               </v-chip>
             </slot>
           </template>
@@ -123,6 +127,10 @@ export default class BaseMultiSelect extends BaseSelect {
   emitTag(tag) {
     // Propagate the tag event so parents can handle it if necessary
     this.$emit('tag', tag);
+  }
+
+  handleTagDblClick(option, event) {
+    this.$emit('tagDblClick', { option, event });
   }
 
   forceRerender() {
@@ -245,6 +253,24 @@ export default class BaseMultiSelect extends BaseSelect {
       this.rawSelected = [];
     }
     this.rawSelected.push(option);
+  }
+
+  updateCreatedOption(option) {
+    const ms = this.$refs.multiselect as any;
+    for (const row of ms.options) {
+      if (row.group !== this.createdOptionsGroup) {
+        continue;
+      }
+      for (const value of row.groupValues) {
+        if (value.name === option.name) {
+          Object.assign(value, option);
+          value.group = this.createdOptionsGroup;
+          this.forceRerender();
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   handleFocus(e) {

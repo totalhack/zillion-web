@@ -5,10 +5,11 @@
       :raw-options-map="rawOptionsMap"
       default-group="Metrics"
       placeholder="Select Metrics"
-      created-options-group="Ad Hoc Metrics"
+      :created-options-group="createdOptionsGroup"
       tag-placeholder="Press enter to create a metric"
       :taggable="true"
       @tag="openAdHocMetricDialog"
+      @tagDblClick="handleTagDblClick"
     ></draggable-multi-select>
     <ad-hoc-metric-dialog
       @input="addAdHocMetric($event)"
@@ -30,6 +31,8 @@ import AdHocMetricDialog from './AdHocMetricDialog.vue';
   },
 })
 export default class MetricSelect extends Vue {
+  createdOptionsGroup: string = 'Ad Hoc Metrics';
+
   get rawOptionsMap() {
     return readMetrics(this.$store);
   }
@@ -47,11 +50,22 @@ export default class MetricSelect extends Vue {
     if (ms.hasCreatedOption(adHocMetricName)) {
       return;
     }
-    (this.$refs.adHocMetricDialog as any).open(adHocMetricName);
+    (this.$refs.adHocMetricDialog as any).open({ name: adHocMetricName });
   }
 
   addAdHocMetric(metric) {
-    (this.$refs.multiselect as any).addCreatedOption(metric);
+    const ms = this.$refs.multiselect as any;
+    if (ms.hasCreatedOption(metric.name)) {
+      ms.updateCreatedOption(metric);
+      return;
+    }
+    ms.addCreatedOption(metric);
+  }
+
+  handleTagDblClick({ option, event }) {
+    if (option.group && option.group === this.createdOptionsGroup) {
+      (this.$refs.adHocMetricDialog as any).open(option);
+    }
   }
 }
 </script>

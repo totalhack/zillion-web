@@ -12,20 +12,47 @@
       :show-labels="false"
       ref="multiselect"
     >
-      <template slot="selection" slot-scope="{ values, search, isOpen, remove }">
+      <template
+        slot="selection"
+        slot-scope="{ values, search, isOpen, remove }"
+      >
         <div class="multiselect__tags-wrap" v-show="values.length > 0">
           <draggable :list="selectedOptions">
             <template v-for="(option, index) of values" @mousedown.prevent>
-              <slot name="tag" :option="option" :search="search" :remove="remove">
-                <v-chip class="tagchip mt-2 pr-0" :style="option.active ? '' : { 'opacity': 0.5 }" label>
-                  <span class="pr-1" style="cursor: pointer" @mousedown.prevent @click="doRemove(remove, option)">
+              <slot
+                name="tag"
+                :option="option"
+                :search="search"
+                :remove="remove"
+              >
+                <v-chip
+                  class="tagchip mt-2 pr-0"
+                  :style="option.active ? '' : { opacity: 0.5 }"
+                  label
+                >
+                  <span
+                    class="pr-1"
+                    style="cursor: pointer"
+                    @mousedown.prevent
+                    @click="doRemove(remove, option)"
+                  >
                     <v-icon size="21">delete</v-icon>
                   </span>
                   <span class="chiptext">{{ option.display_name }}</span>
-                  <v-btn-toggle v-model="option.order_by_type" class="ml-2" mandatory>
+                  <v-btn-toggle
+                    v-model="option.order_by_type"
+                    class="ml-2"
+                    mandatory
+                  >
                     <v-tooltip bottom>
                       <template v-slot:activator="{ on, attrs }">
-                        <v-btn style="border:none" @mousedown.prevent v-bind="attrs" v-on="on" value="asc">
+                        <v-btn
+                          style="border: none"
+                          @mousedown.prevent
+                          v-bind="attrs"
+                          v-on="on"
+                          value="asc"
+                        >
                           <v-icon small>arrow_upward</v-icon>
                         </v-btn>
                       </template>
@@ -34,7 +61,13 @@
 
                     <v-tooltip bottom>
                       <template v-slot:activator="{ on, attrs }">
-                        <v-btn style="border:none" @mousedown.prevent v-bind="attrs" v-on="on" value="desc">
+                        <v-btn
+                          style="border: none"
+                          @mousedown.prevent
+                          v-bind="attrs"
+                          v-on="on"
+                          value="desc"
+                        >
                           <v-icon small>arrow_downward</v-icon>
                         </v-btn>
                       </template>

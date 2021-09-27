@@ -7,6 +7,7 @@ export default class RulesMixin extends Vue {
     required: (v) => (String(v).trim() !== '' && (Boolean(v) || v === 0)) || 'Required.',
     isInteger: (v) => (String(v).trim() !== '' && (!v || /^[+-]?\d+$/.test(v))) || 'Must be an integer',
     isNumber: (v) => (String(v).trim() !== '' && (!v || /^[+-]?\d+(\.\d+)?$/.test(v))) || 'Must be a number',
+    noSpaces: (v) => (String(v).indexOf(' ') < 0) || 'No spaces allowed.',
   };
 }
 </script>

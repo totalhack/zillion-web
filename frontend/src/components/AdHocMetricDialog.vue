@@ -16,7 +16,7 @@
                     placeholder="my_metric"
                     hint="allowed: a-zA-Z0-9_"
                     persistent-hint
-                    :rules="[rules.required]"
+                    :rules="[rules.required, rules.noSpaces]"
                     required
                     @input="errorMessages = ''"
                   ></v-text-field>
@@ -143,11 +143,26 @@ export default class AdHocMetricDialog extends Mixins(RulesMixin) {
     };
   }
 
-  open(name) {
+  open({ name, display_name, description, formula, rounding, technical }) {
     this.clear();
     if (name) {
       this.name = name;
-      this.displayName = name;
+      this.displayName = name; // Use this as a backup/default
+    }
+    if (display_name) {
+      this.displayName = display_name;
+    }
+    if (description) {
+      this.description = description;
+    }
+    if (formula) {
+      this.formula = formula;
+    }
+    if (rounding) {
+      this.rounding = rounding;
+    }
+    if (technical) {
+      this.technical = technical;
     }
     this.dialog = true;
   }
@@ -161,7 +176,8 @@ export default class AdHocMetricDialog extends Mixins(RulesMixin) {
       name: this.name,
       formula: this.formula,
       rounding: this.rounding,
-      technical: this.technical
+      technical: this.technical,
+      display_name: this.displayName
     };
     const result = await dispatchCheckFormula(this.$store, checkFormula);
     if (!(result as any).success) {

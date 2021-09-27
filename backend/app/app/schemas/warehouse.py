@@ -21,6 +21,7 @@ class CheckFormulaRequest(BaseModel):
     formula: str
     rounding: int = None
     technical: str = None
+    display_name: str = None
 
 
 class ReportRequest(BaseModel):

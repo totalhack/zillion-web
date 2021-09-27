@@ -41,7 +41,11 @@
                   >
                     <v-icon size="22">pause</v-icon>
                   </span>
-                  <span class="chiptext">{{ option.display_name }}</span>
+                  <span
+                    class="chiptext"
+                    @dblclick="handleTagDblClick(option, $event)"
+                    >{{ option.display_name }}</span
+                  >
                 </v-chip>
               </slot>
             </template>

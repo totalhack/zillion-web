@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Response
 from marshmallow.exceptions import ValidationError
 import numpy as np
 from tlbx import st, pp, get_string_format_args, json
-from zillion.core import InvalidFieldException
+from zillion.core import InvalidFieldException, ZillionException
 from zillion.model import zillion_engine, ReportSpecs
 from zillion.report import Report, ROLLUP_INDEX_DISPLAY_LABEL
 
@@ -251,11 +251,23 @@ def check_formula(
         wh = whs[warehouse_id]
         request["formula"] = replace_display_names(wh, request["formula"])
         pp(request)
+
+        if request.get("display_name", None):
+            all_fields = wh.get_fields()
+            for field in all_fields.values():
+                if field.display_name == request["display_name"]:
+                    return {
+                        "success": False,
+                        "reason": f"Display name '{request['display_name']}' is used by another field",
+                    }
+
         try:
-            result = wh.get_metric(request)
+            wh.get_metric(request)
         except InvalidFieldException as e:
             return {"success": False, "reason": str(e)}
         except ValidationError as e:
+            return {"success": False, "reason": str(e)}
+        except ZillionException as e:
             return {"success": False, "reason": str(e)}
         return {"success": True, "reason": None}
     return {}
