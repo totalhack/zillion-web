@@ -7,8 +7,11 @@ from starlette.responses import Response
 from zillion.core import (
     UnsupportedGrainException,
     InvalidDimensionValueException,
+    InvalidFieldException,
     ZillionException,
+    error,
 )
+from tlbx import st
 
 from app import app
 from app.api.api_v1.api import api_router
@@ -26,11 +29,11 @@ if settings.ROLLBAR_ENABLED:
 async def catch_exceptions_middleware(request: Request, call_next):
     try:
         return await call_next(request)
-    except UnsupportedGrainException as e:
-        return Response(str(e), status_code=500)
-    except InvalidDimensionValueException as e:
-        return Response(str(e), status_code=500)
-    except ZillionException as e:
+    except (InvalidFieldException, InvalidDimensionValueException) as e:
+        error(str(e))
+        return Response(str(e), status_code=400)
+    except (UnsupportedGrainException, ZillionException) as e:
+        error(str(e))
         return Response(str(e), status_code=500)
     except Exception as e:
         tb.print_exc()
@@ -38,7 +41,7 @@ async def catch_exceptions_middleware(request: Request, call_next):
             rollbar.report_exc_info()
         if settings.DEBUG:
             return Response(tb.format_exc(), status_code=500)
-        return Response("Internal server error", status_code=500)
+        return Response(f"Internal server error: {str(e)}", status_code=500)
 
 
 app.middleware("http")(catch_exceptions_middleware)

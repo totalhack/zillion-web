@@ -16,7 +16,13 @@
         </v-btn>
       </template>
       <v-card class="pa-2">
-        <v-card-title>Query Details</v-card-title>
+        <v-card-title
+          >Query Details
+          <v-spacer></v-spacer>
+          <v-card-actions class="mt-4">
+            <v-icon @click="dialog = false">close</v-icon>
+          </v-card-actions>
+        </v-card-title>
         <v-card-text>
           <v-container>
             <pre
@@ -25,11 +31,6 @@
               :key="index"
               v-for="(summary, index) in querySummaries"
             ><br>{{ summary }}</pre>
-            <v-card-actions class="mt-4">
-              <v-btn color="grey darken-3" text @click="dialog = false"
-                >Close</v-btn
-              >
-            </v-card-actions>
           </v-container>
         </v-card-text>
       </v-card>

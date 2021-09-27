@@ -76,6 +76,17 @@ def test_save_and_execute_id(client: TestClient, superuser_token_headers: dict) 
     pp(data)
 
 
+def test_execute_invalid_fields(
+    client: TestClient, superuser_token_headers: dict
+) -> None:
+    resp = client.post(
+        f"{settings.API_V1_STR}/warehouse/1/execute",
+        headers=superuser_token_headers,
+        json={"metrics": ["bla"], "dimensions": ["month"]},
+    )
+    assert resp.status_code == 400, resp.content
+
+
 def test_execute_shortcut_criteria(
     client: TestClient, superuser_token_headers: dict
 ) -> None:
