@@ -12,7 +12,7 @@
         slot-scope="{ values, search, isOpen, remove }"
       >
         <div class="multiselect__tags-wrap" v-show="values.length > 0">
-          <draggable :list="selectedOptions">
+          <draggable :list="selectedOptions" :disabled="breakpointMdOrLess">
             <template v-for="(option, index) of values">
               <slot
                 name="tag"

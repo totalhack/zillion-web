@@ -31,6 +31,12 @@ export default class BaseSelect extends Mixins(WarehouseManagerMixin) {
     this.selectedOptions = newValue;
   }
 
+  get breakpointMdOrLess() {
+    return (this.$vuetify.breakpoint.name === 'xs' ||
+      this.$vuetify.breakpoint.name === 'sm' ||
+      this.$vuetify.breakpoint.name === 'md');
+  }
+
   limitText(count) {
     return `and ${count} more`;
   }
