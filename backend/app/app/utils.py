@@ -173,23 +173,23 @@ def get_n_days_ago(n):
 
 
 NON_RANGE_DATE_SHORTCUTS = {
-    "today": get_today(),
-    "yesterday": get_yesterday(),
-    "startofweek": get_start_of_week(),
-    "startofmonth": get_start_of_month(),
-    "startoflastmonth": get_start_of_last_month(),
-    "startofyear": get_start_of_year(),
+    "today": lambda: get_today(),
+    "yesterday": lambda: get_yesterday(),
+    "startofweek": lambda: get_start_of_week(),
+    "startofmonth": lambda: get_start_of_month(),
+    "startoflastmonth": lambda: get_start_of_last_month(),
+    "startofyear": lambda: get_start_of_year(),
 }
 
 RANGE_DATE_SHORTCUTS = {
-    "today": [get_today(), get_today()],
-    "yesterday": [get_yesterday(), get_yesterday()],
-    "last7days": [get_n_days_ago(7), get_n_days_ago(1)],
-    "last30days": [get_n_days_ago(30), get_n_days_ago(1)],
-    "thisweek": [get_start_of_week(), get_today()],
-    "thismonth": [get_start_of_month(), get_today()],
-    "lastmonth": [get_start_of_last_month(), get_end_of_last_month()],
-    "thisyear": [get_start_of_year(), get_today()],
+    "today": lambda: [get_today(), get_today()],
+    "yesterday": lambda: [get_yesterday(), get_yesterday()],
+    "last7days": lambda: [get_n_days_ago(7), get_n_days_ago(1)],
+    "last30days": lambda: [get_n_days_ago(30), get_n_days_ago(1)],
+    "thisweek": lambda: [get_start_of_week(), get_today()],
+    "thismonth": lambda: [get_start_of_month(), get_today()],
+    "lastmonth": lambda: [get_start_of_last_month(), get_end_of_last_month()],
+    "thisyear": lambda: [get_start_of_year(), get_today()],
 }
 
 DATE_SHORTCUT_VALUES = {
@@ -235,7 +235,7 @@ def handle_shortcut_criteria(warehouse, request):
             continue
 
         has_shortcuts = True
-        value = SHORTCUT_VALUES[field_type][op][shortcut_val]
+        value = SHORTCUT_VALUES[field_type][op][shortcut_val]()
         final_criteria.append([field_name, op, value])
 
     if has_shortcuts and "meta" in request:
