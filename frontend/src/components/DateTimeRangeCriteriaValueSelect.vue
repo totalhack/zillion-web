@@ -6,7 +6,7 @@
     :type="dateType"
     placeholder="Select Date/Time Range"
     :show-time-panel="showTimeRangePanel"
-    :shortcuts="rangeShortcuts"
+    :shortcuts="rangeShortcuts.concat(rangeDateTimeShortcuts)"
     range
     @close="handleRangeClose"
   >
@@ -57,6 +57,10 @@ export default class DateTimeRangeCriteriaValueSelect extends BaseDateCriteriaVa
       this.formatDate(this.syncedValue[0]),
       this.formatDate(this.syncedValue[1]),
     ];
+  }
+
+  getShortCuts() {
+    return this.rangeShortcuts.concat(this.rangeDateTimeShortcuts);
   }
 }
 </script>

@@ -172,6 +172,20 @@ def get_n_days_ago(n):
     return str(date.today() - timedelta(days=n))
 
 
+def get_n_hours_ago(n):
+    return str(
+        datetime.now().replace(minute=0, second=0, microsecond=0) - timedelta(hours=n)
+    )
+
+
+def get_n_minutes_ago(n):
+    return str(datetime.now().replace(second=0, microsecond=0) - timedelta(minutes=n))
+
+
+def get_now():
+    return str(datetime.now())
+
+
 NON_RANGE_DATE_SHORTCUTS = {
     "today": lambda: get_today(),
     "yesterday": lambda: get_yesterday(),
@@ -179,6 +193,9 @@ NON_RANGE_DATE_SHORTCUTS = {
     "startofmonth": lambda: get_start_of_month(),
     "startoflastmonth": lambda: get_start_of_last_month(),
     "startofyear": lambda: get_start_of_year(),
+    "thishour": lambda: get_n_hours_ago(0),
+    "lasthour": lambda: get_n_hours_ago(1),
+    "last10minutes": lambda: get_n_minutes_ago(10),
 }
 
 RANGE_DATE_SHORTCUTS = {
@@ -190,6 +207,9 @@ RANGE_DATE_SHORTCUTS = {
     "thismonth": lambda: [get_start_of_month(), get_today()],
     "lastmonth": lambda: [get_start_of_last_month(), get_end_of_last_month()],
     "thisyear": lambda: [get_start_of_year(), get_today()],
+    "thishour": lambda: [get_n_hours_ago(0), get_n_minutes_ago(0)],
+    "lasthour": lambda: [get_n_hours_ago(1), get_n_hours_ago(0)],
+    "last10minutes": lambda: [get_n_minutes_ago(10), get_n_minutes_ago(0)],
 }
 
 DATE_SHORTCUT_VALUES = {

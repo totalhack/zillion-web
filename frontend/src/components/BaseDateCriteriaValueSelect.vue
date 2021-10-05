@@ -22,17 +22,46 @@
 import { Component } from 'vue-property-decorator';
 import {
   getNDaysAgo,
+  getNHoursAgo,
+  getNMinutesAgo,
   getDateStartOf,
   getToday,
   getTomorrow,
   getLastMonthStart,
-  getLastMonthEnd
+  getLastMonthEnd,
+  getThisHour
 } from '@/utils';
 import BaseCriteriaValueSelect from './BaseCriteriaValueSelect.vue';
 
 @Component
 export default class BaseDateCriteriaValueSelect extends BaseCriteriaValueSelect {
   dateType: string = 'datetime';
+  now: any = Date.now();
+  intervalId: number | null = null;
+
+  nonRangeDateTimeShortcuts: any[] = [
+    {
+      text: 'Last 10 Minutes',
+      getValue(type) {
+        return getNMinutesAgo(10, type);
+      },
+      onClick: () => this.handleShortcutInput('Last 10 Minutes'),
+    },
+    {
+      text: 'This Hour',
+      getValue(type) {
+        return getThisHour(type);
+      },
+      onClick: () => this.handleShortcutInput('This Hour'),
+    },
+    {
+      text: 'Last Hour',
+      getValue(type) {
+        return getNHoursAgo(1, type);
+      },
+      onClick: () => this.handleShortcutInput('Last Hour'),
+    },
+  ];
 
   nonRangeShortcuts: any[] = [
     {
@@ -76,6 +105,30 @@ export default class BaseDateCriteriaValueSelect extends BaseCriteriaValueSelect
         return getDateStartOf('year', type);
       },
       onClick: () => this.handleShortcutInput('Start of Year'),
+    },
+  ];
+
+  rangeDateTimeShortcuts: any[] = [
+    {
+      text: 'Last 10 Minutes',
+      getValue(type) {
+        return [getNMinutesAgo(10, type), getNMinutesAgo(0, type)];
+      },
+      onClick: () => this.handleShortcutInput('Last 10 Minutes'),
+    },
+    {
+      text: 'This Hour',
+      getValue(type) {
+        return [getThisHour(type), getNMinutesAgo(0, type)];
+      },
+      onClick: () => this.handleShortcutInput('This Hour'),
+    },
+    {
+      text: 'Last Hour',
+      getValue(type) {
+        return [getNHoursAgo(1, type), getThisHour(type)];
+      },
+      onClick: () => this.handleShortcutInput('Last Hour'),
     },
   ];
 
@@ -141,6 +194,19 @@ export default class BaseDateCriteriaValueSelect extends BaseCriteriaValueSelect
   private showTimePanel: boolean = false;
   private showTimeRangePanel: boolean = false;
 
+  created() {
+    const self = this;
+    this.intervalId = setInterval(() => {
+      self.now = Date.now();
+    }, 30000);
+  }
+
+  deactivated() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
+  }
+
   handleShortcutInput(newValue) {
     this.onInput(newValue);
   }
@@ -184,6 +250,7 @@ export default class BaseDateCriteriaValueSelect extends BaseCriteriaValueSelect
   }
 
   get dateValue() {
+    const x = this.now; // HACK: trigger reactivity, please
     const shortcut = this.getShortCuts().find((v) => v.text === this.syncedValue);
     if (shortcut) {
       const value = shortcut.getValue(this.dateType);

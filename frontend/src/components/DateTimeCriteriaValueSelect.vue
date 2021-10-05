@@ -6,7 +6,7 @@
     :type="dateType"
     placeholder="Select Date/Time"
     :show-time-panel="showTimeRangePanel"
-    :shortcuts="nonRangeShortcuts"
+    :shortcuts="nonRangeShortcuts.concat(nonRangeDateTimeShortcuts)"
     @close="handleRangeClose"
   >
     <template v-slot:footer>
@@ -37,7 +37,7 @@ export default class DateTimeCriteriaValueSelect extends BaseDateCriteriaValueSe
   dateType: string = 'datetime';
 
   getShortCuts() {
-    return this.nonRangeShortcuts;
+    return this.nonRangeShortcuts.concat(this.nonRangeDateTimeShortcuts);
   }
 }
 </script>

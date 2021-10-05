@@ -109,6 +109,14 @@ export function getNDaysAgo(N, type) {
   return moment().subtract(N, 'day').startOf('day').format(dateTypeToFormat(type));
 }
 
+export function getNHoursAgo(N, type) {
+  return moment().subtract(N, 'hour').startOf('hour').format(dateTypeToFormat(type));
+}
+
+export function getNMinutesAgo(N, type) {
+  return moment().subtract(N, 'minute').startOf('minute').format(dateTypeToFormat(type));
+}
+
 export function getDateStartOf(type, dateType) {
   return moment().startOf(type).format(dateTypeToFormat(dateType));
 }
@@ -123,6 +131,10 @@ export function getToday(type) {
 
 export function getTomorrow(type) {
   return moment().add(1, 'day').startOf('day').format(dateTypeToFormat(type));
+}
+
+export function getThisHour(type) {
+  return moment().startOf('hour').format(dateTypeToFormat(type));
 }
 
 export function getLastMonthStart(type) {
