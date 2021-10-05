@@ -7,7 +7,6 @@ Zillion Web: A Web UI/API for Zillion
 ---------------------
 
 * [About Zillion Web](#about-zillion-web)
-* [Demo](#demo)
 * [Installation](#installation)
 * [How to Contribute](#how-to-contribute)
 
@@ -27,8 +26,6 @@ changed or removed.
 
 Some general things to know:
 
-* This was my first Vue/Typescript project. Part of the goal was to learn, and there are
-most certainly things that could have been done better and/or shortcuts taken.
 * The frontend is currently Vue 2.6+ with Vuetify 2.3+. It utilizes `vue-property-decorator`
 and `vue-class-component`. While this approach was inherited from the project generator, it is not "officially" supported by the Vue community.
 * [Billboard JS](https://github.com/naver/billboard.js/) is used for charting.
@@ -43,25 +40,6 @@ project generator and at [dockerswarm.rocks](https://dockerswarm.rocks/).
 While I will likely continue building on this project, it is currently viewed as just a demo
 and therefore not something I intend to spend much time supporting. That may change down
 the road, and I will certainly try to address any major issues/bugs.
-
-<a name="demo"></a>
-
-**Demo**
---------
-
-The demo UI is deployed [here](https://zillionweb.totalhack.org/). A demo user has been created with the following credentials:
-
-* `user`: demouser@example.com
-* `password`: demopass
-
-Two example `Warehouses` have been loaded:
-
-* A slightly modified version of the [Zillion Covid-19](https://github.com/totalhack/zillion-covid-19) demo warehouse.
-* The [Zillion Baseball](https://github.com/totalhack/zillion-baseball) demo warehouse, which has a subset of data from the [Baseball Data Bank](https://github.com/chadwickbureau/baseballdatabank).
-
-Note that the sample data is not being automatically updated at this time. 
-
-You can use the control bar at the bottom to run/save/configure/download reports, or utilize the keyboard shortcuts if on desktop (hover over the buttons to see shortcuts). Since this is just a frontend to the main report execution API that [Zillion](https://github.com/totalhack/zillion) exposes it is recommended to read the more thorough Zillion docs for a better understanding of the fields, options, and general theory/approach.
 
 <a name="installation"></a>
 
