@@ -1,3 +1,4 @@
+import time
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -23,7 +24,7 @@ def test_email(
 
 
 @router.get("/ok/", status_code=200)
-def test_email() -> Any:
+def ok() -> Any:
     """
     Healthcheck
     """
