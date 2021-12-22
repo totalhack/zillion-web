@@ -75,9 +75,8 @@
                 outlined
                 type="error"
                 :value="!!errorMessages"
+                >{{ errorMessages }}</v-alert
               >
-                {{ errorMessages }}
-              </v-alert>
             </v-container>
           </v-card-text>
           <v-card-actions>

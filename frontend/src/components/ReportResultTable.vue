@@ -43,9 +43,9 @@
       v-for="(column, index) of reportColumns"
       v-slot:[`item.${column}`]="{ item }"
     >
-      <td :key="index" :style="getCellStyle(column, item[column])">
-        {{ item[column] }}
-      </td>
+      <span :key="index" :style="getCellStyle(column, item[column])">{{
+        item[column]
+      }}</span>
     </template>
   </v-data-table>
 </template>
