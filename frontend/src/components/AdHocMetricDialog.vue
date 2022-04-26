@@ -47,7 +47,19 @@
                 </v-col>
               </v-row>
               <v-row>
-                <v-col cols="12" sm="6">
+                <v-col cols="12" sm="4">
+                  <v-select
+                    v-model="aggregation"
+                    label="Aggregation*"
+                    placeholder="mean"
+                    :items="['mean', 'sum', 'min', 'max']"
+                    :rules="[rules.required]"
+                    hint="Metric rollup method"
+                    persistent-hint
+                    @input="errorMessages = ''"
+                  ></v-select>
+                </v-col>
+                <v-col cols="12" sm="4">
                   <v-text-field
                     v-model="rounding"
                     label="Rounding"
@@ -57,7 +69,7 @@
                     @input="errorMessages = ''"
                   ></v-text-field>
                 </v-col>
-                <v-col cols="12" sm="6">
+                <v-col cols="12" sm="4">
                   <v-text-field
                     v-model="technical"
                     label="Technical"
@@ -112,6 +124,7 @@ export default class AdHocMetricDialog extends Mixins(RulesMixin) {
   private displayName: string | null = null;
   private description: string | null = null;
   private formula: string | null = null;
+  private aggregation: string | null = 'sum';
   private rounding: number | null = null;
   private technical: string | null = null;
 
@@ -123,6 +136,7 @@ export default class AdHocMetricDialog extends Mixins(RulesMixin) {
     this.displayName = null;
     this.description = null;
     this.formula = null;
+    this.aggregation = 'sum';
     this.rounding = null;
     this.technical = null;
   }
@@ -133,6 +147,7 @@ export default class AdHocMetricDialog extends Mixins(RulesMixin) {
       display_name: this.displayName,
       description: this.formula,
       formula: this.formula,
+      aggregation: this.aggregation,
       rounding: this.rounding,
       technical: this.technical,
       // Not currently configurable by the user
@@ -142,7 +157,7 @@ export default class AdHocMetricDialog extends Mixins(RulesMixin) {
     };
   }
 
-  open({ name, display_name, description, formula, rounding, technical }) {
+  open({ name, display_name, description, formula, aggregation, rounding, technical }) {
     this.clear();
     if (name) {
       this.name = name;
@@ -156,6 +171,9 @@ export default class AdHocMetricDialog extends Mixins(RulesMixin) {
     }
     if (formula) {
       this.formula = formula;
+    }
+    if (aggregation) {
+      this.aggregation = aggregation;
     }
     if (rounding) {
       this.rounding = rounding;
@@ -174,6 +192,7 @@ export default class AdHocMetricDialog extends Mixins(RulesMixin) {
     const checkFormula = {
       name: this.name,
       formula: this.formula,
+      aggregation: this.aggregation,
       rounding: this.rounding,
       technical: this.technical,
       display_name: this.displayName

@@ -351,11 +351,18 @@ export default class CriteriaSelect extends BaseSelect {
     const rawOptions = this.rawOptionsMap;
     for (const criteria of criteriaList) {
       const name = criteria[0];
-      const operation = criteria[1];
+      let operation = criteria[1];
       const value = criteria[2];
       const raw = rawOptions[name];
       if (!raw) {
         continue;
+      }
+
+      if (operation === '=' && value === null) {
+        operation = 'is null';
+      }
+      if (operation === '!=' && value === null) {
+        operation = 'is not null';
       }
 
       const option = {
@@ -369,7 +376,9 @@ export default class CriteriaSelect extends BaseSelect {
         value: null,
       };
       this.setComponent(option);
-      option.value = (option as any).component.criteriaToOptionValue(value);
+      if ((option as any).component !== null) { // Can be null for certain operations
+        option.value = (option as any).component.criteriaToOptionValue(value);
+      }
       this.rawSelected.push(option);
     }
   }

@@ -19,6 +19,7 @@ FormulaMetric = pydantic_from_marshmallow(FormulaMetricConfigSchema)
 class CheckFormulaRequest(BaseModel):
     name: str
     formula: str
+    aggregation: str = None
     rounding: int = None
     technical: str = None
     display_name: str = None
