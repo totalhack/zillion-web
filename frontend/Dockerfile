@@ -18,7 +18,7 @@ ENV VUE_APP_NAME=${VUE_APP_NAME}
 ENV VUE_APP_DOMAIN=${VUE_APP_DOMAIN}
 
 # Comment out the next line to disable tests
-RUN npm run test:unit
+# RUN npm run test:unit
 
 RUN npm run build
 
