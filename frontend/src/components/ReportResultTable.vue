@@ -8,7 +8,7 @@
     :headers="reportHeaders"
     :items="reportData"
     :item-class="getRowClass"
-    :items-per-page="100"
+    :items-per-page="500"
     :footer-props="{
       itemsPerPageText: 'Per page:',
       itemsPerPageOptions: [25, 100, 500, -1],
