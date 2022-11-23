@@ -5,9 +5,8 @@ set -e
 
 TAG=${TAG-latest} \
 FRONTEND_ENV=${FRONTEND_ENV-production} \
-DOCKER_IMAGE_FRONTEND=${DOCKER_IMAGE_FRONTEND-"totalhack/zillion-web-frontend"} \
-DOCKER_IMAGE_BACKEND=${DOCKER_IMAGE_BACKEND-"totalhack/zillion-web-backend"} \
+DOCKER_IMAGE_FRONTEND=${DOCKER_IMAGE_FRONTEND?Variable not set} \
+DOCKER_IMAGE_BACKEND=${DOCKER_IMAGE_BACKEND?Variable not set} \
 docker-compose \
 -f ${1:-docker-compose.yml} \
 build
-

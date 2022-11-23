@@ -4,43 +4,27 @@
       <v-form ref="form" v-model="valid">
         <v-card>
           <v-card-title>
-            <span class="headline">Create Ad Hoc Metric</span>
+            <span class="headline">Create Ad Hoc Dimension</span>
           </v-card-title>
           <v-card-text>
             <v-container>
               <v-row>
                 <v-col cols="12" sm="6">
-                  <v-text-field @keydown.space.prevent v-model="name" label="Metric Name*" placeholder="my_metric"
+                  <v-text-field @keydown.space.prevent v-model="name" label="Dimension Name*" placeholder="my_dimension"
                     hint="allowed: a-zA-Z0-9_" persistent-hint :rules="[rules.required, rules.noSpaces]" required
                     @input="errorMessages = ''">
                   </v-text-field>
                 </v-col>
                 <v-col cols="12" sm="6">
-                  <v-text-field v-model="displayName" label="Display Name*" placeholder="My Metric"
+                  <v-text-field v-model="displayName" label="Display Name*" placeholder="My Dimension"
                     :rules="[rules.required]" required @input="errorMessages = ''"></v-text-field>
                 </v-col>
               </v-row>
               <v-row>
                 <v-col cols="12">
-                  <v-text-field v-model="formula" label="Metric Formula*" placeholder="{field_x}/{field_y}"
+                  <v-text-field v-model="formula" label="Dimension Formula*" placeholder="{field_x} = 1"
                     hint="A formula in the SQL dialect of the combined layer DB" persistent-hint
                     :rules="[rules.required]" @input="errorMessages = ''" required></v-text-field>
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col cols="12" sm="4">
-                  <v-select v-model="aggregation" label="Aggregation*" placeholder="mean"
-                    :items="['mean', 'sum', 'min', 'max']" :rules="[rules.required]" hint="Metric rollup method"
-                    persistent-hint @input="errorMessages = ''"></v-select>
-                </v-col>
-                <v-col cols="12" sm="4">
-                  <v-text-field v-model="rounding" label="Rounding" placeholder="0" hint="Integer metric precision"
-                    persistent-hint @input="errorMessages = ''"></v-text-field>
-                </v-col>
-                <v-col cols="12" sm="4">
-                  <v-text-field v-model="technical" label="Technical" placeholder="mean(5)"
-                    hint="Technical string. See Zillion docs." persistent-hint @input="errorMessages = ''">
-                  </v-text-field>
                 </v-col>
               </v-row>
               <small>* Indicates required field</small>
@@ -50,7 +34,7 @@
           <v-card-actions>
             <v-spacer></v-spacer>
             <v-btn color="grey darken-3" text @click="dialog = false; errorMessages = '';">Cancel</v-btn>
-            <v-btn color="grey darken-3" text @click="addAdHocMetric">Add</v-btn>
+            <v-btn color="grey darken-3" text @click="addAdHocDimension">Add</v-btn>
           </v-card-actions>
         </v-card>
       </v-form>
@@ -61,18 +45,15 @@
 <script lang="ts">
 import { Component, Mixins, Vue } from 'vue-property-decorator';
 import RulesMixin from '@/components/mixins/RulesMixin.vue';
-import { dispatchCheckMetricFormula } from '@/store/main/actions';
+import { dispatchCheckDimensionFormula } from '@/store/main/actions';
 
 @Component
-export default class AdHocMetricDialog extends Mixins(RulesMixin) {
+export default class AdHocDimensionDialog extends Mixins(RulesMixin) {
   private dialog: boolean = false;
   private name: string | null = null;
   private displayName: string | null = null;
   private description: string | null = null;
   private formula: string | null = null;
-  private aggregation: string | null = 'sum';
-  private rounding: number | null = null;
-  private technical: string | null = null;
 
   private valid: boolean = false;
   private errorMessages = '';
@@ -82,9 +63,6 @@ export default class AdHocMetricDialog extends Mixins(RulesMixin) {
     this.displayName = null;
     this.description = null;
     this.formula = null;
-    this.aggregation = 'sum';
-    this.rounding = null;
-    this.technical = null;
   }
 
   read() {
@@ -93,17 +71,12 @@ export default class AdHocMetricDialog extends Mixins(RulesMixin) {
       display_name: this.displayName,
       description: this.formula,
       formula: this.formula,
-      aggregation: this.aggregation,
-      rounding: this.rounding,
-      technical: this.technical,
-      // Not currently configurable by the user
-      required_grain: null,
       group: null,
       active: true,
     };
   }
 
-  open({ name, display_name, description, formula, aggregation, rounding, technical }) {
+  open({ name, display_name, description, formula }) {
     this.clear();
     if (name) {
       this.name = name;
@@ -119,19 +92,10 @@ export default class AdHocMetricDialog extends Mixins(RulesMixin) {
     if (formula) {
       this.formula = formula;
     }
-    if (aggregation) {
-      this.aggregation = aggregation;
-    }
-    if (rounding) {
-      this.rounding = rounding;
-    }
-    if (technical) {
-      this.technical = technical;
-    }
     this.dialog = true;
   }
 
-  async addAdHocMetric() {
+  async addAdHocDimension() {
     (this.$refs.form as any).validate();
     if (!this.valid) {
       return;
@@ -139,12 +103,9 @@ export default class AdHocMetricDialog extends Mixins(RulesMixin) {
     const checkFormula = {
       name: this.name,
       formula: this.formula,
-      aggregation: this.aggregation,
-      rounding: this.rounding,
-      technical: this.technical,
       display_name: this.displayName
     };
-    const result = await dispatchCheckMetricFormula(this.$store, checkFormula);
+    const result = await dispatchCheckDimensionFormula(this.$store, checkFormula);
     if (!(result as any).success) {
       const reason = (result as any).reason;
       if (reason) {

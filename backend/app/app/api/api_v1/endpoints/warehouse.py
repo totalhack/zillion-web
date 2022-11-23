@@ -107,10 +107,10 @@ def structure(
     return {}
 
 
-@router.post("/{warehouse_id}/check_formula", response_model=Dict[str, Any])
-def check_formula(
+@router.post("/{warehouse_id}/check_metric_formula", response_model=Dict[str, Any])
+def check_metric_formula(
     warehouse_id: int,
-    request: CheckFormulaRequest,
+    request: CheckMetricFormulaRequest,
     whs: Dict[str, Any] = Depends(deps.get_warehouses),
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
@@ -134,6 +134,43 @@ def check_formula(
 
         try:
             wh.get_metric(request)
+        except InvalidFieldException as e:
+            return {"success": False, "reason": str(e)}
+        except ValidationError as e:
+            return {"success": False, "reason": str(e)}
+        except ZillionException as e:
+            return {"success": False, "reason": str(e)}
+        return {"success": True, "reason": None}
+    return {}
+
+
+@router.post("/{warehouse_id}/check_dimension_formula", response_model=Dict[str, Any])
+def check_dimension_formula(
+    warehouse_id: int,
+    request: CheckDimensionFormulaRequest,
+    whs: Dict[str, Any] = Depends(deps.get_warehouses),
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """Check an AdHocDimension formula"""
+    if not whs:
+        raise Exception("No warehouses have been loaded")
+    if crud.user.is_active(current_user):
+        request = dict(request)
+        wh = whs[warehouse_id]
+        request["formula"] = replace_display_names(wh, request["formula"])
+        pp(request)
+
+        if request.get("display_name", None):
+            all_fields = wh.get_fields()
+            for field in all_fields.values():
+                if field.display_name == request["display_name"]:
+                    return {
+                        "success": False,
+                        "reason": f"Display name '{request['display_name']}' is used by another field",
+                    }
+
+        try:
+            wh.get_dimension(request)
         except InvalidFieldException as e:
             return {"success": False, "reason": str(e)}
         except ValidationError as e:

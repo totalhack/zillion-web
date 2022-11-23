@@ -1,20 +1,10 @@
 <template>
   <div>
-    <draggable-multi-select
-      ref="multiselect"
-      :raw-options-map="rawOptionsMap"
-      default-group="Metrics"
-      placeholder="Select Metrics"
-      :created-options-group="createdOptionsGroup"
-      tag-placeholder="Press enter to create a metric"
-      :taggable="true"
-      @tag="openAdHocMetricDialog"
-      @tagDblClick="handleTagDblClick"
-    ></draggable-multi-select>
-    <ad-hoc-metric-dialog
-      @input="addAdHocMetric($event)"
-      ref="adHocMetricDialog"
-    ></ad-hoc-metric-dialog>
+    <draggable-multi-select ref="multiselect" :raw-options-map="rawOptionsMap" default-group="Metrics"
+      placeholder="Select Metrics" :created-options-group="createdOptionsGroup"
+      tag-placeholder="Press enter to create a metric" :taggable="true" @tag="openAdHocMetricDialog"
+      @tagDblClick="handleTagDblClick"></draggable-multi-select>
+    <ad-hoc-metric-dialog @input="addAdHocMetric($event)" ref="adHocMetricDialog"></ad-hoc-metric-dialog>
   </div>
 </template>
 
@@ -64,6 +54,8 @@ export default class MetricSelect extends Vue {
 
   handleTagDblClick({ option, event }) {
     if (option.group && option.group === this.createdOptionsGroup) {
+      (this.$refs.adHocMetricDialog as any).open(option);
+    } else {
       (this.$refs.adHocMetricDialog as any).open(option);
     }
   }

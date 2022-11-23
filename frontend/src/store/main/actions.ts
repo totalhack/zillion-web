@@ -261,18 +261,34 @@ export const actions = {
       }
     }
   },
-  async checkFormula(context: MainContext, payload) {
+  async checkMetricFormula(context: MainContext, payload) {
     try {
       const warehouseId = readActiveWarehouseId(context);
       if (!warehouseId) {
         dispatchAddError(context, 'Trying to check formula without an active warehouse');
         return;
       }
-      const response = await api.checkFormula(context.state.token, warehouseId, payload);
+      const response = await api.checkMetricFormula(context.state.token, warehouseId, payload);
       if (response.data) {
         return response.data;
       }
-      dispatchAddError(context, 'No data in checkFormula response');
+      dispatchAddError(context, 'No data in checkMetricFormula response');
+    } catch (error) {
+      await dispatchCheckApiError(context, error);
+    }
+  },
+  async checkDimensionFormula(context: MainContext, payload) {
+    try {
+      const warehouseId = readActiveWarehouseId(context);
+      if (!warehouseId) {
+        dispatchAddError(context, 'Trying to check formula without an active warehouse');
+        return;
+      }
+      const response = await api.checkDimensionFormula(context.state.token, warehouseId, payload);
+      if (response.data) {
+        return response.data;
+      }
+      dispatchAddError(context, 'No data in checkDimensionFormula response');
     } catch (error) {
       await dispatchCheckApiError(context, error);
     }
@@ -446,7 +462,8 @@ export const dispatchHydrateExplorerStore = dispatch(actions.hydrateExplorerStor
 export const dispatchHydrateWarehouseStore = dispatch(actions.hydrateWarehouseStore);
 export const dispatchSetActiveWarehouseId = dispatch(actions.setActiveWarehouseId);
 export const dispatchSetDefaultWarehouseId = dispatch(actions.setDefaultWarehouseId);
-export const dispatchCheckFormula = dispatch(actions.checkFormula);
+export const dispatchCheckMetricFormula = dispatch(actions.checkMetricFormula);
+export const dispatchCheckDimensionFormula = dispatch(actions.checkDimensionFormula);
 export const dispatchExecuteReport = dispatch(actions.executeReport);
 export const dispatchSaveReport = dispatch(actions.saveReport);
 export const dispatchCancelReport = dispatch(actions.cancelReport);

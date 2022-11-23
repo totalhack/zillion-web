@@ -1,17 +1,8 @@
 <template>
   <div id="bb-container">
-    <div
-      id="graph"
-      @mouseleave="hideToolTip"
-      @dblclick.stop="resetLegendSelections()"
-      class="mx-4"
-    ></div>
-    <div
-      id="legend"
-      @touchstart="hideToolTip"
-      @dblclick.stop="resetLegendSelections()"
-      class="ml-6 pl-5 legend-container d-flex flex-wrap justify-center"
-    ></div>
+    <div id="graph" @mouseleave="hideToolTip" @dblclick.stop="resetLegendSelections()" class="mx-4"></div>
+    <div id="legend" @touchstart="hideToolTip" @dblclick.stop="resetLegendSelections()"
+      class="ml-6 pl-5 legend-container d-flex flex-wrap justify-center"></div>
   </div>
 </template>
 
@@ -160,6 +151,10 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   }
 
   get xDimType() {
+    if ((this.xDim as any).formula) {
+      // Assume it's a formula dimension, guess string type
+      return 'string';
+    }
     const dim = this.warehouseDimensions[this.xDim!];
     return this.fieldType(dim);
   }
@@ -423,6 +418,9 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
             format: (index, name) => {
               if (name === null) {
                 return 'null';
+              }
+              if (typeof name !== 'string') {
+                name = JSON.stringify(name);
               }
               return name.substr(0, this.maxXCharsAllowed);
             }
@@ -821,6 +819,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   font-size: 13px;
   line-height: 1;
 }
+
 .bb-tooltip-container {
   pointer-events: auto !important;
   overflow: scroll;
@@ -829,15 +828,18 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   line-height: 1rem !important;
   color: #272727;
 }
+
 .bb-axis-y text,
 .bb-axis-y2 text {
   fill: #272727;
 }
+
 .bb-legend-item {
   font: normal 13px Helvetica;
   color: #333;
   letter-spacing: unset !important;
 }
+
 .bb text,
 .bb .bb-button {
   -webkit-user-select: none;
@@ -857,6 +859,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   max-height: 80px;
   white-space: normal;
 }
+
 .legend-color-box {
   width: 10px;
   height: 10px;
@@ -865,35 +868,45 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   position: relative;
   top: 1px;
 }
+
 .legend-item-span {
   padding-left: 10px;
   white-space: nowrap;
   overflow: hidden;
 }
+
 .width-200 {
   width: 200px;
 }
+
 .width-250 {
   width: 250px;
 }
+
 .width-300 {
   width: 300px;
 }
+
 .width-350 {
   width: 350px;
 }
+
 .width-400 {
   width: 400px;
 }
+
 .width-450 {
   width: 450px;
 }
+
 .width-500 {
   width: 500px;
 }
+
 .width-550 {
   width: 550px;
 }
+
 .width-600 {
   width: 600px;
 }

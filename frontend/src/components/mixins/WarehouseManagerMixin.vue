@@ -40,6 +40,18 @@ export default class WarehouseManagerMixin extends Vue {
     return readDimensions(this.$store);
   }
 
+  get warehouseNonFormulaDimensions() {
+    const dims = this.warehouseDimensions;
+    const final: object = {};
+    for (const dim of Object.values(dims)) {
+      if ((dim as any).formula) {
+        continue;
+      }
+      final[(dim as any).name] = dim;
+    }
+    return final;
+  }
+
   get warehouseMetrics() {
     return readMetrics(this.$store);
   }

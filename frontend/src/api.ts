@@ -60,8 +60,15 @@ export const api = {
   async getWarehouseStructure(token: string, warehouseId: number) {
     return axios.get<object>(`${apiUrl}/api/v1/warehouse/${warehouseId}/structure`, defaultConfig(token));
   },
-  async checkFormula(token: string, warehouseId: number, data: ICheckFormulaRequest) {
-    return axios.post<object>(`${apiUrl}/api/v1/warehouse/${warehouseId}/check_formula`, data, defaultConfig(token));
+  async checkMetricFormula(token: string, warehouseId: number, data: ICheckFormulaRequest) {
+    return axios.post<object>(
+      `${apiUrl}/api/v1/warehouse/${warehouseId}/check_metric_formula`, data, defaultConfig(token)
+    );
+  },
+  async checkDimensionFormula(token: string, warehouseId: number, data: ICheckFormulaRequest) {
+    return axios.post<object>(
+      `${apiUrl}/api/v1/warehouse/${warehouseId}/check_dimension_formula`, data, defaultConfig(token)
+    );
   },
   async executeReport(token: string, warehouseId: number, data: IReportRequest, cancelTokenSource) {
     const config = defaultConfig(token);

@@ -1,57 +1,28 @@
 <template>
-  <v-data-table
-    dense
-    multi-sort
-    class="datatable mx-3"
-    fixed-header
-    :height="parentHeight"
-    :headers="reportHeaders"
-    :items="reportData"
-    :item-class="getRowClass"
-    :items-per-page="500"
-    :footer-props="{
+  <v-data-table dense multi-sort class="datatable mx-3" fixed-header :height="parentHeight" :headers="reportHeaders"
+    :items="reportData" :item-class="getRowClass" :items-per-page="500" :footer-props="{
       itemsPerPageText: 'Per page:',
       itemsPerPageOptions: [25, 100, 500, -1],
-    }"
-    item-key="_id"
-    :mobile-breakpoint="null"
-    ref="datatable"
-  >
+    }" item-key="_id" :mobile-breakpoint="null" ref="datatable">
     <template v-slot:body.prepend>
       <tr>
-        <td
-          v-for="(column, index) of reportColumns"
-          :key="index"
-          style="border-right: thin solid rgba(0, 0, 0, 0.12)"
-        >
-          <v-text-field
-            :value="filters[column]"
-            @input="handleFilterInput(column, $event)"
-            @change="filters[column] = $event"
-            @click:clear="filters[column] = ''"
-            type="text"
-            dense
-            single-line
-            hide-details
-            placeholder="Filter"
-            color="grey darken-3"
-          ></v-text-field>
+        <td v-for="(column, index) of reportColumns" :key="index" style="border-right: thin solid rgba(0, 0, 0, 0.12)">
+          <v-text-field :value="filters[column]" @input="handleFilterInput(column, $event)"
+            @change="filters[column] = $event" @click:clear="filters[column] = ''" type="text" dense single-line
+            hide-details placeholder="Filter" color="grey darken-3"></v-text-field>
         </td>
       </tr>
     </template>
-    <template
-      v-for="(column, index) of reportColumns"
-      v-slot:[`item.${column}`]="{ item }"
-    >
+    <template v-for="(column, index) of reportColumns" v-slot:[`item.${column}`]="{ item }">
       <span :key="index" :style="getCellStyle(column, item[column])">{{
-        item[column]
+          item[column]
       }}</span>
     </template>
   </v-data-table>
 </template>
 
 <script lang="ts">
-import { Component, Mixins, Prop, Vue } from 'vue-property-decorator';
+import { Component, Mixins } from 'vue-property-decorator';
 import { pick } from 'lodash';
 import * as Papa from 'papaparse';
 import ReportManagerMixin from '@/components/mixins/ReportManagerMixin.vue';
