@@ -5,6 +5,10 @@
     display: none;
 }
 
+.notifications-wrapper .v-snack__wrapper {
+    max-width: 80% !important;
+}
+
 /* Is this a bad idea? Prevents firefox warning in console. */
 
 * {

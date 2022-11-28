@@ -10,8 +10,6 @@
 import { Component, Mixins, Prop, Watch, Vue } from 'vue-property-decorator';
 import ReportManagerMixin from '@/components/mixins/ReportManagerMixin.vue';
 import { dispatchAddNotification } from '@/store/main/actions';
-import { IReportRequest } from '@/interfaces';
-import { binaryFind, addSortedIfMissing } from '@/utils';
 
 // https://github.com/naver/billboard.js/wiki/CHANGELOG-v2#modularization-by-its-functionality
 import { bb, line, bar, area, scatter, zoom, selection } from 'billboard.js';
@@ -374,7 +372,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
           type: 'timeseries',
           clipPath: false,
           tick: {
-            fit: false,
+            fit: true,
             count: Math.min(xLen, 100),
             multiline: false,
             format: '%Y-%m-%d',
@@ -733,6 +731,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     let options;
     try {
       options = this.chartOptions;
+      console.log('Chart Data', options.data);
       this.$chart = bb.generate(options);
     } catch (err) {
       dispatchAddNotification(

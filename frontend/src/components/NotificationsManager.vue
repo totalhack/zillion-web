@@ -1,21 +1,12 @@
 <template>
   <div class="notifications-wrapper">
-    <v-snackbar
-      v-model="show"
-      :timeout="currentNotificationTimeout"
-      :color="currentNotificationColor"
-      max-width="90vh"
-      style="overflow-x: scroll; white-space: pre-line"
-    >
+    <v-snackbar v-model="show" :timeout="currentNotificationTimeout" :color="currentNotificationColor"
+      style="overflow-x: scroll; white-space: pre-line">
       <div class="d-flex justify-center align-center">
         <span>{{ currentNotificationContent }}</span>
       </div>
       <div class="d-flex justify-center align-center mt-3">
-        <v-progress-circular
-          class="ma-2"
-          indeterminate
-          v-show="showProgress"
-        ></v-progress-circular>
+        <v-progress-circular class="ma-2" indeterminate v-show="showProgress"></v-progress-circular>
         <v-btn text @click.native="close">Close</v-btn>
       </div>
     </v-snackbar>

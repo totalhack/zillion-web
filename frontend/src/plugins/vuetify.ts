@@ -9,5 +9,16 @@ export default new Vuetify({
   },
   theme: {
     dark: false,
+    themes: {
+      light: {
+        error: '#c83b3b',
+        warning: '#d37a08',
+      },
+      dark: {
+        error: '#c83b3b',
+        warning: '#d37a08',
+      },
+    },
+
   },
 });
