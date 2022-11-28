@@ -13,7 +13,8 @@
                 <span class="pr-1" style="cursor: pointer" @mousedown.prevent @click="doPause(option)">
                   <v-icon size="22">pause</v-icon>
                 </span>
-                <span class="chiptext" @dblclick="handleTagDblClick(option, $event)">{{ option.display_name }}</span>
+                <span class="chiptext" @contextmenu.prevent="handleTagRightClick(option, $event)"
+                  @dblclick="handleTagDblClick(option, $event)">{{ option.display_name }}</span>
               </v-chip>
             </slot>
           </template>
@@ -95,6 +96,10 @@ export default class BaseMultiSelect extends BaseSelect {
 
   handleTagDblClick(option, event) {
     this.$emit('tagDblClick', { option, event });
+  }
+
+  handleTagRightClick(option, event) {
+    this.$emit('tagRightClick', { option, event });
   }
 
   forceRerender() {
@@ -250,15 +255,44 @@ export default class BaseMultiSelect extends BaseSelect {
     return false;
   }
 
+  handlePointerDown(e) {
+    let target;
+    if (e.explicitOriginalTarget) {
+      // e.explicitOriginalTarget is firefox only!
+      target = e.explicitOriginalTarget;
+    } else {
+      target = e.target;
+    }
+    if (target &&
+      target.closest &&
+      !target.closest('.tagchip') &&
+      !target.closest('.multiselect__select')) {
+      const ms = this.$refs.multiselect as any;
+      if (!ms.isOpen) {
+        // This doesn't work without setTimeout. Not sure why. Fun.
+        setTimeout(() => ms.activate(), 50);
+      }
+    }
+  }
+
   handleFocus(e) {
-    if (e.explicitOriginalTarget.closest &&
-      !e.explicitOriginalTarget.closest('.tagchip') &&
-      !e.explicitOriginalTarget.closest('.multiselect__select')) {
+    let target;
+    if (e.explicitOriginalTarget) {
+      // e.explicitOriginalTarget is firefox only!
+      target = e.explicitOriginalTarget;
+    } else {
+      target = e.target;
+    }
+    if (target &&
+      target.closest &&
+      !target.closest('.tagchip') &&
+      !target.closest('.multiselect__select')) {
       const ms = this.$refs.multiselect as any;
       if (!ms.isOpen) {
         ms.activate();
       }
     }
   }
+
 }
 </script>

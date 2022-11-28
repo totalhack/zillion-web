@@ -53,11 +53,7 @@ export default class MetricSelect extends Vue {
   }
 
   handleTagDblClick({ option, event }) {
-    if (option.group && option.group === this.createdOptionsGroup) {
-      (this.$refs.adHocMetricDialog as any).open(option);
-    } else {
-      (this.$refs.adHocMetricDialog as any).open(option);
-    }
+    (this.$refs.adHocMetricDialog as any).open(option);
   }
 }
 </script>

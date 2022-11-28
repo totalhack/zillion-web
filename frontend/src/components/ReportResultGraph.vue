@@ -717,6 +717,14 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     if (this.$chart) {
       this.destroyChart();
     }
+    if (!(this.metricsToGraph.length > 0)) {
+      dispatchAddNotification(
+        this.$store,
+        { content: 'No metrics to graph', color: 'warning' }
+      );
+      this.$emit('complete');
+      return;
+    }
     if (!this.chartData) {
       this.$emit('complete');
       return;

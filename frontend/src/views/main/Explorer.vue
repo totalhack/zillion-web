@@ -19,6 +19,7 @@
           <v-tooltip bottom>
             <template v-slot:activator="{ on, attrs }">
               <span v-bind="attrs" v-on="on">Metrics</span>
+              <v-icon small class="ml-2 mb-1" @click.stop="clearMetrics">delete</v-icon>
             </template>
             <span>Fields to measure and aggregate</span>
           </v-tooltip>
@@ -33,12 +34,14 @@
           <v-tooltip bottom>
             <template v-slot:activator="{ on, attrs }">
               <span v-bind="attrs" v-on="on">Dimensions</span>
+              <v-icon small class="ml-2 mb-1" @click.stop="clearDimensions">delete</v-icon>
             </template>
             <span>Fields controlling the grouping of rows</span>
           </v-tooltip>
         </v-card-subtitle>
         <v-card-text class="py-0 my-0">
-          <dimension-select ref="dimensions" data-cy="dimensions"></dimension-select>
+          <dimension-select @addCriteriaFromDimension="addCriteriaFromDimension" ref="dimensions" data-cy="dimensions">
+          </dimension-select>
         </v-card-text>
       </v-card>
 
@@ -47,6 +50,7 @@
           <v-tooltip bottom>
             <template v-slot:activator="{ on, attrs }">
               <span v-bind="attrs" v-on="on">Criteria</span>
+              <v-icon small class="ml-2 mb-1" @click.stop="clearCriteria">delete</v-icon>
             </template>
             <span>Dimension value filters applied in datasource queries</span>
           </v-tooltip>
@@ -180,7 +184,9 @@
                 :graph-options="graphOptions" v-on:complete="graphComplete = true"></report-result-graph-card>
             </v-col>
             <v-col class="pt-0 mt-0" cols="12">
-              <report-result-table-card ref="reportResultTableCard" data-cy="reportResultTableCard">
+              <report-result-table-card ref="reportResultTableCard"
+                @addPartitionFromDimension="addPartitionFromDimension"
+                @addCriteriaFromDimension="addCriteriaFromDimension" data-cy="reportResultTableCard">
               </report-result-table-card>
             </v-col>
           </v-row>
@@ -214,7 +220,9 @@
                   :show-title="false" :tab="tab" v-on:complete="graphComplete = true"></report-result-graph-card>
               </v-tab-item>
               <v-tab-item eager :value="'tableTab'" :reverse-transition="false" :transition="false">
-                <report-result-table-card ref="reportResultTableCard" data-cy="reportResultTableCard"
+                <report-result-table-card ref="reportResultTableCard"
+                  @addPartitionFromDimension="addPartitionFromDimension"
+                  @addCriteriaFromDimension="addCriteriaFromDimension" data-cy="reportResultTableCard"
                   :show-title="false"></report-result-table-card>
               </v-tab-item>
             </v-tabs-items>
@@ -305,8 +313,6 @@ import {
   dispatchExplorerSetResultLayout,
   dispatchExplorerCloseLoadingOverlay,
   dispatchExplorerSetReportState,
-  dispatchSetReportRequest,
-  dispatchSetReportResult,
   dispatchSetActiveWarehouseId,
   dispatchSetDefaultWarehouseId,
 } from '@/store/main/actions';
@@ -377,6 +383,78 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
 
   toggleSettingsDrawer() {
     dispatchExplorerToggleSettingsDrawer(this.$store);
+  }
+
+  clearMetrics() {
+    (this.$refs.metrics as any).selected = [];
+  }
+
+  clearDimensions() {
+    (this.$refs.dimensions as any).selected = [];
+  }
+
+  clearCriteria() {
+    (this.$refs.criteria as any).selected = [];
+  }
+
+  addCriteriaFromDimension(dim) {
+    console.log('addCriteriaFromDimension', dim);
+    if (dim.formula) {
+      dispatchAddWarning(this.$store, 'Can not add criteria from formula dimensions');
+      return;
+    }
+    const criteria = (this.$refs.criteria as any).selected;
+    for (const row of criteria) {
+      if (row[0] === dim.name) {
+        // Criteria already exists for this dim
+        return;
+      }
+    }
+    const value = dim.value || undefined;
+    criteria.push([dim.name, '=', value]);
+    (this.$refs.criteria as any).selected = criteria;
+  }
+
+  addPartitionFromDimension(dim) {
+    console.log('addPartitionFromDimension', dim);
+
+    // Make sure its not based on an existing formula dimension
+    if (dim.formula) {
+      dispatchAddWarning(this.$store, 'Can not add partition from formula dimensions');
+      return;
+    }
+
+    const dimensions = (this.$refs.dimensions as any).selected;
+
+    const value = dim.value || undefined;
+    const partName = dim.name + '_part';
+    const displayName = (dim.display_name || dim.name) + ' Part';
+    let formula;
+
+    if (value === undefined) {
+      formula = '{' + dim.name + '} IS NULL';
+    } else {
+      formula = '{' + dim.name + '} = ' + JSON.stringify(value);
+    }
+
+    for (const row of dimensions) {
+      if (row === partName || row.name === partName) {
+        if (row === partName) {
+          dispatchAddWarning(this.$store, 'Dimension ' + partName + ' already exists');
+        } else if (row.name === partName) {
+          dispatchAddWarning(this.$store, 'Partition dimension ' + partName + ' already exists');
+        }
+        return;
+      }
+    }
+
+    // Should we instead have func on DimensionSelect for this?
+    dimensions.push({
+      name: partName,
+      display_name: displayName,
+      formula
+    });
+    (this.$refs.dimensions as any).selected = dimensions;
   }
 
   get breakpointMdOrLess() {

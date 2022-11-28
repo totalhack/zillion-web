@@ -3,8 +3,9 @@
     <draggable-multi-select ref="multiselect" :raw-options-map="rawOptionsMap" default-group="Dimensions"
       placeholder="Select Dimensions" :created-options-group="createdOptionsGroup"
       tag-placeholder="Press enter to create a dimension" :taggable="true" @tag="openAdHocDimensionDialog"
-      @tagDblClick="handleTagDblClick"></draggable-multi-select>
+      @tagDblClick="handleTagDblClick" @tagRightClick="handleTagRightClick"></draggable-multi-select>
     <ad-hoc-dimension-dialog @input="addAdHocDimension($event)" ref="adHocDimensionDialog"></ad-hoc-dimension-dialog>
+    <context-menu :options="contextMenuOptions" :handler="handleContextMenuOption" ref="contextMenu"></context-menu>
   </div>
 </template>
 
@@ -13,15 +14,23 @@ import { Component, Vue } from 'vue-property-decorator';
 import { readDimensions } from '@/store/main/getters';
 import DraggableMultiSelect from './DraggableMultiSelect.vue';
 import AdHocDimensionDialog from './AdHocDimensionDialog.vue';
+import ContextMenu from './ContextMenu.vue';
 
 @Component({
   components: {
     DraggableMultiSelect,
-    AdHocDimensionDialog
+    AdHocDimensionDialog,
+    ContextMenu
   }
 })
 export default class DimensionSelect extends Vue {
   createdOptionsGroup: string = 'Ad Hoc Dimensions';
+
+  private contextMenuOptions = [
+    'Add/Edit Dimension',
+    'Add Partition',
+    'Add Criteria'
+  ];
 
   get rawOptionsMap() {
     return readDimensions(this.$store);
@@ -33,6 +42,22 @@ export default class DimensionSelect extends Vue {
 
   set selected(selectedList) {
     (this.$refs.multiselect as any).selected = selectedList;
+  }
+
+  handleContextMenuOption(item, context) {
+    if (item === 'Add/Edit Dimension') {
+      (this.$refs.adHocDimensionDialog as any).open(context);
+    } else if (item === 'Add Partition') {
+      const option = Object.assign({}, context);
+      if (!option.name.endsWith('_part')) {
+        option.name = option.name + '_part';
+        option.display_name = option.display_name + ' Part';
+        option.formula = '{' + context.name + '} = "X"';
+      }
+      (this.$refs.adHocDimensionDialog as any).open(option);
+    } else if (item === 'Add Criteria') {
+      this.$emit('addCriteriaFromDimension', context);
+    }
   }
 
   openAdHocDimensionDialog(adHocDimensionName) {
@@ -53,11 +78,11 @@ export default class DimensionSelect extends Vue {
   }
 
   handleTagDblClick({ option, event }) {
-    if (option.group && option.group === this.createdOptionsGroup) {
-      (this.$refs.adHocDimensionDialog as any).open(option);
-    } else {
-      (this.$refs.adHocDimensionDialog as any).open(option);
-    }
+    (this.$refs.adHocDimensionDialog as any).open(option);
+  }
+
+  handleTagRightClick({ option, event }) {
+    (this.$refs.contextMenu as any).open(event, option);
   }
 }
 </script>

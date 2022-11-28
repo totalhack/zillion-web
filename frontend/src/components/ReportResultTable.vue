@@ -1,24 +1,29 @@
 <template>
-  <v-data-table dense multi-sort class="datatable mx-3" fixed-header :height="parentHeight" :headers="reportHeaders"
-    :items="reportData" :item-class="getRowClass" :items-per-page="500" :footer-props="{
-      itemsPerPageText: 'Per page:',
-      itemsPerPageOptions: [25, 100, 500, -1],
-    }" item-key="_id" :mobile-breakpoint="null" ref="datatable">
-    <template v-slot:body.prepend>
-      <tr>
-        <td v-for="(column, index) of reportColumns" :key="index" style="border-right: thin solid rgba(0, 0, 0, 0.12)">
-          <v-text-field :value="filters[column]" @input="handleFilterInput(column, $event)"
-            @change="filters[column] = $event" @click:clear="filters[column] = ''" type="text" dense single-line
-            hide-details placeholder="Filter" color="grey darken-3"></v-text-field>
-        </td>
-      </tr>
-    </template>
-    <template v-for="(column, index) of reportColumns" v-slot:[`item.${column}`]="{ item }">
-      <span :key="index" :style="getCellStyle(column, item[column])">{{
-          item[column]
-      }}</span>
-    </template>
-  </v-data-table>
+  <div>
+    <v-data-table @contextmenu:row="handleRowRightClick" dense multi-sort class="datatable mx-3" fixed-header
+      :height="parentHeight" :headers="reportHeaders" :items="reportData" :item-class="getRowClass"
+      :items-per-page="500" :footer-props="{
+        itemsPerPageText: 'Per page:',
+        itemsPerPageOptions: [25, 100, 500, -1],
+      }" item-key="_id" :mobile-breakpoint="null" ref="datatable">
+      <template v-slot:body.prepend>
+        <tr>
+          <td v-for="(column, index) of reportColumns" :key="index"
+            style="border-right: thin solid rgba(0, 0, 0, 0.12)">
+            <v-text-field :value="filters[column]" @input="handleFilterInput(column, $event)"
+              @change="filters[column] = $event" @click:clear="filters[column] = ''" type="text" dense single-line
+              hide-details placeholder="Filter" color="grey darken-3"></v-text-field>
+          </td>
+        </tr>
+      </template>
+      <template v-for="(column, index) of reportColumns" v-slot:[`item.${column}`]="{ item }">
+        <span :key="index" :style="getCellStyle(column, item[column])">{{
+            item[column]
+        }}</span>
+      </template>
+    </v-data-table>
+    <context-menu :options="contextMenuOptions" :handler="handleContextMenuOption" ref="contextMenu"></context-menu>
+  </div>
 </template>
 
 <script lang="ts">
@@ -26,17 +31,50 @@ import { Component, Mixins } from 'vue-property-decorator';
 import { pick } from 'lodash';
 import * as Papa from 'papaparse';
 import ReportManagerMixin from '@/components/mixins/ReportManagerMixin.vue';
+import ContextMenu from './ContextMenu.vue';
 
-@Component
+@Component({
+  components: {
+    ContextMenu
+  }
+})
 export default class ReportResultTable extends Mixins(ReportManagerMixin) {
   filters = {};
 
-  get parentHeight() {
-    if (this.$vuetify.breakpoint.mobile) {
-      return window.innerHeight * 0.72;
-    } else {
-      return window.innerHeight * 0.78;
+  private contextMenuOptions = [
+    'Add Partition',
+    'Add Criteria'
+  ];
+
+  handleContextMenuOption(item, context) {
+    if (item === 'Add Partition') {
+      this.$emit('addPartitionFromDimension', context);
+    } else if (item === 'Add Criteria') {
+      this.$emit('addCriteriaFromDimension', context);
     }
+  }
+
+  handleRowRightClick(event, item) {
+    const target = event.originalTarget || event.target;
+    let displayName;
+    const columns = target.closest('tr').childNodes;
+
+    for (let i = 0; i < columns.length; i++) {
+      if (columns[i] !== target) {
+        continue;
+      }
+      displayName = this.reportColumns[i];
+    }
+
+    if (!this.reportDimensionsDisplay.includes(displayName)) {
+      // Only open menu for dimensions
+      return;
+    }
+
+    const name = this.reportReverseDisplayNameMap[displayName];
+    const value = item.item[displayName];
+    const context = { name, display_name: displayName, value };
+    (this.$refs.contextMenu as any).open(event, context);
   }
 
   handleFilterInput(column, value) {
@@ -157,6 +195,14 @@ export default class ReportResultTable extends Mixins(ReportManagerMixin) {
     }
 
     return '';
+  }
+
+  get parentHeight() {
+    if (this.$vuetify.breakpoint.mobile) {
+      return window.innerHeight * 0.72;
+    } else {
+      return window.innerHeight * 0.78;
+    }
   }
 
   get reportHeaders() {

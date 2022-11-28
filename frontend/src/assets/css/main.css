@@ -220,6 +220,10 @@ body {
     color: rgba(0, 0, 0, 0.65) !important;
 }
 
+.v-icon.v-icon::after {
+    background-color: white !important;
+}
+
 .theme--light.v-btn-toggle:not(.v-btn-toggle--group) .v-btn.v-btn:not(.v-btn--disabled) .v-icon {
     color: #272727 !important;
 }

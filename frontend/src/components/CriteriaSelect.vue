@@ -346,7 +346,14 @@ export default class CriteriaSelect extends BaseSelect {
   }
 
   handleFocus(e) {
-    if (e.explicitOriginalTarget.closest && !e.explicitOriginalTarget.closest('.tagrow')) {
+    let target;
+    if (e.explicitOriginalTarget) {
+      // e.explicitOriginalTarget is firefox only!
+      target = e.explicitOriginalTarget;
+    } else {
+      target = e.target;
+    }
+    if (target && target.closest && !target.closest('.tagrow')) {
       const ms = this.$refs.multiselect as any;
       if (!ms.isOpen) {
         ms.activate();
