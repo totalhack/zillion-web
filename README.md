@@ -7,6 +7,7 @@ Zillion Web: A Web UI/API for Zillion
 ---------------------
 
 * [About Zillion Web](#about-zillion-web)
+* [Demo](#demo)
 * [Installation](#installation)
 * [How to Contribute](#how-to-contribute)
 
@@ -27,19 +28,18 @@ changed or removed.
 Some general things to know:
 
 * The frontend is currently Vue 2.6+ with Vuetify 2.3+. It utilizes `vue-property-decorator`
-and `vue-class-component`. While this approach was inherited from the project generator, it is not "officially" supported by the Vue community.
+and `vue-class-component`.
 * [Billboard JS](https://github.com/naver/billboard.js/) is used for charting.
-* Frontend automated testing is pretty minimal at the moment. It is expected that the basics
-work on recent non-IE browsers and most recent mobile devices.
+* There is not much in terms of automated testing, but it is expected to work well on Chrome and Firefox desktop. YMMV elsewhere.
 * The backend is a [FastAPI](https://fastapi.tiangolo.com/) python server. You can run this
 separately if you are just looking for a web API to access a `Zillion` backend.
-* Docker / Docker Compose/ Docker Swarm Mode are utilized as described in the docs for the
-project generator and at [dockerswarm.rocks](https://dockerswarm.rocks/).
-* This is deployed on a minimally sized VPS. Go easy please.
 
-While I will likely continue building on this project, it is currently viewed as just a demo
-and therefore not something I intend to spend much time supporting. That may change down
-the road, and I will certainly try to address any major issues/bugs.
+<a name="demo"></a>
+
+**Demo**
+----------------
+
+A demo with two example warehouses is available [here](https://zillionweb.totalhack.org). You can login with `demouser@example.com` / `demopass` to poke around. The warehouse data is not kept up to date.
 
 <a name="installation"></a>
 
