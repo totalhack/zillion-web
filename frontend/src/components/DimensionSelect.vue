@@ -44,6 +44,32 @@ export default class DimensionSelect extends Vue {
     (this.$refs.multiselect as any).selected = selectedList;
   }
 
+  ensureDimensionSelected(dim) {
+    let isSelected = false;
+    let dimName;
+
+    if (typeof dim === 'string') {
+      dimName = dim;
+    } else {
+      dimName = dim.name;
+    }
+    for (const selectedDim of this.selected) {
+      if (typeof selectedDim === 'string' && selectedDim === dimName) {
+        isSelected = true;
+        break;
+      }
+      if (typeof selectedDim !== 'string' && selectedDim.name === dimName) {
+        isSelected = true;
+        break;
+      }
+    }
+    if (!isSelected) {
+      const selected = this.selected;
+      selected.push(dim);
+      this.selected = selected;
+    }
+  }
+
   handleContextMenuOption(item, context) {
     if (item === 'Add/Edit Dimension') {
       (this.$refs.adHocDimensionDialog as any).open(context);
@@ -72,9 +98,10 @@ export default class DimensionSelect extends Vue {
     const ms = this.$refs.multiselect as any;
     if (ms.hasCreatedOption(dimension.name)) {
       ms.updateCreatedOption(dimension);
-      return;
+    } else {
+      ms.addCreatedOption(dimension);
     }
-    ms.addCreatedOption(dimension);
+    this.ensureDimensionSelected(dimension);
   }
 
   handleTagDblClick({ option, event }) {

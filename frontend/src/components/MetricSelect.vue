@@ -35,6 +35,32 @@ export default class MetricSelect extends Vue {
     (this.$refs.multiselect as any).selected = selectedList;
   }
 
+  ensureMetricSelected(metric) {
+    let isSelected = false;
+    let metricName;
+
+    if (typeof metric === 'string') {
+      metricName = metric;
+    } else {
+      metricName = metric.name;
+    }
+    for (const selectedMetric of this.selected) {
+      if (typeof selectedMetric === 'string' && selectedMetric === metricName) {
+        isSelected = true;
+        break;
+      }
+      if (typeof selectedMetric !== 'string' && selectedMetric.name === metricName) {
+        isSelected = true;
+        break;
+      }
+    }
+    if (!isSelected) {
+      const selected = this.selected;
+      selected.push(metric);
+      this.selected = selected;
+    }
+  }
+
   openAdHocMetricDialog(adHocMetricName) {
     const ms = this.$refs.multiselect as any;
     if (ms.hasCreatedOption(adHocMetricName)) {
@@ -47,9 +73,10 @@ export default class MetricSelect extends Vue {
     const ms = this.$refs.multiselect as any;
     if (ms.hasCreatedOption(metric.name)) {
       ms.updateCreatedOption(metric);
-      return;
+    } else {
+      ms.addCreatedOption(metric);
     }
-    ms.addCreatedOption(metric);
+    this.ensureMetricSelected(metric);
   }
 
   handleTagDblClick({ option, event }) {
