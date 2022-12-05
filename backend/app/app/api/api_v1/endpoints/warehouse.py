@@ -107,6 +107,26 @@ def structure(
     return {}
 
 
+@router.get("/{warehouse_id}/get_fields", response_model=Dict[str, Any])
+def get_fields(
+    warehouse_id: int,
+    whs: Dict[str, Any] = Depends(deps.get_warehouses),
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """Retrieve all warehouse fields"""
+    if not whs:
+        raise Exception("No warehouses have been loaded")
+
+    if crud.user.is_active(current_user):
+        wh = whs[warehouse_id]
+        return dict(
+            id=warehouse_id,
+            dimensions=wh.get_dimension_configs(),
+            metrics=wh.get_metric_configs(),
+        )
+    return {}
+
+
 @router.post("/{warehouse_id}/check_metric_formula", response_model=Dict[str, Any])
 def check_metric_formula(
     warehouse_id: int,
