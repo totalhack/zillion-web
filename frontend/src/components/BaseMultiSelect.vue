@@ -58,7 +58,7 @@ export default class BaseMultiSelect extends BaseSelect {
   @Prop({ default: 'Options' }) defaultGroup!: string;
   @Prop({ default: 'Select Options' }) placeholder!: string;
   @Prop({ default: 1000 }) maxHeight!: number;
-  @Prop({ default: 2500 }) optionsLimit!: number;
+  @Prop({ default: 5000 }) optionsLimit!: number;
   @Prop({ default: false }) taggable!: boolean;
   @Prop({ default: 'Press enter to create' }) tagPlaceholder!: string;
   @Prop({ default: 'Created Options' }) createdOptionsGroup!: string;

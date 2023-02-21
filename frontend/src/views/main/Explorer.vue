@@ -594,8 +594,12 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     }
 
     for (const field of dimensions) {
-      const def = this.fieldDefFromName(field);
-      dimParts.push(def.display_name);
+      if (typeof field !== 'string') {
+        dimParts.push(field.display_name);
+      } else {
+        const def = this.fieldDefFromName(field);
+        dimParts.push(def.display_name);
+      }
     }
     title += dimParts.join(', ');
 
