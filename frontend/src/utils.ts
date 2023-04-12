@@ -30,6 +30,44 @@ export function getSessionWarehouseId() {
   return JSON.parse(result);
 }
 
+function getCoords(elem) {
+  const box = elem.getBoundingClientRect();
+  return {
+    top: box.top + window.pageYOffset,
+    right: box.right + window.pageXOffset,
+    bottom: box.bottom + window.pageYOffset,
+    left: box.left + window.pageXOffset
+  };
+}
+
+export function focusAndOpenKeyboard(el, timeout) {
+  // Adapted from: https://stackoverflow.com/a/55425845/10682164
+  if (!timeout) {
+    timeout = 100;
+  }
+  if (el) {
+    // Align temp input element approximately where the input element is
+    // so the cursor doesn't jump around
+    const tempEl = document.createElement('input');
+    const coords = getCoords(el);
+    tempEl.style.position = 'absolute';
+    tempEl.style.top = (coords.top + 7) + 'px';
+    tempEl.style.left = coords.left + 'px';
+    tempEl.style.height = '0';
+    tempEl.style.opacity = '0';
+    // Put this temp element as a child of the page <body> and focus on it
+    document.body.appendChild(tempEl);
+    tempEl.focus();
+
+    // The keyboard is open. Now do a delayed focus on the target element
+    setTimeout(() => {
+      el.focus();
+      el.click();
+      document.body.removeChild(tempEl);
+    }, timeout);
+  }
+}
+
 // https://stackoverflow.com/a/20352387/10682164
 export function binaryFind(array, searchElement) {
   let minIndex = 0;

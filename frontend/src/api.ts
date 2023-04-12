@@ -85,4 +85,11 @@ export const api = {
       defaultConfig(token)
     );
   },
+  async getReportFromText(token: string, warehouseId: number, text: string) {
+    return axios.post(
+      `${apiUrl}/api/v1/warehouse/${warehouseId}/load_from_text`,
+      { text },
+      defaultConfig(token)
+    );
+  },
 };

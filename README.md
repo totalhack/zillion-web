@@ -20,36 +20,32 @@ Zillion Web: A Web UI/API for Zillion
 
 `Zillion Web` is a monorepo frontend UI and backend API with a main objective of
 demonstrating and testing some use cases for [Zillion](https://github.com/totalhack/zillion).
-The project was initially created using [this](https://github.com/tiangolo/full-stack-fastapi-postgresql) project generator. It retains the same general structure
-and approaches taken there, so reviewing those docs and the docs at [dockerswarm.rocks](https://dockerswarm.rocks/) will be helpful if you are looking to develop or deploy this
-on your own. Some library versions, stylistic choices, and architectural pieces have been
-changed or removed.
+The project was initially created using [this](https://github.com/tiangolo/full-stack-fastapi-postgresql) project generator but has drifted a bit in terms of docker setup, library versions, and stylistic choices. It retains the same general code structure so reviewing those docs and the docs at [dockerswarm.rocks](https://dockerswarm.rocks/) will be helpful if you are looking to develop or deploy this on your own.
 
 Some general things to know:
 
-* The frontend is currently Vue 2.6+ with Vuetify 2.3+. It utilizes `vue-property-decorator`
-and `vue-class-component`.
+* This includes the `zillion[nlp]` extension to support experimental text-to-report functionality. As such you will need NLP config settings to run. See the
+`Zillion` docs for more details, set up a custom zillion config with your OpenAI settings, or look at the docker files to see what environment vars you can set.
+* The frontend is currently Vue 2.6+ with Vuetify 2.3+. It utilizes `vue-property-decorator` and `vue-class-component`.
 * [Billboard JS](https://github.com/naver/billboard.js/) is used for charting.
-* There is not much in terms of automated testing, but it is expected to work well on Chrome and Firefox desktop. YMMV elsewhere.
-* The backend is a [FastAPI](https://fastapi.tiangolo.com/) python server. You can run this
-separately if you are just looking for a web API to access a `Zillion` backend.
+* There is not much in terms of automated testing, but it is expected to work well on recent Chrome and Firefox desktop versions. YMMV elsewhere.
+* The backend is a [FastAPI](https://fastapi.tiangolo.com/) python server. You can run this separately if you are just looking for a web API to access a `Zillion` backend.
 
 <a name="demo"></a>
 
 **Demo**
 ----------------
 
-A demo with two example warehouses is available [here](https://zillionweb.totalhack.org). You can login with `demouser@example.com` / `demopass` to poke around. The warehouse data is not kept up to date.
+There is currently no hosted demo but the default settings will bring up a warehouse with data from the [Baseball Databank](https://github.com/chadwickbureau/baseballdatabank).
 
 <a name="installation"></a>
 
 **Installation**
 ----------------
 
-Clone this repo. Generally speaking you should follow the docs for the base [project generator](https://github.com/tiangolo/full-stack-fastapi-postgresql). You will need to change variables in the `.env` file at the project root, including adding the ones commented out or setting them otherwise in your
-environment before starting the project locally with `docker-compose up`.
+Install docker, clone this repo, and bring it up with Docker Compose. Generally speaking you should reference the docs for the base [project generator](https://github.com/tiangolo/full-stack-fastapi-postgresql). You will need to change variables in the `.env` file at the project root, including adding the ones commented out or setting them otherwise in your environment before starting the project locally with `docker-compose up`.
 
-I've also added a "light" version of the deployment that may be more flexibly integrated with existing infrastructures. It leaves out some of the extras from the dockerswarm.rocks approach. See docker-compose.light.yml. This would be useful if, for example, you had an existing load balancer / proxy and database in the cloud that you wanted to use.
+I've also added an "extdb" version of the docker deployment that may be more flexibly integrated with existing databases. This would be useful if you had an existing load balancer and database in the cloud that you wanted to use.
 
 <a name="how-to-contribute"></a>
 

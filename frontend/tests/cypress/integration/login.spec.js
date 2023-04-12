@@ -10,7 +10,7 @@ describe('/login', () => {
   })
 
   beforeEach(() => {
-    cy.visit('http://localhost:8080/login')
+    cy.visit('http://localhost/login')
   })
 
   it('greets with login', () => {

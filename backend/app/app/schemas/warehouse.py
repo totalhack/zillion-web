@@ -61,6 +61,14 @@ class ReportIDRequest(BaseModel):
     display_names: bool = True
 
 
+class ReportFromTextRequest(BaseModel):
+    text: str
+
+
+class ReportTextRequest(ReportFromTextRequest):
+    display_names: bool = True
+
+
 class ReportResponse(BaseModel):
     columns: list
     data: list
@@ -72,3 +80,7 @@ class ReportResponse(BaseModel):
 
 class ReportSaveResponse(BaseModel):
     spec_id: int
+
+
+class ReportLoadResponse(ReportSaveRequest):
+    pass

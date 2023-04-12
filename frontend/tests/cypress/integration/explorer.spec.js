@@ -3,8 +3,7 @@
 describe('/explorer', () => {
   beforeEach(() => {
     cy.loginAdmin();
-    // TODO: how to guarantee this report exists in test env?
-    cy.visit('http://localhost:8080/main/explorer?warehouse=1&report=1')
+    cy.visit('http://localhost/main/explorer?warehouse=1')
   })
 
   it('load a report for the provided ID', () => {
@@ -17,16 +16,16 @@ describe('/explorer', () => {
       .should('contain', 'No Data. Awaiting instructions...')
   })
 
-  it('selected zillion covid warehouse', () => {
+  it('selected zillion baseball warehouse', () => {
     cy.get('[data-cy=warehouseSelect]').within(() => {
       cy.get('.v-select__selection')
-        .should('have.text', 'Zillion Covid-19 Warehouse')
+        .should('have.text', 'Zillion Baseball Warehouse')
     })
   })
 
-  it('has the Cases metric selected', () => {
+  it('has the hits metric selected', () => {
     cy.get('[data-cy=metrics]').within(() => {
-      cy.get('.multiselect__tags-wrap').should('contain', 'Cases')
+      cy.get('.multiselect__tags-wrap').should('contain', 'H')
     })
   })
 

@@ -405,6 +405,22 @@ export const actions = {
       await dispatchCheckApiError(context, error);
     }
   },
+  async getReportFromText(context: MainContext, payload) {
+    try {
+      const warehouseId = readActiveWarehouseId(context);
+      if (!warehouseId) {
+        dispatchAddError(context, 'Trying to load report without an active warehouse');
+        return;
+      }
+      const response = await api.getReportFromText(context.state.token, warehouseId, payload);
+      if (response.data) {
+        return response.data;
+      }
+      dispatchAddError(context, 'No data in getReportFromText response');
+    } catch (error) {
+      await dispatchCheckApiError(context, error);
+    }
+  },
   setReportRequest(context: MainContext, payload) {
     commitSetReportRequest(context, payload);
   },
@@ -471,6 +487,7 @@ export const dispatchSetReportRequest = dispatch(actions.setReportRequest);
 export const dispatchSetReportResult = dispatch(actions.setReportResult);
 export const dispatchSetReportCancelToken = dispatch(actions.setReportCancelToken);
 export const dispatchGetReportFromId = dispatch(actions.getReportFromId);
+export const dispatchGetReportFromText = dispatch(actions.getReportFromText);
 export const dispatchExplorerToggleSettingsDrawer = dispatch(actions.explorerToggleSettingsDrawer);
 export const dispatchExplorerOpenSettingsDrawer = dispatch(actions.explorerOpenSettingsDrawer);
 export const dispatchExplorerCloseSettingsDrawer = dispatch(actions.explorerCloseSettingsDrawer);

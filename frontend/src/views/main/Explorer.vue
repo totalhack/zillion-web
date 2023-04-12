@@ -184,8 +184,7 @@
                 :graph-options="graphOptions" v-on:complete="graphComplete = true"></report-result-graph-card>
             </v-col>
             <v-col class="pt-0 mt-0" cols="12">
-              <report-result-table-card ref="reportResultTableCard"
-                @addPartitionFromDimension="addPartitionFromDimension"
+              <report-result-table-card ref="reportResultTableCard" @addPartitionFromDimension="addPartitionFromDimension"
                 @addCriteriaFromDimension="addCriteriaFromDimension" data-cy="reportResultTableCard">
               </report-result-table-card>
             </v-col>
@@ -237,23 +236,28 @@
     <report-loading-overlay></report-loading-overlay>
 
     <report-save-dialog @input="save($event)" ref="reportSaveDialog" data-cy="reportSaveDialog"></report-save-dialog>
+    <report-from-text-dialog @input="loadFromText($event)" ref="reportFromTextDialog"
+      data-cy="reportFromTextDialog"></report-from-text-dialog>
+
 
     <v-bottom-navigation fixed dark height="auto" min-height="30">
       <query-summaries style="flex: 1" ref="querySummaries" data-cy="querySummaries"></query-summaries>
-      <div style="
-          flex: 1;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        ">
+      <div style="flex: 1; display: flex; justify-content: center; align-items: center;">
         <v-tooltip top>
           <template v-slot:activator="{ on, attrs }">
-            <v-btn v-bind="attrs" v-on="on" :disabled="!isMounted" @click="toggleSettingsDrawer"
-              data-cy="settingsButton">
+            <v-btn v-bind="attrs" v-on="on" :disabled="!isMounted" @click="toggleSettingsDrawer" data-cy="settingsButton">
               <v-icon color="white">settings</v-icon>
             </v-btn>
           </template>
           <span>Report Settings (ctrl+z)</span>
+        </v-tooltip>
+        <v-tooltip top>
+          <template v-slot:activator="{ on, attrs }">
+            <v-btn v-bind="attrs" v-on="on" :disabled="!isMounted" @click="openReportFromTextDialog" data-cy="textButton">
+              <v-icon color="white">chat</v-icon>
+            </v-btn>
+          </template>
+          <span>NLP Report (ctrl+/)</span>
         </v-tooltip>
         <v-tooltip top>
           <template v-slot:activator="{ on, attrs }">
@@ -307,10 +311,12 @@ import {
   dispatchSaveReport,
   dispatchHydrateExplorerStore,
   dispatchGetReportFromId,
+  dispatchGetReportFromText,
   dispatchExplorerToggleSettingsDrawer,
   dispatchExplorerOpenSettingsDrawer,
   dispatchExplorerCloseSettingsDrawer,
   dispatchExplorerSetResultLayout,
+  dispatchExplorerOpenLoadingOverlay,
   dispatchExplorerCloseLoadingOverlay,
   dispatchExplorerSetReportState,
   dispatchSetActiveWarehouseId,
@@ -348,6 +354,7 @@ if (process.env.NODE_ENV !== 'production') {
     ReportResultTableCard: () => import('@/components/ReportResultTableCard.vue'),
     ReportResultGraphCard: () => import('@/components/ReportResultGraphCard.vue'),
     ReportSaveDialog: () => import('@/components/ReportSaveDialog.vue'),
+    ReportFromTextDialog: () => import('@/components/ReportFromTextDialog.vue'),
     ReportLoadingOverlay: () => import('@/components/ReportLoadingOverlay.vue'),
     QuerySummaries: () => import('@/components/QuerySummaries.vue'),
   },
@@ -615,6 +622,10 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     (this.$refs.reportSaveDialog as any).open(this.reportTitle || this.defaultTitle());
   }
 
+  openReportFromTextDialog() {
+    (this.$refs.reportFromTextDialog as any).open();
+  }
+
   downloadReport() {
     if (!this.hasReportData()) {
       dispatchAddWarning(this.$store, 'No report data found for download');
@@ -750,6 +761,26 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     this.setPageTitle((report?.meta as any).title || specId);
   }
 
+  async loadFromText({ text, autorun }) {
+    if (!this.warehouseActive) {
+      dispatchAddWarning(this.$store, 'Please activate a warehouse to load reports');
+      return;
+    }
+
+    dispatchExplorerSetReportState(this.$store, 'Doing the AIs...');
+    dispatchExplorerOpenLoadingOverlay(this.$store);
+    try {
+      const report = await dispatchGetReportFromText(this.$store, text);
+      console.log('Load from text:', report);
+      this.load(report, autorun);
+      dispatchExplorerOpenSettingsDrawer(this.$store);
+      this.setPageTitle((report?.meta as any).title || text);
+    } finally {
+      dispatchExplorerCloseLoadingOverlay(this.$store);
+      dispatchExplorerSetReportState(this.$store, '');
+    }
+  }
+
   async mounted() {
     await dispatchHydrateExplorerStore(this.$store);
     this.isHydrated = true;
@@ -848,6 +879,9 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     if (e.key === 's' && e.ctrlKey) {
       e.preventDefault();
       this.openReportSaveDialog();
+    } else if (e.key === '/' && e.ctrlKey) {
+      e.preventDefault();
+      this.openReportFromTextDialog();
     } else if (e.key === 'x' && e.ctrlKey) {
       e.preventDefault();
       this.run();

@@ -1,104 +1,10 @@
 version: "3.7"
 services:
 
-  proxy:
-    image: traefik:v2.2
-    networks:
-      - ${TRAEFIK_PUBLIC_NETWORK?Variable not set}
-      - default
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command:
-      # Enable Docker in Traefik, so that it reads labels from Docker services
-      - --providers.docker
-      # Add a constraint to only use services with the label for this stack
-      # from the env var TRAEFIK_TAG
-      - --providers.docker.constraints=Label(`traefik.constraint-label-stack`, `${TRAEFIK_TAG?Variable not set}`)
-      # Do not expose all Docker services, only the ones explicitly exposed
-      - --providers.docker.exposedbydefault=false
-      # Enable Docker Swarm mode
-      - --providers.docker.swarmmode
-      # Enable the access log, with HTTP requests
-      - --accesslog
-      # Enable the Traefik log, for configurations and errors
-      - --log
-      # Enable the Dashboard and API
-      - --api
-    deploy:
-      placement:
-        constraints:
-          - node.role == manager
-      labels:
-        # Enable Traefik for this service, to make it available in the public network
-        - traefik.enable=true
-        # Use the traefik-public network (declared below)
-        - traefik.docker.network=${TRAEFIK_PUBLIC_NETWORK}
-        # Use the custom label "traefik.constraint-label=traefik-public"
-        # This public Traefik will only use services with this label
-        - traefik.constraint-label=${TRAEFIK_PUBLIC_TAG}
-        # traefik-http set up only to use the middleware to redirect to https
-        - traefik.http.middlewares.${STACK_NAME}-https-redirect.redirectscheme.scheme=https
-        - traefik.http.middlewares.${STACK_NAME}-https-redirect.redirectscheme.permanent=true
-        - traefik.http.routers.${STACK_NAME}-proxy-http.rule=Host(`${DOMAIN}`)
-        - traefik.http.routers.${STACK_NAME}-proxy-http.entrypoints=http
-        # traefik-https the actual router using HTTPS
-        - traefik.http.routers.${STACK_NAME}-proxy-https.rule=Host(`${DOMAIN}`)
-        - traefik.http.routers.${STACK_NAME}-proxy-https.entrypoints=https
-        - traefik.http.routers.${STACK_NAME}-proxy-https.tls=true
-        # Use the "le" (Let's Encrypt) resolver created below
-        - traefik.http.routers.${STACK_NAME}-proxy-https.tls.certresolver=le
-        # Define the port inside of the Docker service to use
-        - traefik.http.services.${STACK_NAME}-proxy.loadbalancer.server.port=80
-        # Middleware to redirect HTTP to HTTPS
-        - traefik.http.routers.${STACK_NAME}-proxy-http.middlewares=${STACK_NAME}-https-redirect
-  
-  db:
-    image: postgres:12
-    # restart: always
-    volumes:
-      - app-db-data:/var/lib/postgresql/data/pgdata
-    env_file:
-      - .env
-    environment:
-      - PGDATA=/var/lib/postgresql/data/pgdata
-      - POSTGRES_SERVER=${POSTGRES_SERVER}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-    deploy:
-      placement:
-        constraints:
-          - node.role == manager
-          # This didn't work locally
-          # - node.labels.${STACK_NAME}.app-db-data == true
-
-  pgadmin:
-    image: dpage/pgadmin4
-    networks:
-      - ${TRAEFIK_PUBLIC_NETWORK}
-      - default
-    env_file:
-      - .env
-    environment:
-      - PGADMIN_LISTEN_PORT=${PGADMIN_LISTEN_PORT}
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
-    deploy:
-      labels:
-        - traefik.enable=true
-        - traefik.docker.network=${TRAEFIK_PUBLIC_NETWORK}
-        - traefik.constraint-label=${TRAEFIK_PUBLIC_TAG}
-        - traefik.http.routers.${STACK_NAME}-pgadmin-http.rule=Host(`pgadmin.${DOMAIN}`)
-        - traefik.http.routers.${STACK_NAME}-pgadmin-http.entrypoints=http
-        - traefik.http.routers.${STACK_NAME}-pgadmin-http.middlewares=${STACK_NAME}-https-redirect
-        - traefik.http.routers.${STACK_NAME}-pgadmin-https.rule=Host(`pgadmin.${DOMAIN}`)
-        - traefik.http.routers.${STACK_NAME}-pgadmin-https.entrypoints=https
-        - traefik.http.routers.${STACK_NAME}-pgadmin-https.tls=true
-        - traefik.http.routers.${STACK_NAME}-pgadmin-https.tls.certresolver=le
-        - traefik.http.services.${STACK_NAME}-pgadmin.loadbalancer.server.port=5050
-
   backend:
     image: '${DOCKER_IMAGE_BACKEND}:${TAG-latest}'
+    ports:
+      - "8000:80"
     env_file:
       - .env
     environment:
@@ -116,22 +22,31 @@ services:
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SQLALCHEMY_DATABASE_URI=${SQLALCHEMY_DATABASE_URI}
+      - ZILLION_CONFIG=${ZILLION_CONFIG}
+      - ZILLION_OPENAI_API_KEY=${ZILLION_OPENAI_API_KEY}
+      - ZILLION_OPENAI_MODEL=${ZILLION_OPENAI_MODEL}
+      - ZILLION_QDRANT_HOST=${ZILLION_QDRANT_HOST}
       - PRE_PRESTART_CMD=${PRE_PRESTART_CMD}
       - INITIAL_WAREHOUSES_FILE=${INITIAL_WAREHOUSES_FILE}
+      - SQLALCHEMY_SILENCE_UBER_WARNING=1
     build:
       context: ./backend
       dockerfile: backend.dockerfile
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
-    deploy:
-      labels:
-        - traefik.enable=true
-        - traefik.constraint-label-stack=${TRAEFIK_TAG}
-        - traefik.http.routers.${STACK_NAME}-backend-http.rule=PathPrefix(`/api`) || PathPrefix(`/docs`)
-        - traefik.http.services.${STACK_NAME}-backend.loadbalancer.server.port=80
-    
+
+  qdrant:
+    image: qdrant/qdrant
+    ports:
+      - 6333:6333
+      - 6334:6334
+    volumes:
+      - ./volumes/qdrant:/qdrant/storage
+
   frontend:
     image: '${DOCKER_IMAGE_FRONTEND}:${TAG-latest}'
+    ports:
+      - "80:80"
     environment:
       - VUE_APP_DOMAIN=${DOMAIN}
       - VUE_APP_NAME=${VUE_APP_NAME-Zillion}
@@ -141,17 +56,19 @@ services:
         FRONTEND_ENV: ${FRONTEND_ENV-production}
         VUE_APP_DOMAIN: ${DOMAIN}
         VUE_APP_NAME: ${VUE_APP_NAME-Zillion}
-    deploy:
-      labels:
-        - traefik.enable=true
-        - traefik.constraint-label-stack=${TRAEFIK_TAG}
-        - traefik.http.routers.${STACK_NAME}-frontend-http.rule=PathPrefix(`/`)
-        - traefik.http.services.${STACK_NAME}-frontend.loadbalancer.server.port=80
+
+  db:
+    image: postgres:15
+    volumes:
+      - app-db-data:/var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - POSTGRES_SERVER=${POSTGRES_SERVER}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
 
 volumes:
   app-db-data:
-
-networks:
-  traefik-public:
-    # Allow setting it to false for testing
-    external: ${TRAEFIK_PUBLIC_NETWORK_IS_EXTERNAL-true}

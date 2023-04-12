@@ -1,13 +1,6 @@
 [
     {
         "id": 1,
-        "name": "Zillion Covid-19 Warehouse",
-        "params": {
-            "config": "/app/covid_warehouse.json"
-        }
-    },
-    {
-        "id": 2,
         "name": "Zillion Baseball Warehouse",
         "params": {
             "config": "/app/baseball_warehouse.json"

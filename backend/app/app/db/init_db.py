@@ -5,10 +5,13 @@ from sqlalchemy.orm import Session
 from zillion.core import read_filepath_or_buffer
 from zillion.model import Warehouses
 from zillion.warehouse import Warehouse
+from zillion.version import __version__
 
 from app import crud, schemas
 from app.core.config import settings
 from app.db import base  # noqa: F401
+
+from tlbx import st
 
 # make sure all SQL Alchemy models are imported (app.db.base) before initializing DB
 # otherwise, SQL Alchemy might fail to initialize relationships properly
@@ -21,6 +24,7 @@ def init_warehouse_data(db: Session) -> None:
         print("#### No INITIAL_WAREHOUSES_FILE set")
         return
 
+    print(f"#### Zillion Version: {__version__}")
     print(f"#### Adding Initial Warehouses from {whs_json_file}")
 
     whs = json.loads(read_filepath_or_buffer(whs_json_file))

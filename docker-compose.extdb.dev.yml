@@ -4,7 +4,7 @@ services:
   backend:
     stdin_open: true
     tty: true
-    image: 'zillion-web-${DOCKER_IMAGE_BACKEND}:${TAG-latest}'
+    image: '${DOCKER_IMAGE_BACKEND}:${TAG-latest}'
     ports:
       - "8000:80"
     volumes:
@@ -28,26 +28,35 @@ services:
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SQLALCHEMY_DATABASE_URI=${SQLALCHEMY_DATABASE_URI}
       - ZILLION_CONFIG=${ZILLION_CONFIG}
+      - ZILLION_OPENAI_API_KEY=${ZILLION_OPENAI_API_KEY}
+      - ZILLION_OPENAI_MODEL=${ZILLION_OPENAI_MODEL}
+      - ZILLION_QDRANT_HOST=${ZILLION_QDRANT_HOST}
       - PRE_PRESTART_CMD=${PRE_PRESTART_CMD}
       - INITIAL_WAREHOUSES_FILE=${INITIAL_WAREHOUSES_FILE}
+      - SQLALCHEMY_SILENCE_UBER_WARNING=1
     command: /start-reload.sh
     build:
       context: ./backend
       dockerfile: backend.dockerfile
       args:
         INSTALL_DEV: ${INSTALL_DEV-true}
-    
+
+  qdrant:
+    image: qdrant/qdrant
+    ports:
+      - 6333:6333
+      - 6334:6334
+    volumes:
+      - ./volumes/qdrant:/qdrant/storage
+
   frontend:
     image: '${DOCKER_IMAGE_FRONTEND}:${TAG-latest}'
     ports:
       - "80:80"
-    environment:
-      - VUE_APP_DOMAIN=${DOMAIN}
-      - VUE_APP_NAME=${VUE_APP_NAME-Zillion}
     build:
       context: ./frontend
       args:
         FRONTEND_ENV: development
-        VUE_APP_DOMAIN: ${DOMAIN}
+        VUE_APP_DOMAIN: localhost:8000
         VUE_APP_NAME: ${VUE_APP_NAME-Zillion}
 
