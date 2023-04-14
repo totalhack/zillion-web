@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-# COMPOSE_FILE=docker-compose.light.dev.yml ./scripts/run-local.sh python /app/scripts/add_warehouse.py <name> <config_url>
+# COMPOSE_FILE=docker-compose.extdb.dev.yml ./scripts/run-local.sh python /app/scripts/add_warehouse.py <name> <config_url>
 
 # Exit in case of error
 set -e

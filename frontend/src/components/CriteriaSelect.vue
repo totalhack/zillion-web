@@ -48,12 +48,12 @@
       <template slot="option" slot-scope="props">
         <div class="option__desc">
           <span v-if="props.option.$isLabel">{{
-              props.option.$groupLabel
+            props.option.$groupLabel
           }}</span>
           <div v-else class="tooltip">
             <span class="option__title">{{ props.option.display_name }}</span>
             <span class="tooltiptext">{{
-                props.option.description || "No description"
+              props.option.description || "No description"
             }}</span>
           </div>
         </div>
@@ -276,6 +276,7 @@ export default class CriteriaSelect extends BaseSelect {
 
   get selected() {
     const result: any[] = [];
+    const inputCounts: object = {};
     for (const selected of (this.rawSelected || []) as any[]) {
       if (selected.active) {
         if (selected.operation === 'is null') {
@@ -287,8 +288,13 @@ export default class CriteriaSelect extends BaseSelect {
           continue;
         }
 
-        // NOTE: $refs become arrays when used in v-for.
-        const input = this.$refs[selected.name][0] as any;
+        // HACK: If we have a repeat, we need to index into the refs for
+        // this particular criteria dimension name. We normally don't have
+        // repeats since the dropdown doesnt allow it but it is possible
+        // if criteria were created on the backend or via NLP.
+        const inputCount = inputCounts[selected.name] || 0;
+        const input = this.$refs[selected.name][inputCount] as any;
+        inputCounts[selected.name] = inputCount + 1;
         const vresult = input.validate();
         if (!vresult.valid) {
           throw new ValidationError(vresult?.error);

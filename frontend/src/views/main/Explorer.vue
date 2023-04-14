@@ -728,6 +728,9 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
   load(report, autorun = false) {
     console.log('Load:', report);
     for (const selector of this.reportSelectors) {
+      if (report[selector] === null || report[selector] === undefined) {
+        continue;
+      }
       (this.$refs[selector] as any).selected = report[selector];
     }
     this.limitFirst = report['limit_first'];

@@ -421,6 +421,7 @@ def load_from_text(
 @router.get("/{warehouse_id}/init_embeddings", response_model=Dict[str, Any])
 def init_embeddings(
     warehouse_id: int,
+    force_recreate: bool = False,
     whs: Dict[str, Any] = Depends(deps.get_warehouses),
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
@@ -431,5 +432,5 @@ def init_embeddings(
         raise Exception("No warehouses have been loaded")
 
     wh = whs[warehouse_id]
-    wh.init_embeddings()
+    wh.init_embeddings(force_recreate=force_recreate)
     return success_response()

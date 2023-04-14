@@ -9,9 +9,12 @@
                     <v-container>
                         <v-row>
                             <v-col cols="10">
-                                <v-text-field autofocus ref="textInput" v-model="text" label="Natural Language Query"
-                                    placeholder="x by y this week">
-                                </v-text-field>
+                                <span class="v-text-field--placeholder">
+                                    Natural Language Query:
+                                </span>
+                                <v-textarea ref="textInput" v-model="text" placeholder="x by y this week" rows="1" autofocus
+                                    auto-grow @keydown.enter="keyListenerHandler">
+                                </v-textarea>
                             </v-col>
                             <v-col class="d-flex justify-center align-center" cols="2">
                                 <v-icon small class="mb-1" @click.stop="clearText">delete</v-icon>
@@ -67,7 +70,9 @@ export default class ReportFromTextDialog extends Vue {
     }
 
     save() {
-        this.$emit('input', this.read());
+        if (this.text && this.text.trim().length > 0) {
+            this.$emit('input', this.read());
+        }
         this.dialog = false;
     }
 
@@ -75,7 +80,7 @@ export default class ReportFromTextDialog extends Vue {
         this.addKeyListener();
     }
 
-    private keyListenerHandler(e) {
+    keyListenerHandler(e) {
         if (e.key === 'Enter' && e.ctrlKey) {
             e.preventDefault();
             this.save();
