@@ -10,6 +10,7 @@ services:
     environment:
       - DOMAIN=${DOMAIN}
       - SERVER_HOST=https://${DOMAIN}
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
       - SECRET_KEY=${SECRET_KEY}
       - FIRST_SUPERUSER=${FIRST_SUPERUSER}
       - FIRST_SUPERUSER_PASSWORD=${FIRST_SUPERUSER_PASSWORD}
@@ -45,7 +46,7 @@ services:
       - 6333:6333
       - 6334:6334
     volumes:
-      - ./volumes/qdrant:/qdrant/storage
+      - /volumes/qdrant:/qdrant/storage
 
   frontend:
     image: '${DOCKER_IMAGE_FRONTEND}:${TAG-latest}'
