@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException, Depends, Response
 from fastapi.openapi.utils import get_openapi
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import FileResponse
-from tlbx import st, json, info, warn
+from tlbx import st, json
 
 from app.api import deps
 from app.core.config import settings
@@ -15,7 +15,7 @@ bearer_scheme = HTTPBearer()
 
 
 def init_plugin(app):
-    info("Setting up plugin API")
+    print("Setting up plugin API")
 
     def validate_plugin_token(
         credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
@@ -29,7 +29,7 @@ def init_plugin(app):
 
     plugin_deps = [Depends(validate_plugin_token)]
     if "localhost" in settings.SERVER_HOST:
-        warn("Plugin API is enabled in debug mode!")
+        print("WARNING: Plugin API is enabled in debug mode!")
         plugin_deps = None
 
     plugin_title = "Zillion Plugin API"
@@ -108,7 +108,7 @@ def init_plugin(app):
         )
 
         if "localhost" in settings.SERVER_HOST:
-            warn("Disabling auth for localhost")
+            print("WARNING: Disabling auth for localhost")
             data["auth"] = {"type": "none"}
         else:
             data["auth"] = {"type": "user_http", "authorization_type": "bearer"}
