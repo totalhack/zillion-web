@@ -1,0 +1,15 @@
+{
+    "schema_version": "v1",
+    "name_for_model": "zillion",
+    "name_for_human": "Zillion Data Warehouse Plugin",
+    "description_for_model": "Plugin for querying a Zillion data warehouse in natural language. Use it whenever a user asks for analytics/reports that may exist in their data warehouse.",
+    "description_for_human": "Talk to your data warehouse.",
+    "api": {
+        "type": "openapi",
+        "url": "{SERVER_HOST}/plugin/openapi.json",
+        "has_user_authentication": false
+    },
+    "logo_url": "{SERVER_HOST}/.well-known/logo.png",
+    "contact_email": "{PLUGIN_EMAIL}",
+    "legal_info_url": "{PLUGIN_LEGAL_INFO}"
+}

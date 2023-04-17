@@ -1,4 +1,4 @@
-import typing
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -11,13 +11,13 @@ from app.core.config import settings
 class ORJSONResponse(JSONResponse):
     media_type = "application/json"
 
-    def render(self, content: typing.Any) -> bytes:
+    def render(self, content: Any) -> bytes:
         return orjson.dumps(content, option=orjson.OPT_NON_STR_KEYS)
 
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    openapi_url="/openapi.json",
     docs_url=None,  # Disable Swagger docs
     redoc_url="/docs",  # Serve redocs from here instead
     default_response_class=ORJSONResponse,

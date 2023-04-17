@@ -25,3 +25,7 @@ def get_superuser_token_headers(client: TestClient) -> Dict[str, str]:
     a_token = tokens["access_token"]
     headers = {"Authorization": f"Bearer {a_token}"}
     return headers
+
+
+def get_plugin_token_headers() -> Dict[str, str]:
+    return {"Authorization": f"Bearer {settings.PLUGIN_TOKEN}"}

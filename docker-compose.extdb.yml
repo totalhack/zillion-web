@@ -8,7 +8,7 @@ services:
     env_file:
       - .env
     environment:
-      - SERVER_NAME=${DOMAIN}
+      - DOMAIN=${DOMAIN}
       - SERVER_HOST=https://${DOMAIN}
       - SECRET_KEY=${SECRET_KEY}
       - FIRST_SUPERUSER=${FIRST_SUPERUSER}
@@ -29,6 +29,10 @@ services:
       - PRE_PRESTART_CMD=${PRE_PRESTART_CMD}
       - INITIAL_WAREHOUSES_FILE=${INITIAL_WAREHOUSES_FILE}
       - SQLALCHEMY_SILENCE_UBER_WARNING=1
+      - PLUGIN_TOKEN=${PLUGIN_TOKEN}
+      - PLUGIN_WAREHOUSE_ID=${PLUGIN_WAREHOUSE_ID}
+      - PLUGIN_EMAIL=${PLUGIN_EMAIL}
+      - PLUGIN_LEGAL_INFO=${PLUGIN_LEGAL_INFO}
     build:
       context: ./backend
       dockerfile: backend.dockerfile

@@ -7,7 +7,7 @@ authors = ["Admin <admin@example.com>"]
 [tool.poetry.dependencies]
 python = ">=3.9,<3.12"
 uvicorn = "^0.20.0"
-fastapi = "^0.88.0"
+fastapi = "^0.95.0"
 python-multipart = "^0.0.5"
 requests = "^2.28.0"
 passlib = {extras = ["bcrypt"], version = "^1.7.2"}

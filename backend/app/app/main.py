@@ -1,6 +1,7 @@
 import traceback as tb
 
-from fastapi import FastAPI
+from fastapi import Response
+
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -16,6 +17,7 @@ from tlbx import st
 from app import app
 from app.api.api_v1.api import api_router
 from app.core.config import settings
+from app.plugin import init_plugin
 
 
 if settings.ROLLBAR_ENABLED:
@@ -60,3 +62,6 @@ if settings.BACKEND_CORS_ORIGINS:
     )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+if settings.PLUGIN_TOKEN:
+    init_plugin(app)

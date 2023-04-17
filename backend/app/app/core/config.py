@@ -7,15 +7,23 @@ from pydantic import AnyHttpUrl, BaseSettings, EmailStr, validator
 class Settings(BaseSettings):
     DEBUG: bool = False
     API_V1_STR: str = "/api/v1"
+
     SECRET_KEY: str = secrets.token_urlsafe(32)
     # 60 minutes * 24 hours * N days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 90
-    SERVER_NAME: str
-    SERVER_HOST: AnyHttpUrl
+
+    DOMAIN: str  # Just the domain, e.g. www,exampe.com
+    SERVER_HOST: AnyHttpUrl  # Full server base url, e.g. https://www.example.com
+
+    PLUGIN_TOKEN: str
+    PLUGIN_WAREHOUSE_ID: int
+    PLUGIN_EMAIL: str
+    PLUGIN_LEGAL_INFO: str
+
     # BACKEND_CORS_ORIGINS is a JSON-formatted list of origins
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \
     # "http://localhost:8080"]'
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
+    BACKEND_CORS_ORIGINS: List[Union[AnyHttpUrl, str]] = []
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:

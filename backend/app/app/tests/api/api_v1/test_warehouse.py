@@ -48,7 +48,7 @@ def test_execute(client: TestClient, superuser_token_headers: dict):
         headers=superuser_token_headers,
         json={"metrics": ["hits"], "dimensions": ["year"]},
     )
-    assert resp.status_code == 200, resp.content
+    assert resp.status_code == 200
     data = resp.json()
     pp(data)
 
@@ -59,7 +59,7 @@ def test_execute_text(client: TestClient, superuser_token_headers: dict):
         headers=superuser_token_headers,
         json={"text": "Home runs by year for the last 10 years"},
     )
-    assert resp.status_code == 200, resp.content
+    assert resp.status_code == 200
     data = resp.json()
     pp(data)
 
@@ -70,7 +70,7 @@ def test_execute_no_display(client: TestClient, superuser_token_headers: dict):
         headers=superuser_token_headers,
         json={"metrics": ["hits"], "dimensions": ["year"], "display_names": False},
     )
-    assert resp.status_code == 200, resp.content
+    assert resp.status_code == 200
     data = resp.json()
     pp(data)
 
@@ -124,7 +124,7 @@ def test_execute_invalid_fields(client: TestClient, superuser_token_headers: dic
         headers=superuser_token_headers,
         json={"metrics": ["bla"], "dimensions": ["year"]},
     )
-    assert resp.status_code == 400, resp.content
+    assert resp.status_code == 400
 
 
 # TODO This test needs to be rewritten since we are using the basebell
@@ -139,6 +139,6 @@ def test_execute_invalid_fields(client: TestClient, superuser_token_headers: dic
 #             "criteria": [("year", ">=", "StartofYear")],
 #         },
 #     )
-#     assert resp.status_code == 200, resp.content
+#     assert resp.status_code == 200
 #     data = resp.json()
 #     pp(data)

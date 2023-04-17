@@ -8,6 +8,7 @@ Zillion Web: A Web UI/API for Zillion
 
 * [About Zillion Web](#about-zillion-web)
 * [Demo](#demo)
+* [ChatGPT Plugin](#plugin)
 * [Installation](#installation)
 * [How to Contribute](#how-to-contribute)
 
@@ -37,6 +38,25 @@ Some general things to know:
 ----------------
 
 There is currently no hosted demo but the default settings will bring up a warehouse with data from the [Baseball Databank](https://github.com/chadwickbureau/baseballdatabank).
+
+<a name="plugin"></a>
+
+**ChatGPT Plugin**
+----------------
+
+This project contains experimental support for accessing your warehouse as a ChatGPT plugin. This requires some extra environment settings as well as you setting up the plugin within ChatGPT.
+
+By default in dev mode (more precisely when the SERVER_HOST setting has `localhost` in it) there is no authentication. In production
+you would set a Bearer token and give that to ChatGPT to access the plugin. Additionally since ChatGPT doesn't understand the concept of deciding which warehouse to query you must hardcode a warehouse ID. The following environment variables must be set:
+
+```
+PLUGIN_TOKEN=<some secure token>
+PLUGIN_WAREHOUSE_ID=<your integer warehouse id>
+PLUGIN_EMAIL=email@yourdomain.com
+PLUGIN_LEGAL_INFO=<your domain legal info url>
+```
+
+The plugin is installed as a sub app with its own OpenAPI specification at `/plugin/openapi.json`.
 
 <a name="installation"></a>
 
