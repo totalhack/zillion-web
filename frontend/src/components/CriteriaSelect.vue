@@ -98,7 +98,7 @@ import TextAreaListCriteriaValueSelect from './TextAreaListCriteriaValueSelect.v
 export default class CriteriaSelect extends BaseSelect {
   @Prop({ default: () => ({}) }) rawOptionsMap!: object;
   @Prop({
-    default: () => (['=', '!=', '>', '>=', '<', '<=', 'in', 'not in', 'like', 'not like', 'between', 'not between', 'is null', 'is not null'])
+    default: () => (['=', '!=', '>', '>=', '<', '<=', 'in', 'not in', 'in report', 'not in report', 'like', 'not like', 'between', 'not between', 'is null', 'is not null'])
   }) supportedOperations!: string[];
   @Prop({ default: 'Fields' }) defaultGroup!: string;
   @Prop({ default: 'Select Criteria' }) placeholder!: string;
@@ -129,6 +129,8 @@ export default class CriteriaSelect extends BaseSelect {
     'not like': TextAreaListCriteriaValueSelect,
     'in': TextAreaListCriteriaValueSelect,
     'not in': TextAreaListCriteriaValueSelect,
+    'in report': IntegerCriteriaValueSelect,
+    'not in report': IntegerCriteriaValueSelect,
   };
   private integerComponentOverrides: object = {
     'between': IntegerBetweenCriteriaValueSelect,
@@ -138,6 +140,8 @@ export default class CriteriaSelect extends BaseSelect {
     // TODO: add one specific to int
     'in': TextAreaListCriteriaValueSelect,
     'not in': TextAreaListCriteriaValueSelect,
+    'in report': IntegerCriteriaValueSelect,
+    'not in report': IntegerCriteriaValueSelect,
   };
   private floatComponentOverrides: object = {
     'between': FloatBetweenCriteriaValueSelect,
@@ -147,6 +151,8 @@ export default class CriteriaSelect extends BaseSelect {
     // TODO: add one specific to float
     'in': TextAreaListCriteriaValueSelect,
     'not in': TextAreaListCriteriaValueSelect,
+    'in report': IntegerCriteriaValueSelect,
+    'not in report': IntegerCriteriaValueSelect,
   };
   private dateComponentOverrides: object = {
     'between': DateRangeCriteriaValueSelect,
@@ -155,6 +161,8 @@ export default class CriteriaSelect extends BaseSelect {
     'not like': TextCriteriaValueSelect,
     'in': TextAreaListCriteriaValueSelect,
     'not in': TextAreaListCriteriaValueSelect,
+    'in report': IntegerCriteriaValueSelect,
+    'not in report': IntegerCriteriaValueSelect,
   };
   private dateTimeComponentOverrides: object = {
     'between': DateTimeRangeCriteriaValueSelect,
@@ -163,6 +171,8 @@ export default class CriteriaSelect extends BaseSelect {
     'not like': TextCriteriaValueSelect,
     'in': TextAreaListCriteriaValueSelect,
     'not in': TextAreaListCriteriaValueSelect,
+    'in report': IntegerCriteriaValueSelect,
+    'not in report': IntegerCriteriaValueSelect,
   };
 
   updateOperation(option, operation) {
