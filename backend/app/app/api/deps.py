@@ -50,6 +50,7 @@ def get_warehouses() -> Dict[str, Any]:
     try:
         result = db.query(Warehouses).all()
         for row in result:
+            print(f"Loading warehouse {row.name}")
             warehouses[row.id] = Warehouse.load(row.id)
         pp(warehouses)
         return warehouses
