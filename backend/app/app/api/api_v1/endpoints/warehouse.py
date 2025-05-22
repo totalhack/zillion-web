@@ -67,7 +67,7 @@ def replace_display_names(warehouse, formula, display_map=None):
 
 
 def replace_report_formula_display_names(warehouse, request):
-    if not "metrics" in request:
+    if "metrics" not in request:
         return request
     display_map = None
     for metric in request["metrics"] or []:
@@ -106,7 +106,7 @@ def reinit(
         return inactive_user_response()
     if not whs:
         raise Exception("No warehouses have been loaded")
-    if not warehouse_id in whs:
+    if warehouse_id not in whs:
         raise Exception("Warehouse %s not found" % warehouse_id)
     print("Re-initializing warehouse %s" % warehouse_id)
     whs[warehouse_id] = Warehouse.load(warehouse_id)

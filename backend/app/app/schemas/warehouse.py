@@ -41,6 +41,7 @@ class ReportRequest(BaseModel):
     limit: int = None
     limit_first: bool = False
     display_names: bool = True
+    disabled_tables: list = None
 
 
 class ReportSaveRequest(BaseModel):
