@@ -3,4 +3,5 @@
 # Exit in case of error
 set -e
 
-awslogs get ${1:-backend} ALL --start='5m' -w -S -G
+start_time="${2:-5m}"
+awslogs get ${1:-backend} ALL --start="${start_time}" -w -S -G --timestamp
