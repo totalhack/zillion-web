@@ -7,6 +7,7 @@ services:
     env_file:
       - .env
     environment:
+      - WEB_CONCURRENCY=${WEB_CONCURRENCY-1}
       - DOMAIN=${DOMAIN}
       - SERVER_HOST=https://${DOMAIN}
       - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
@@ -25,7 +26,6 @@ services:
       - ZILLION_CONFIG=${ZILLION_CONFIG}
       - ZILLION_OPENAI_API_KEY=${ZILLION_OPENAI_API_KEY}
       - ZILLION_OPENAI_MODEL=${ZILLION_OPENAI_MODEL}
-      - ZILLION_QDRANT_HOST=${ZILLION_QDRANT_HOST}
       - PRE_PRESTART_CMD=${PRE_PRESTART_CMD}
       - INITIAL_WAREHOUSES_FILE=${INITIAL_WAREHOUSES_FILE}
       - SQLALCHEMY_SILENCE_UBER_WARNING=1
@@ -46,5 +46,6 @@ services:
       context: ./frontend
       args:
         FRONTEND_ENV: ${FRONTEND_ENV-production}
+        VUE_APP_API_URL: ${VUE_APP_API_URL-}
         VUE_APP_DOMAIN: ${DOMAIN}
         VUE_APP_NAME: ${VUE_APP_NAME-Zillion}

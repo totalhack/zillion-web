@@ -58,7 +58,9 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
+        vue: 'vue/dist/vue.runtime.esm.js',
       },
+      dedupe: ['vue', 'vuetify'],
     },
     define: Object.fromEntries(
       appEnvKeys.map((key) => [

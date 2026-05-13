@@ -12,10 +12,12 @@ COPY ./ /app/
 ARG FRONTEND_ENV=production
 ARG VUE_APP_NAME=Zillion
 ARG VUE_APP_DOMAIN=localhost
+ARG VUE_APP_API_URL=
 
 ENV VUE_APP_ENV=${FRONTEND_ENV}
 ENV VUE_APP_NAME=${VUE_APP_NAME}
 ENV VUE_APP_DOMAIN=${VUE_APP_DOMAIN}
+ENV VUE_APP_API_URL=${VUE_APP_API_URL}
 
 # Comment out the next line to disable tests
 # RUN pnpm run test:unit
