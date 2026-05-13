@@ -7,8 +7,6 @@ Zillion Web: A Web UI/API for Zillion
 ---------------------
 
 * [About Zillion Web](#about-zillion-web)
-* [Demo](#demo)
-* [ChatGPT Plugin](#plugin)
 * [Installation](#installation)
 * [How to Contribute](#how-to-contribute)
 
@@ -17,27 +15,13 @@ Zillion Web: A Web UI/API for Zillion
 **About Zillion Web**
 ---------------------
 
-> ⚠️ **Warning**: This project is experimental and mostly for demo purposes at this time.
+> ⚠️ **Warning**: This project is experimental.
 
 `Zillion Web` is a monorepo frontend UI and backend API with a main objective of
 demonstrating and testing some use cases for [Zillion](https://github.com/totalhack/zillion).
 The project was initially created using [this](https://github.com/tiangolo/full-stack-fastapi-postgresql) project generator but has drifted a bit in terms of docker setup, library versions, and stylistic choices. It retains the same general code structure so reviewing those docs and the docs at [dockerswarm.rocks](https://dockerswarm.rocks/) will be helpful if you are looking to develop or deploy this on your own.
 
-Some general things to know:
-
-* This includes the `zillion[nlp]` extension to support experimental text-to-report functionality. As such you will need NLP config settings to run. See the
-`Zillion` docs for more details, set up a custom zillion config with your OpenAI settings, or look at the docker files to see what environment vars you can set.
-* The frontend is currently Vue 2.6+ with Vuetify 2.3+. It utilizes `vue-property-decorator` and `vue-class-component`.
-* [Billboard JS](https://github.com/naver/billboard.js/) is used for charting.
-* There is not much in terms of automated testing, but it is expected to work well on recent Chrome and Firefox desktop versions. YMMV elsewhere.
-* The backend is a [FastAPI](https://fastapi.tiangolo.com/) python server. You can run this separately if you are just looking for a web API to access a `Zillion` backend.
-
-<a name="demo"></a>
-
-**Demo**
-----------------
-
-There is currently no hosted demo but the default settings will bring up a warehouse with data from the [Baseball Databank](https://github.com/chadwickbureau/baseballdatabank).
+There is currently no hosted demo but the default settings should bring up a sample warehouse.
 
 <a name="installation"></a>
 
