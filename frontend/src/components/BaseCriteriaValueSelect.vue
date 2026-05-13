@@ -1,6 +1,6 @@
 <script lang="ts">
-import { Component, PropSync, Mixins, Vue } from 'vue-property-decorator';
-import RulesMixin from '@/components/mixins/RulesMixin.vue';
+import { Component, PropSync, Mixins, Vue } from "vue-property-decorator";
+import RulesMixin from "@/components/mixins/RulesMixin.vue";
 
 @Component
 export default class BaseCriteriaValueSelect extends Mixins(RulesMixin) {
@@ -14,7 +14,7 @@ export default class BaseCriteriaValueSelect extends Mixins(RulesMixin) {
 
   inputRefs: string[] = [];
 
-  @PropSync('value') syncedValue: any;
+  @PropSync("value") syncedValue: any;
   label!: string;
 
   onInput(newValue) {
@@ -36,11 +36,15 @@ export default class BaseCriteriaValueSelect extends Mixins(RulesMixin) {
         result = false;
       }
     }
-    return { valid: result, error: 'Please fix validation issues' };
+    return { valid: result, error: "Please fix validation issues" };
   }
 
   get criteriaValue() {
     return this.syncedValue;
+  }
+
+  get uiCriteriaValue() {
+    return this.criteriaValue;
   }
 }
 </script>

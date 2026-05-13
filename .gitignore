@@ -4,3 +4,5 @@ docker-stack.yml
 docker-compose.custom.yml
 docker-compose.custom.dev.yml
 volumes
+videos
+.tmp-workbox-test

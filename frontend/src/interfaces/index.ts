@@ -4,6 +4,7 @@ export interface IUserProfile {
   is_superuser: boolean;
   full_name: string;
   id: number;
+  warehouse_ids: number[];
 }
 
 export interface IUserProfileUpdate {
@@ -12,6 +13,7 @@ export interface IUserProfileUpdate {
   password?: string;
   is_active?: boolean;
   is_superuser?: boolean;
+  warehouse_ids?: number[];
 }
 
 export interface IUserProfileCreate {
@@ -20,13 +22,17 @@ export interface IUserProfileCreate {
   password?: string;
   is_active?: boolean;
   is_superuser?: boolean;
+  warehouse_ids?: number[];
 }
 
 export interface ICheckFormulaRequest {
   name: string;
   formula: string;
+  aggregation?: string | null;
   rounding: number | null;
   technical: string | null;
+  display_name?: string | null;
+  weighting_metric?: string | null;
 }
 
 export interface IReportRequest {
@@ -34,7 +40,7 @@ export interface IReportRequest {
   dimensions?: string[];
   criteria?: any[];
   row_filters?: any[];
-  rollup?: string;
+  rollup?: string | number;
   order_by?: any[];
   limit?: number;
   limit_first?: boolean;
@@ -56,7 +62,7 @@ export interface IReportSaveRequest {
   dimensions?: string[];
   criteria?: any[];
   row_filters?: any[];
-  rollup?: string;
+  rollup?: string | number;
   order_by?: any[];
   limit?: number;
   limit_first?: boolean;

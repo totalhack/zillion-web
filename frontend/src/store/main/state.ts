@@ -1,4 +1,4 @@
-import { IUserProfile, IReportResult, IReportRequest } from '@/interfaces';
+import { IUserProfile, IReportResult, IReportRequest } from "@/interfaces";
 
 export interface AppNotification {
   content: string;
@@ -18,11 +18,13 @@ export interface MainState {
   explorerShowSettingsDrawer: boolean;
   explorerShowLoadingOverlay: boolean;
   explorerReportState: string;
+  explorerReportProgress: number | null;
   explorerResultLayout: string;
   notifications: AppNotification[];
   warehouses: object;
   activeWarehouseId: number | null;
   warehouseStructures: object;
+  unsupportedGrainMetrics: Record<string, any>;
   reportResult: IReportResult | null;
   reportRequest: IReportRequest | null;
   reportCancelToken: any | null;

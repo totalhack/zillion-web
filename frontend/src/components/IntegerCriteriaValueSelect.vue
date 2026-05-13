@@ -1,6 +1,6 @@
 <script lang="ts">
-import { Component } from 'vue-property-decorator';
-import TextCriteriaValueSelect from './TextCriteriaValueSelect.vue';
+import { Component } from "vue-property-decorator";
+import TextCriteriaValueSelect from "./TextCriteriaValueSelect.vue";
 
 @Component
 export default class IntegerCriteriaValueSelect extends TextCriteriaValueSelect {
@@ -9,15 +9,15 @@ export default class IntegerCriteriaValueSelect extends TextCriteriaValueSelect 
   }
 
   static ensureOptionValue(value) {
-    if (typeof (value) === 'string' || typeof (value) === 'number') {
+    if (typeof value === "string" || typeof value === "number") {
       return value;
     }
     return null;
   }
 
-  label = 'Enter Integer';
+  label = "Enter Integer";
 
-  getRules() {
+  getRules(): any {
     return [this.rules.required, this.rules.isInteger];
   }
 

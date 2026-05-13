@@ -1,17 +1,17 @@
-import moment from 'moment';
+import moment from "moment";
 
-export const getLocalToken = () => localStorage.getItem('token');
+export const getLocalToken = () => localStorage.getItem("token");
 
-export const saveLocalToken = (token: string) => localStorage.setItem('token', token);
+export const saveLocalToken = (token: string) => localStorage.setItem("token", token);
 
-export const removeLocalToken = () => localStorage.removeItem('token');
+export const removeLocalToken = () => localStorage.removeItem("token");
 
 export function saveSessionReportRequest(request: object) {
-  sessionStorage.setItem('reportRequest', JSON.stringify(request));
+  sessionStorage.setItem("reportRequest", JSON.stringify(request));
 }
 
 export function getSessionReportRequest() {
-  const result = sessionStorage.getItem('reportRequest');
+  const result = sessionStorage.getItem("reportRequest");
   if (result === null) {
     return result;
   }
@@ -19,11 +19,11 @@ export function getSessionReportRequest() {
 }
 
 export function saveSessionWarehouseId(id: number) {
-  sessionStorage.setItem('warehouseId', JSON.stringify(id));
+  sessionStorage.setItem("warehouseId", JSON.stringify(id));
 }
 
 export function getSessionWarehouseId() {
-  const result = sessionStorage.getItem('warehouseId');
+  const result = sessionStorage.getItem("warehouseId");
   if (result === null) {
     return result;
   }
@@ -36,7 +36,7 @@ function getCoords(elem) {
     top: box.top + window.pageYOffset,
     right: box.right + window.pageXOffset,
     bottom: box.bottom + window.pageYOffset,
-    left: box.left + window.pageXOffset
+    left: box.left + window.pageXOffset,
   };
 }
 
@@ -48,13 +48,13 @@ export function focusAndOpenKeyboard(el, timeout) {
   if (el) {
     // Align temp input element approximately where the input element is
     // so the cursor doesn't jump around
-    const tempEl = document.createElement('input');
+    const tempEl = document.createElement("input");
     const coords = getCoords(el);
-    tempEl.style.position = 'absolute';
-    tempEl.style.top = (coords.top + 7) + 'px';
-    tempEl.style.left = coords.left + 'px';
-    tempEl.style.height = '0';
-    tempEl.style.opacity = '0';
+    tempEl.style.position = "absolute";
+    tempEl.style.top = coords.top + 7 + "px";
+    tempEl.style.left = coords.left + "px";
+    tempEl.style.height = "0";
+    tempEl.style.opacity = "0";
     // Put this temp element as a child of the page <body> and focus on it
     document.body.appendChild(tempEl);
     tempEl.focus();
@@ -77,7 +77,7 @@ export function binaryFind(array, searchElement) {
 
   while (minIndex <= maxIndex) {
     // tslint:disable-next-line:no-bitwise
-    currentIndex = (minIndex + maxIndex) / 2 | 0;
+    currentIndex = ((minIndex + maxIndex) / 2) | 0;
     currentElement = array[currentIndex];
 
     if (currentElement === null) {
@@ -87,16 +87,18 @@ export function binaryFind(array, searchElement) {
     } else if (currentElement > searchElement) {
       maxIndex = currentIndex - 1;
     } else {
-      return { // Modification
+      return {
+        // Modification
         found: true,
-        index: currentIndex
+        index: currentIndex,
       };
     }
   }
 
-  return { // Modification
+  return {
+    // Modification
     found: false,
-    index: (currentElement < searchElement || currentElement === null) ? currentIndex + 1 : currentIndex
+    index: currentElement < searchElement || currentElement === null ? currentIndex + 1 : currentIndex,
   };
 }
 
@@ -128,57 +130,102 @@ export const pp = (obj) => {
 };
 
 export class ValidationError extends Error {
-  constructor(message = '') {
+  constructor(message = "") {
     super(message);
-    this.name = 'ValidationError';
+    this.name = "ValidationError";
   }
 }
 
 function dateTypeToFormat(type) {
-  if (type === 'date') {
-    return 'YYYY-MM-DD';
-  } else if (type === 'datetime') {
-    return 'YYYY-MM-DD HH:mm:ss';
+  if (type === "date") {
+    return "YYYY-MM-DD";
+  } else if (type === "datetime") {
+    return "YYYY-MM-DD HH:mm:ss";
   }
-  throw Error('Unrecognized type: ' + type);
+  throw Error("Unrecognized type: " + type);
 }
 
 export function getNDaysAgo(N, type) {
-  return moment().subtract(N, 'day').startOf('day').format(dateTypeToFormat(type));
+  return moment()
+    .subtract(N, "day")
+    .startOf("day")
+    .format(dateTypeToFormat(type));
+}
+
+export function getNDaysAgoEnd(N, type) {
+  return moment()
+    .subtract(N, "day")
+    .endOf("day")
+    .format(dateTypeToFormat(type));
 }
 
 export function getNHoursAgo(N, type) {
-  return moment().subtract(N, 'hour').startOf('hour').format(dateTypeToFormat(type));
+  return moment()
+    .subtract(N, "hour")
+    .startOf("hour")
+    .format(dateTypeToFormat(type));
 }
 
 export function getNMinutesAgo(N, type) {
-  return moment().subtract(N, 'minute').startOf('minute').format(dateTypeToFormat(type));
+  return moment()
+    .subtract(N, "minute")
+    .startOf("minute")
+    .format(dateTypeToFormat(type));
 }
 
 export function getDateStartOf(type, dateType) {
-  return moment().startOf(type).format(dateTypeToFormat(dateType));
+  return moment()
+    .startOf(type)
+    .format(dateTypeToFormat(dateType));
 }
 
 export function getDateEndOf(type, dateType) {
-  return moment().endOf(type).format(dateTypeToFormat(dateType));
+  return moment()
+    .endOf(type)
+    .format(dateTypeToFormat(dateType));
 }
 
 export function getToday(type) {
-  return moment().startOf('day').format(dateTypeToFormat(type));
+  return moment()
+    .startOf("day")
+    .format(dateTypeToFormat(type));
+}
+
+export function isTodayShortcutValue(value) {
+  return typeof value === "string" && value.trim().toLowerCase() === "today";
+}
+
+export function getTodayDayName() {
+  return moment().format("dddd");
+}
+
+export function getTodayDayOfMonth() {
+  return moment().date();
 }
 
 export function getTomorrow(type) {
-  return moment().add(1, 'day').startOf('day').format(dateTypeToFormat(type));
+  return moment()
+    .add(1, "day")
+    .startOf("day")
+    .format(dateTypeToFormat(type));
 }
 
 export function getThisHour(type) {
-  return moment().startOf('hour').format(dateTypeToFormat(type));
+  return moment()
+    .startOf("hour")
+    .format(dateTypeToFormat(type));
 }
 
 export function getLastMonthStart(type) {
-  return moment().startOf('month').subtract(1, 'month').format(dateTypeToFormat(type));
+  return moment()
+    .startOf("month")
+    .subtract(1, "month")
+    .format(dateTypeToFormat(type));
 }
 
 export function getLastMonthEnd(type) {
-  return moment().startOf('month').subtract(1, 'day').format(dateTypeToFormat(type));
+  return moment()
+    .subtract(1, "month")
+    .endOf("month")
+    .format(dateTypeToFormat(type));
 }

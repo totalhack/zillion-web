@@ -1,15 +1,19 @@
 <template>
-  <div v-if="reportQueryCount" style="display: flex; align-items: center">
-    <span class="mx-2 text-subtitle-2 hidden-sm-and-down"
-      >{{ reportRowCount }} rows in {{ reportDuration }}s</span
-    >
-    <v-dialog v-model="dialog" scrollable max-width="70%">
+  <div v-if="reportQueryCount" class="query-summaries">
+    <span class="mx-2 text-subtitle-2 hidden-sm-and-down">{{ reportRowCount }} rows in {{ reportDuration }}s</span>
+    <v-dialog v-model="dialog" scrollable :max-width="breakpointSmOrLess ? '96%' : '70%'">
       <template v-slot:activator="{ on, attrs }">
-        <v-btn class="hidden-sm-and-down" v-bind="attrs" v-on="on">
-          <span
-            style="line-height: 1.375rem; color: white"
-            class="text-subtitle-2"
-          >
+        <v-btn
+          :class="
+            breakpointSmOrLess ? 'query-summaries__mobile-btn' : 'query-summaries__desktop-btn hidden-sm-and-down'
+          "
+          :small="breakpointSmOrLess"
+          :text="breakpointSmOrLess"
+          v-bind="attrs"
+          v-on="on"
+        >
+          <span v-if="breakpointSmOrLess" class="query-summaries__mobile-label">SQL</span>
+          <span v-else style="line-height: 1.375rem; color: white" class="text-subtitle-2">
             SQL
             <v-icon right>keyboard_arrow_up</v-icon>
           </span>
@@ -40,12 +44,25 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
-import { readReportResult } from '@/store/main/getters';
+import { Component, Vue, Watch } from "vue-property-decorator";
+import { readReportResult } from "@/store/main/getters";
 
 @Component
 export default class QuerySummaries extends Vue {
   private dialog: boolean = false;
+
+  @Watch("dialog")
+  onDialogChanged(value: boolean) {
+    this.$emit("visibility-change", value);
+  }
+
+  close() {
+    this.dialog = false;
+  }
+
+  get breakpointSmOrLess() {
+    return this.$vuetify.breakpoint.xs || this.$vuetify.breakpoint.sm;
+  }
 
   get querySummaries() {
     const reportResult = readReportResult(this.$store);
@@ -68,3 +85,22 @@ export default class QuerySummaries extends Vue {
   }
 }
 </script>
+
+<style scoped>
+.query-summaries {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.query-summaries__mobile-btn {
+  min-width: 36px !important;
+  padding: 0 6px !important;
+}
+
+.query-summaries__mobile-label {
+  color: white;
+  font-size: 12px;
+  line-height: 1;
+}
+</style>

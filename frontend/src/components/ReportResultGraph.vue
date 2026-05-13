@@ -1,24 +1,40 @@
 <template>
-  <div id="bb-container">
-    <div id="graph" @mouseleave="hideToolTip" @dblclick.stop="resetLegendSelections()" class="mx-4"></div>
-    <div id="legend" @touchstart="hideToolTip" @dblclick.stop="resetLegendSelections()"
-      class="ml-6 pl-5 legend-container d-flex flex-wrap justify-center"></div>
+  <div id="bb-container" :class="['report-result-graph', { 'report-result-graph--tabs': resultLayout === 'tabs' }]">
+    <div id="graph-stage" class="graph-stage">
+      <div
+        id="graph"
+        @mouseleave="hideToolTip"
+        @dblclick.stop="resetLegendSelections()"
+        class="graph-stage__surface"
+      ></div>
+    </div>
+    <div class="graph-legend-area">
+      <div
+        id="legend"
+        @touchstart="hideToolTip"
+        @dblclick.stop="resetLegendSelections()"
+        class="legend-container"
+      ></div>
+      <div v-if="seriesSearchTerm && visibleSeriesIdsByControls.length === 0" class="graph-legend-controls__empty">
+        No matching series
+      </div>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
-import { Component, Mixins, Prop, Watch, Vue } from 'vue-property-decorator';
-import ReportManagerMixin from '@/components/mixins/ReportManagerMixin.vue';
-import { dispatchAddNotification } from '@/store/main/actions';
+import { Component, Mixins, Prop, Watch, Vue } from "vue-property-decorator";
+import ReportManagerMixin from "@/components/mixins/ReportManagerMixin.vue";
+import { dispatchAddNotification } from "@/store/main/actions";
 
 // https://github.com/naver/billboard.js/wiki/CHANGELOG-v2#modularization-by-its-functionality
-import { bb, line, bar, area, scatter, zoom, selection } from 'billboard.js';
-import 'billboard.js/dist/billboard.css';
-import 'billboard.js/dist/theme/insight.css';
+import { bb, line, bar, area, zoom, selection } from "billboard.js";
+import "billboard.js/dist/billboard.css";
+import "billboard.js/dist/theme/insight.css";
 
-import { scaleOrdinal } from 'd3-scale';
-import { schemeTableau10 } from 'd3-scale-chromatic';
-import { select, mouse } from 'd3-selection';
+import { scaleOrdinal } from "d3-scale";
+import { schemeTableau10 } from "d3-scale-chromatic";
+import { event as d3Event, select, mouse } from "d3-selection";
 
 // TODO: remove eventually: https://github.com/naver/billboard.js/issues/1619
 selection();
@@ -28,19 +44,30 @@ line();
 export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   @Prop({ default: { graphType: null, multiAxis: false, logYScale: false } }) graphOptions;
   @Prop({ default: null }) resultLayout!: string | null;
+  @Prop({ default: "" }) seriesSearchTerm!: string;
   @Prop({ default: null }) tab!: string | null;
 
   public $chart: any = null;
   public showLegend: boolean = true;
   public maxXCharsAllowed = 40;
   public defaultChartHeight = 320;
+  public defaultWideChartHeight = 380;
+  public manuallyHiddenSeriesIds: string[] = [];
+
+  get baseChartHeight() {
+    return this.resultLayout === "tabs" ? this.defaultChartHeight : this.defaultWideChartHeight;
+  }
 
   getLegendElement() {
-    return document.getElementById('legend');
+    return document.getElementById("legend");
   }
 
   getGraphElement() {
-    return document.getElementById('graph');
+    return document.getElementById("graph");
+  }
+
+  getGraphStageElement() {
+    return document.getElementById("graph-stage");
   }
 
   get graphTypeName() {
@@ -59,10 +86,12 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
       bar,
       line,
       normalized: bar,
-      scatter,
       stackedArea: area,
       stackedBar: bar,
     };
+    if (!(this.graphTypeName in fMap)) {
+      return null;
+    }
     return fMap[this.graphTypeName]();
   }
 
@@ -81,42 +110,82 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     return Object.values(this.$chart.xs()).length;
   }
 
-  getParentHeight() {
-    return (this.$el.parentNode as any).clientHeight;
-  }
-
-  getLegendHeight() {
-    return document.getElementById('legend')?.clientHeight || 0;
-  }
-
   resetLegendSelections() {
+    this.manuallyHiddenSeriesIds = [];
     if (this.$chart) {
-      this.$chart.show();
+      this.$chart.revert();
+      this.applyLegendVisibilityFilters();
     }
   }
 
   resize(height: number | null = null) {
-    // When the legend is in a separate div, billboard.js doesn't seem
-    // to account for it when setting chart height.
-    this.$chart.resize({ height: height || (this.getParentHeight() - this.getLegendHeight()) });
+    const graphStageHeight = this.getGraphStageElement()?.clientHeight || 0;
+    this.$chart.resize({
+      height: height || graphStageHeight || this.baseChartHeight,
+    });
   }
 
   hideToolTip(e) {
-    select('.bb-tooltip-container').style('display', 'none');
+    select(".bb-tooltip-container").style("display", "none");
   }
 
   get metricsToGraph() {
-    if (this.graphTypeName === 'scatter') {
-      return this.reportResultMetricsDisplay.slice(0, 2);
-    }
     return this.reportResultMetricsDisplay;
   }
 
-  get graphHasNoXDim() {
-    // Whether the graph supports a x dim from the report dims (vs from a metric)
-    if (this.graphTypeName === 'scatter') {
-      return true;
+  get hasLegendControls() {
+    return this.allSeriesIds.length > 0;
+  }
+
+  get legendLabelCount() {
+    return this.allSeriesIds.length;
+  }
+
+  get metricFilterOptions() {
+    return Object.keys(this.chartDataMetricBuckets || {});
+  }
+
+  get seriesSearchFilter() {
+    const trimmed = this.seriesSearchTerm.trim().toLowerCase();
+    const isNegated = trimmed.startsWith("!");
+
+    return {
+      isNegated,
+      term: (isNegated ? trimmed.slice(1) : trimmed).trim(),
+    };
+  }
+
+  get allSeriesIds() {
+    const seriesIds: string[] = [];
+    for (const metricName of this.metricFilterOptions) {
+      seriesIds.push(...this.getMetricBucketIds(metricName));
     }
+    return seriesIds;
+  }
+
+  get visibleSeriesIdsByControls() {
+    const { isNegated, term } = this.seriesSearchFilter;
+    const visibleSeriesIds: string[] = [];
+
+    for (const metricName of this.metricFilterOptions) {
+      for (const seriesId of this.getMetricBucketIds(metricName)) {
+        const matchesSearch = this.seriesLabelMatchesSearch(seriesId, term);
+        if (term && ((isNegated && matchesSearch) || (!isNegated && !matchesSearch))) {
+          continue;
+        }
+        visibleSeriesIds.push(seriesId);
+      }
+    }
+
+    return visibleSeriesIds;
+  }
+
+  get controlHiddenSeriesIds() {
+    const visibleSeriesIds = new Set(this.visibleSeriesIdsByControls);
+    return this.allSeriesIds.filter((seriesId) => !visibleSeriesIds.has(seriesId));
+  }
+
+  get graphHasNoXDim() {
     return false;
   }
 
@@ -151,14 +220,14 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   get xDimType() {
     if ((this.xDim as any).formula) {
       // Assume it's a formula dimension, guess string type
-      return 'string';
+      return "string";
     }
     const dim = this.warehouseDimensions[this.xDim!];
     return this.fieldType(dim);
   }
 
   get xIsCategorical() {
-    return (this.xOptions as any).type === 'category';
+    return (this.xOptions as any).type === "category";
   }
 
   get dataHasZDims() {
@@ -173,8 +242,9 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   }
 
   get zDimsDisplay() {
-    return this.dataHasZDims ?
-      this.reportDimensionsDisplay.slice(0, this.reportDimensions.length - this.xDimCount) : [];
+    return this.dataHasZDims
+      ? this.reportDimensionsDisplay.slice(0, this.reportDimensions.length - this.xDimCount)
+      : [];
   }
 
   get chartData() {
@@ -215,7 +285,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
           const xValue = reportRow[this.xDimIndex!];
           // Add to a map that tracks x axis positions in the order
           // we get new values
-          if (!(xDimValueMap.has(xValue))) {
+          if (!xDimValueMap.has(xValue)) {
             xDimValueMap.set(xValue, xDimValueMap.size);
           }
         }
@@ -237,7 +307,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
             // In multi-dimensional case, we create a series for each combination of
             // each metric and the non-x dimension (z dimensions). The bucketName
             // reflects the grouping and ends up in the graph legend/tooltips.
-            bucketName = bucketName.concat('/' + row[zDimIndex]);
+            bucketName = bucketName.concat("/" + row[zDimIndex]);
           }
 
           if (!(bucketName in columns)) {
@@ -245,7 +315,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
             columns[bucketName][0] = bucketName;
             metricBucketStats[bucketName] = {
               yMin: metricValue,
-              yMax: metricValue
+              yMax: metricValue,
             };
           } else {
             metricBucketStats[bucketName].yMin = Math.min(metricBucketStats[bucketName].yMin, metricValue);
@@ -262,7 +332,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
 
           if (!(metric in metricBuckets)) {
             metricBuckets[metric] = [bucketName];
-          } else {
+          } else if (!metricBuckets[metric].includes(bucketName)) {
             metricBuckets[metric].push(bucketName);
           }
         }
@@ -315,21 +385,21 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
 
   getMultiAxisAxesConfig(currentAxes) {
     const axes = currentAxes || {};
-    let yAxis = 'y';
+    let yAxis = "y";
     let yMin;
     let yMax;
     const metricBuckets = Object.values(this.chartDataMetricBuckets);
     const metricBucketStats = this.chartDataMetricBucketStats;
 
     metricBuckets.forEach((metricBucket, index) => {
-      if (index >= (metricBuckets.length / 2)) {
+      if (index >= metricBuckets.length / 2) {
         // Put right "half" of metrics on y2
-        yAxis = 'y2';
+        yAxis = "y2";
       }
-      for (const bucket of (metricBucket as any)) {
+      for (const bucket of metricBucket as any) {
         // Track absolute min/max across all Y axes
-        yMin = Math.min(isNaN(yMin) ? null : yMin, metricBucketStats[(bucket as any)].yMin);
-        yMax = Math.max(isNaN(yMax) ? null : yMax, metricBucketStats[(bucket as any)].yMax);
+        yMin = Math.min(isNaN(yMin) ? null : yMin, metricBucketStats[bucket as any].yMin);
+        yMax = Math.max(isNaN(yMax) ? null : yMax, metricBucketStats[bucket as any].yMax);
         axes[bucket] = yAxis;
       }
     });
@@ -339,7 +409,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
 
   get showY2() {
     const metrics = this.reportMetricsDisplay;
-    return this.multiAxis && (metrics.length > 1);
+    return this.multiAxis && metrics.length > 1;
   }
 
   get xOptions() {
@@ -352,77 +422,77 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     let options = {};
 
     switch (dimType) {
-      case 'integer':
-      case 'smallinteger':
-      case 'biginteger':
-      case 'float':
-      case 'numeric':
+      case "integer":
+      case "smallinteger":
+      case "biginteger":
+      case "float":
+      case "numeric":
         options = {
           clipPath: false,
           tick: {
             rotate: 60,
             culling: {
-              max: this.$vuetify.breakpoint.mobile ? 20 : 100
-            }
+              max: this.$vuetify.breakpoint.mobile ? 20 : 100,
+            },
           },
         };
         break;
-      case 'date':
+      case "date":
         options = {
-          type: 'timeseries',
+          type: "timeseries",
           clipPath: false,
           tick: {
             fit: true,
             count: Math.min(xLen, 100),
             multiline: false,
-            format: '%Y-%m-%d',
+            format: "%Y-%m-%d",
             rotate: 60,
             culling: {
-              max: this.$vuetify.breakpoint.mobile ? 20 : 100
-            }
+              max: this.$vuetify.breakpoint.mobile ? 20 : 100,
+            },
           },
         };
         break;
-      case 'datetime':
+      case "datetime":
         options = {
-          type: 'timeseries',
+          type: "timeseries",
           clipPath: false,
           tick: {
             fit: false,
             count: Math.min(xLen, 100),
             multiline: false,
-            format: '%Y-%m-%d %H:%M:%S',
+            format: "%Y-%m-%d %H:%M:%S",
             rotate: 60,
             culling: {
-              max: this.$vuetify.breakpoint.mobile ? 20 : 100
-            }
+              max: this.$vuetify.breakpoint.mobile ? 20 : 100,
+            },
           },
         };
         break;
-      case 'string':
-      case 'varchar':
-      case 'text':
+      case "string":
+      case "varchar":
+      case "text":
       default:
         options = {
-          type: 'category',
+          type: "category",
           clipPath: false,
           tick: {
             fit: true,
             multiline: false,
             rotate: 60,
             culling: {
-              max: this.$vuetify.breakpoint.mobile ? 20 : 100
+              max: this.$vuetify.breakpoint.mobile ? 20 : 100,
             },
             format: (index, name) => {
               if (name === null) {
-                return 'null';
+                return "null";
               }
-              if (typeof name !== 'string') {
+              if (typeof name !== "string") {
                 name = JSON.stringify(name);
               }
               return name.substr(0, this.maxXCharsAllowed);
-            }
-          }
+            },
+          },
         };
         break;
     }
@@ -431,28 +501,28 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   }
 
   getBaseChartOptions() {
-    let legendItemClass = 'legend-item-span';
+    let legendItemClass = "legend-item-span";
     if (this.maxBucketNameLength) {
       const px = this.maxBucketNameLength * 7;
       if (px > 550) {
-        legendItemClass = legendItemClass + ' width-600';
+        legendItemClass = legendItemClass + " width-600";
       } else if (px > 500) {
-        legendItemClass = legendItemClass + ' width-550';
+        legendItemClass = legendItemClass + " width-550";
       } else if (px > 450) {
-        legendItemClass = legendItemClass + ' width-500';
+        legendItemClass = legendItemClass + " width-500";
       } else if (px > 400) {
-        legendItemClass = legendItemClass + ' width-450';
+        legendItemClass = legendItemClass + " width-450";
       } else if (px > 350) {
-        legendItemClass = legendItemClass + ' width-400';
+        legendItemClass = legendItemClass + " width-400";
       } else if (px > 300) {
-        legendItemClass = legendItemClass + ' width-350';
+        legendItemClass = legendItemClass + " width-350";
       } else if (px > 250) {
-        legendItemClass = legendItemClass + ' width-300';
+        legendItemClass = legendItemClass + " width-300";
       } else if (px > 200) {
-        legendItemClass = legendItemClass + ' width-250';
+        legendItemClass = legendItemClass + " width-250";
       }
     } else {
-      legendItemClass = legendItemClass + ' width-200';
+      legendItemClass = legendItemClass + " width-200";
     }
 
     const options = {
@@ -462,7 +532,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
         type: this.graphType,
       },
       color: {
-        pattern: scaleOrdinal(schemeTableau10).range()
+        pattern: scaleOrdinal(schemeTableau10).range(),
       },
       transition: {
         duration: 0,
@@ -472,10 +542,10 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
         y: {},
         y2: {
           show: this.showY2,
-        }
+        },
       },
       line: {
-        connectNull: true
+        connectNull: true,
       },
       grid: {
         x: {
@@ -487,18 +557,24 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
       },
       padding: {
         top: 10,
-        right: 20 + (this.showY2 ? 40 : 0),
+        right: 32 + (this.showY2 ? 40 : 0),
         bottom: -10,
       },
       legend: {
         show: this.showLegend,
+        item: {
+          onclick: (_id) => {
+            this.handleLegendItemClick(_id as any);
+          },
+        },
         contents: {
           bindto: this.getLegendElement(),
-          template: (
-            '<span class="' + legendItemClass + '">' +
+          template:
+            '<span class="' +
+            legendItemClass +
+            '">' +
             '<div class="legend-color-box" style="background-color:{=COLOR};"></div>' +
-            '{=TITLE}</span>'
-          )
+            "{=TITLE}</span>",
         },
       },
       tooltip: {
@@ -508,10 +584,10 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
           let top = coord[1];
           let left = coord[0];
 
-          const container = document.getElementById('bb-container');
+          const container = document.getElementById("bb-container");
           if (container) {
             const containerWidth = container.clientWidth;
-            const tooltip = container.querySelector('.bb-tooltip-container');
+            const tooltip = container.querySelector(".bb-tooltip-container");
             const tooltipWidth = tooltip?.clientWidth || 150;
             const tooltipHeight = tooltip?.clientHeight || 250;
             let pushRight = 85;
@@ -520,14 +596,14 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
               pushRight = 20;
             }
 
-            if (coord[0] > (containerWidth / 2)) {
+            if (coord[0] > containerWidth / 2) {
               // We are on the right half, put tooltips left
               left = coord[0] - tooltipWidth;
             } else {
               left = coord[0] + pushRight;
             }
 
-            top = Math.max(coord[1] - (tooltipHeight / 2), 0);
+            top = Math.max(coord[1] - tooltipHeight / 2, 0);
           }
           return { top, left };
         },
@@ -535,85 +611,68 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     };
 
     if (!this.$vuetify.breakpoint.mobile) {
-      options['zoom'] = {
+      options["zoom"] = {
         enabled: zoom(),
-        type: 'drag',
+        type: "drag",
       };
     }
 
-    if (this.xDim && this.xDimType === 'datetime') {
-      (options as any).data.xFormat = '%Y-%m-%d %H:%M:%S';
+    if (this.xDim && this.xDimType === "datetime") {
+      (options as any).data.xFormat = "%Y-%m-%d %H:%M:%S";
     }
 
     return options;
   }
 
   applyGraphTypeOverrides(options) {
-    const metrics = this.reportMetricsDisplay;
     const groups: any[] = [];
 
-    switch (this.graphTypeName) {
-      case 'scatter':
-        if (this.reportMetrics.length < 2) {
-          throw Error('Scatter plot requires at least two metrics');
-        }
-        const xs = {};
-        const xsList = this.chartDataMetricBuckets[metrics[0]];
-        const ysList = this.chartDataMetricBuckets[metrics[1]];
-        for (const index of Object.keys(xsList)) {
-          xs[ysList[index]] = xsList[index];
-        }
-        options.data['xs'] = xs;
-        break;
-      default:
-        options.data['x'] = this.xDimDisplay;
-        break;
-    }
+    options.data["x"] = this.xDimDisplay;
 
     switch (this.graphTypeName) {
-      case 'line':
-      case 'area':
-        options['point'] = {
+      case "line":
+      case "area":
+        options["point"] = {
           focus: {
-            only: (options.axis.x as any).type === 'category' ? false : true
+            only: (options.axis.x as any).type === "category" ? false : true,
           },
         };
         break;
-      case 'bar':
+      case "bar":
         options.tooltip.grouped = false;
-        options['bar'] = {
+        options["bar"] = {
           width: {
             ratio: this.dataHasZDims ? 1 : 0.7,
           },
         };
         break;
-      case 'stackedBar':
-        options.data.type = 'bar';
+      case "stackedBar":
+        options.data.type = "bar";
         for (const column of this.chartDataColumns) {
           groups.push(column[0]);
         }
-        options.data['groups'] = [groups];
-        options['bar'] = {
+        options.data["groups"] = [groups];
+        options["bar"] = {
           width: {
             ratio: 0.85,
           },
         };
         break;
-      case 'stackedArea':
-        options.data.type = 'area';
-        options['point'] = {
+      case "stackedArea":
+        options.data.type = "area";
+        options["point"] = {
           focus: {
-            only: (options.axis.x as any).type === 'category' ? false : true
+            only: (options.axis.x as any).type === "category" ? false : true,
           },
         };
         for (const column of this.chartDataColumns) {
           groups.push(column[0]);
         }
-        options.data['groups'] = [groups];
+        options.data["groups"] = [groups];
         break;
-      case 'normalized':
-        options.data.type = 'bar';
-        options['bar'] = {
+      case "normalized":
+        options.data.type = "bar";
+        options["bar"] = {
           width: {
             ratio: 0.9,
           },
@@ -621,19 +680,9 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
         for (const column of this.chartDataColumns) {
           groups.push(column[0]);
         }
-        options.data['groups'] = [groups];
-        options.data['stack'] = {
+        options.data["groups"] = [groups];
+        options.data["stack"] = {
           normalize: true,
-        };
-        break;
-      case 'scatter':
-        options.axis.x = {
-          label: metrics[0],
-          tick: { fit: false }
-        };
-        (options.axis.y as any).label = metrics[1];
-        options.tooltip['format'] = {
-          title: (d) => metrics[0] + ': ' + d
         };
         break;
       default:
@@ -643,13 +692,13 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
 
   get xAxisMaxLength() {
     const xData = this.chartDataXDimColumn;
-    const maxXLen = Math.max(...(xData.map((el) => el === null ? null : el.length)));
+    const maxXLen = Math.max(...xData.map((el) => (el === null ? null : el.length)));
     return Math.min(maxXLen, this.maxXCharsAllowed);
   }
 
   setXAxisHeight(options) {
     const xData = this.chartDataXDimColumn;
-    const maxXLen = Math.max(...(xData.map((el) => el === null ? null : el.length)));
+    const maxXLen = Math.max(...xData.map((el) => (el === null ? null : el.length)));
     const maxCategories = 12;
 
     // Hack to make more room when there are many categorical
@@ -657,32 +706,24 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     if (xData.length > maxCategories || maxXLen > this.maxXCharsAllowed) {
       // Multiplier is somewhat arbitrary. Needs more testing.
       const height = 10 + 6 * Math.min(maxXLen, this.maxXCharsAllowed);
-      options.axis.x['height'] = height;
+      options.axis.x["height"] = height;
     }
   }
 
   get chartOptions() {
-    if (!this.graphTypeName) {
+    if (!this.graphTypeName || !this.graphType) {
       return {};
     }
 
     const metrics = this.reportMetricsDisplay;
     const groups: any[] = [];
-    const legend = this.getLegendElement();
-
-    if (this.chartDataColumns.length > 20) {
-      legend?.classList.remove('justify-center');
-      legend?.classList.add('justify-left');
-    } else {
-      legend?.classList.remove('justify-left');
-      legend?.classList.add('justify-center');
-    }
+    this.syncLegendAlignment(this.chartDataColumns.length);
 
     const options = this.getBaseChartOptions();
 
     if (this.showY2) {
       const axesConfig = this.getMultiAxisAxesConfig(null);
-      options.data['axes'] = axesConfig.axes;
+      options.data["axes"] = axesConfig.axes;
       // This doesn't have the desired effect, was hoping it would line up
       // the zero position when negative numbers are present but that doesnt
       // work since the scales are different.
@@ -693,7 +734,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     }
 
     if (this.logYScale) {
-      options.axis.y['type'] = 'log';
+      options.axis.y["type"] = "log";
     }
 
     this.applyGraphTypeOverrides(options);
@@ -716,81 +757,94 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
       this.destroyChart();
     }
     if (!(this.metricsToGraph.length > 0)) {
-      dispatchAddNotification(
-        this.$store,
-        { content: 'No metrics to graph', color: 'warning' }
-      );
-      this.$emit('complete');
+      dispatchAddNotification(this.$store, { content: "No metrics to graph", color: "warning" });
+      this.$emit("complete");
       return;
     }
     if (!this.chartData) {
-      this.$emit('complete');
+      this.$emit("complete");
       return;
     }
+
+    this.syncLegendFilterState();
 
     let options;
     try {
       options = this.chartOptions;
-      console.log('Chart Data', options.data);
+      console.log("Chart Data", options.data);
       this.$chart = bb.generate(options);
     } catch (err) {
-      dispatchAddNotification(
-        this.$store,
-        { content: 'Unable to build chart: ' + err.message, color: 'error' }
-      );
+      dispatchAddNotification(this.$store, { content: "Unable to build chart: " + err.message, color: "error" });
       this.destroyChart();
-      this.$emit('complete');
-      throw (err);
+      this.$emit("complete");
+      throw err;
     }
 
     // XXX Trying to make sure Vue doesnt waste cycles observing the chart.
     // Is this Necessary?
-    Object.defineProperty(this, '$chart', { configurable: false });
-    this.$chart.internal.hideTooltip = () => { return; };
+    Object.defineProperty(this, "$chart", { configurable: false });
+    this.$chart.internal.hideTooltip = () => {
+      return;
+    };
+    this.applyLegendVisibilityFilters(true);
 
     // TODO: It would be better if we could draw the right height initially
     // but it will require some work to get that working correctly.
-    if (this.resultLayout !== 'tabs') {
-      height = (height || this.defaultChartHeight) + options.axis.x.height;
+    if (this.resultLayout !== "tabs") {
+      height = (height || this.baseChartHeight) + (options.axis.x.height || 0);
     }
     this.resize(height);
-    this.$emit('complete');
+    this.$emit("complete");
   }
 
   mounted() {
+    this.$nextTick(() => {
+      this.emitLegendLabelCount();
+    });
+
     if (this.graphTypeName) {
       this.initChart();
     }
   }
 
-  @Watch('graphTypeName')
+  @Watch("legendLabelCount")
+  onLegendLabelCountChanged() {
+    this.emitLegendLabelCount();
+  }
+
+  @Watch("graphTypeName")
   onGraphTypeNameChanged(val: object, oldVal: object) {
     if (val) {
       setTimeout(this.initChart, 25);
     }
   }
 
-  @Watch('logYScale')
+  @Watch("logYScale")
   onLogYScaleChanged(val: object, oldVal: object) {
     if (val) {
-      this.$chart.config('axis.y.type', 'log');
+      this.$chart.config("axis.y.type", "log");
     } else {
-      this.$chart.config('axis.y.type', 'indexed');
+      this.$chart.config("axis.y.type", "indexed");
     }
     this.$chart.flush();
   }
 
-  @Watch('multiAxis')
+  @Watch("multiAxis")
   onMultiAxisChanged(val: object, oldVal: object) {
     setTimeout(this.initChart, 25);
   }
 
-  @Watch('tab')
+  @Watch("seriesSearchTerm")
+  onSeriesSearchTermChanged() {
+    this.applyLegendVisibilityFilters(true);
+  }
+
+  @Watch("tab")
   onTabChanged(val: string, oldVal: string) {
     if (oldVal === null) {
       return;
     }
-    if (this.$chart && val === 'graphTab') {
+    if (this.$chart && val === "graphTab") {
       // HACK: need setTimeout so resize() checks parent height after
       // tab has rendered
       setTimeout(() => {
@@ -799,22 +853,117 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     }
   }
 
-  @Watch('reportResult')
+  @Watch("reportResult")
   onReportResultChanged(val: object, oldVal: object) {
+    this.resetLegendFilterState();
     if (this.graphTypeName) {
       if (!this.reportResult) {
-        this.$emit('complete');
+        this.$emit("complete");
         return;
       }
       let height: any = null;
-      if (this.resultLayout === 'tabs' && this.tab === 'tableTab') {
+      if (this.resultLayout === "tabs" && this.tab === "tableTab") {
         // HACK: get the graph height closer to what it should be. By
         // default BB will draw it at 320 px tall, and then on tab switch
         // we resize. This gets the initial state looking closer to the
         // full graph tab height
         height = window.innerHeight * 0.7;
       }
-      this.initChart(height = height);
+      this.initChart((height = height));
+    }
+  }
+
+  getMetricBucketIds(metricName: string) {
+    return (this.chartDataMetricBuckets[metricName] || []).slice();
+  }
+
+  seriesLabelMatchesSearch(seriesId: string, searchTerm = this.seriesSearchFilter.term) {
+    return !searchTerm || seriesId.toLowerCase().includes(searchTerm);
+  }
+
+  updateManualSeriesSelection(seriesId: string, isolate = false) {
+    if (!this.allSeriesIds.includes(seriesId)) {
+      return;
+    }
+
+    const visibleSeriesIds = this.visibleSeriesIdsByControls;
+    if (!visibleSeriesIds.includes(seriesId)) {
+      return;
+    }
+
+    if (isolate) {
+      this.manuallyHiddenSeriesIds = visibleSeriesIds.filter((id) => id !== seriesId);
+      return;
+    }
+
+    const hiddenSeriesIds = new Set(this.manuallyHiddenSeriesIds);
+    if (hiddenSeriesIds.has(seriesId)) {
+      hiddenSeriesIds.delete(seriesId);
+    } else {
+      hiddenSeriesIds.add(seriesId);
+    }
+    this.manuallyHiddenSeriesIds = Array.from(hiddenSeriesIds);
+  }
+
+  handleLegendItemClick(seriesId: string) {
+    this.updateManualSeriesSelection(seriesId, !!(d3Event as any)?.altKey);
+  }
+
+  resetLegendFilterState() {
+    this.$emit("update:seriesSearchTerm", "");
+    this.manuallyHiddenSeriesIds = [];
+  }
+
+  emitLegendLabelCount() {
+    this.$emit("legend-label-count-change", this.legendLabelCount);
+  }
+
+  syncLegendFilterState() {
+    const allSeriesIds = new Set(this.allSeriesIds);
+    this.manuallyHiddenSeriesIds = this.manuallyHiddenSeriesIds.filter((seriesId) => allSeriesIds.has(seriesId));
+  }
+
+  syncLegendAlignment(seriesCount = this.chartDataColumns.length) {
+    const legend = this.getLegendElement();
+    if (!legend) {
+      return;
+    }
+
+    legend.classList.remove("justify-left");
+    legend.classList.remove("justify-center");
+    legend.classList.add("justify-center");
+  }
+
+  applyLegendVisibilityFilters(skipResize: boolean = false) {
+    if (!this.$chart || !this.hasLegendControls) {
+      return;
+    }
+
+    this.syncLegendFilterState();
+
+    const visibleSeriesIds = this.visibleSeriesIdsByControls;
+    const hiddenSeriesIds = this.controlHiddenSeriesIds;
+    const visibleSeriesSet = new Set(visibleSeriesIds);
+    const manuallyHiddenVisibleSeriesIds = this.manuallyHiddenSeriesIds.filter((seriesId) =>
+      visibleSeriesSet.has(seriesId)
+    );
+
+    this.$chart.show(this.allSeriesIds, { withLegend: true });
+
+    if (hiddenSeriesIds.length) {
+      this.$chart.hide(hiddenSeriesIds, { withLegend: true });
+    }
+
+    if (manuallyHiddenVisibleSeriesIds.length) {
+      this.$chart.hide(manuallyHiddenVisibleSeriesIds, { withLegend: false });
+    }
+
+    this.$chart.revert();
+    this.$chart.flush();
+    this.syncLegendAlignment(visibleSeriesIds.length);
+
+    if (!skipResize) {
+      this.resize();
     }
   }
 }
@@ -860,11 +1009,76 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   letter-spacing: unset !important;
 }
 
+.report-result-graph {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+.graph-stage {
+  min-width: 0;
+  width: 100%;
+}
+
+.report-result-graph--tabs .graph-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.graph-stage__surface {
+  width: 100%;
+}
+
+.report-result-graph--tabs .graph-stage__surface {
+  height: 100%;
+}
+
+.graph-legend-area {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px;
+  width: 100%;
+}
+
+.graph-legend-controls__empty {
+  color: rgba(39, 39, 39, 0.72);
+  font: 500 12px Helvetica;
+  text-align: center;
+}
+
 .legend-container {
-  overflow-y: scroll;
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  justify-content: center;
+  overflow-y: auto;
   overflow-x: unset;
   max-height: 80px;
+  padding: 0;
   white-space: normal;
+  width: 100%;
+}
+
+.legend-container .bb-legend-item {
+  flex: 0 0 auto;
+}
+
+.legend-container.justify-center {
+  justify-content: center;
+}
+
+.legend-container.justify-left {
+  justify-content: flex-start;
+}
+
+.legend-container .bb-legend-item-hidden {
+  display: none !important;
 }
 
 .legend-color-box {
@@ -877,6 +1091,8 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
 }
 
 .legend-item-span {
+  display: inline-flex;
+  align-items: center;
   padding-left: 10px;
   white-space: nowrap;
   overflow: hidden;

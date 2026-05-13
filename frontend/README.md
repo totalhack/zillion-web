@@ -2,30 +2,37 @@
 
 ## Project setup
 ```
-npm install
+node --version # use Node 22+
+corepack enable
+pnpm install
 ```
 
 ### Compiles and hot-reloads for development
 ```
-npm run serve
+pnpm run serve
+```
+
+### Preview a production build locally
+```
+pnpm run preview
 ```
 
 ### Compiles and minifies for production
 ```
-npm run build
+pnpm run build
 ```
 
 ### Run your tests
 ```
-npm run test
+pnpm run test:unit
 ```
 
 ### Lints and fixes files
 ```
-npm run lint
+pnpm run lint
 ```
 
 ### Run your unit tests
 ```
-npm run test:unit
+pnpm run test:unit
 ```

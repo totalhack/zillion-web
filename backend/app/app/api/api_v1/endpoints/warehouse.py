@@ -1,7 +1,8 @@
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from marshmallow.exceptions import ValidationError
+from sqlalchemy.orm import Session
 from tlbx import st, pp, get_string_format_args, json
 from zillion.core import InvalidFieldException, ZillionException
 from zillion.model import zillion_engine, ReportSpecs
@@ -24,6 +25,48 @@ from app.api import deps
 from app.utils import JSONEncoder, handle_shortcut_criteria
 
 router = APIRouter()
+
+
+def get_accessible_warehouse_ids(db: Session, current_user: models.User):
+    if crud.user.is_superuser(current_user):
+        return None
+
+    rows = (
+        db.query(models.UserWarehouseAccess.warehouse_id)
+        .filter(models.UserWarehouseAccess.user_id == current_user.id)
+        .all()
+    )
+    return {warehouse_id for warehouse_id, in rows}
+
+
+def get_authorized_warehouse(
+    db: Session,
+    current_user: models.User,
+    whs: Dict[str, Any],
+    warehouse_id: int,
+):
+    if not whs:
+        raise Exception("No warehouses have been loaded")
+    if warehouse_id not in whs:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Warehouse {warehouse_id} not found",
+        )
+    if crud.user.is_superuser(current_user):
+        return whs[warehouse_id]
+
+    access = (
+        db.query(models.UserWarehouseAccess.id)
+        .filter(models.UserWarehouseAccess.user_id == current_user.id)
+        .filter(models.UserWarehouseAccess.warehouse_id == warehouse_id)
+        .first()
+    )
+    if not access:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"You do not have access to warehouse {warehouse_id}",
+        )
+    return whs[warehouse_id]
 
 
 def success_response():
@@ -83,15 +126,19 @@ def replace_report_formula_display_names(warehouse, request):
 @router.get("/", response_model=Dict[str, Any])
 def warehouses(
     whs: Dict[str, Any] = Depends(deps.get_warehouses),
+    db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Dict[str, Any]:
     """Retrieve warehouses"""
     if not crud.user.is_active(current_user):
         return inactive_user_response()
 
+    accessible_ids = get_accessible_warehouse_ids(db, current_user)
     result = {}
     for wh_id, wh in whs.items():
-        result[wh_id] = dict(id=wh_id, name=wh.name)
+        if accessible_ids is not None and wh_id not in accessible_ids:
+            continue
+        result[str(wh_id)] = dict(id=wh_id, name=wh.name)
     return result
 
 
@@ -99,15 +146,13 @@ def warehouses(
 def reinit(
     warehouse_id: int,
     whs: Dict[str, Any] = Depends(deps.get_warehouses),
+    db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """Retrieve all warehouse fields"""
     if not crud.user.is_active(current_user):
         return inactive_user_response()
-    if not whs:
-        raise Exception("No warehouses have been loaded")
-    if warehouse_id not in whs:
-        raise Exception("Warehouse %s not found" % warehouse_id)
+    get_authorized_warehouse(db, current_user, whs, warehouse_id)
     print("Re-initializing warehouse %s" % warehouse_id)
     whs[warehouse_id] = Warehouse.load(warehouse_id)
     return success_response()
@@ -117,15 +162,13 @@ def reinit(
 def structure(
     warehouse_id: int,
     whs: Dict[str, Any] = Depends(deps.get_warehouses),
+    db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """Retrieve warehouse structure"""
     if not crud.user.is_active(current_user):
         return inactive_user_response()
-    if not whs:
-        raise Exception("No warehouses have been loaded")
-
-    wh = whs[warehouse_id]
+    wh = get_authorized_warehouse(db, current_user, whs, warehouse_id)
 
     wh_result = {
         "metrics": wh.get_direct_metric_configs(),
@@ -149,15 +192,13 @@ def structure(
 def get_fields(
     warehouse_id: int,
     whs: Dict[str, Any] = Depends(deps.get_warehouses),
+    db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """Retrieve all warehouse fields"""
     if not crud.user.is_active(current_user):
         return inactive_user_response()
-    if not whs:
-        raise Exception("No warehouses have been loaded")
-
-    wh = whs[warehouse_id]
+    wh = get_authorized_warehouse(db, current_user, whs, warehouse_id)
     return dict(
         id=warehouse_id,
         dimensions=wh.get_dimension_configs(),
@@ -170,16 +211,14 @@ def check_metric_formula(
     warehouse_id: int,
     request: CheckMetricFormulaRequest,
     whs: Dict[str, Any] = Depends(deps.get_warehouses),
+    db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """Check an AdHocMetric formula"""
     if not crud.user.is_active(current_user):
         return inactive_user_response()
-    if not whs:
-        raise Exception("No warehouses have been loaded")
-
     request = dict(request)
-    wh = whs[warehouse_id]
+    wh = get_authorized_warehouse(db, current_user, whs, warehouse_id)
     request["formula"] = replace_display_names(wh, request["formula"])
     pp(request)
 
@@ -208,16 +247,14 @@ def check_dimension_formula(
     warehouse_id: int,
     request: CheckDimensionFormulaRequest,
     whs: Dict[str, Any] = Depends(deps.get_warehouses),
+    db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """Check an AdHocDimension formula"""
     if not crud.user.is_active(current_user):
         return inactive_user_response()
-    if not whs:
-        raise Exception("No warehouses have been loaded")
-
     request = dict(request)
-    wh = whs[warehouse_id]
+    wh = get_authorized_warehouse(db, current_user, whs, warehouse_id)
     request["formula"] = replace_display_names(wh, request["formula"])
     pp(request)
 
@@ -246,17 +283,15 @@ def execute(
     warehouse_id: int,
     request: ReportRequest,
     whs: Dict[str, Any] = Depends(deps.get_warehouses),
+    db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """Execute a report"""
     if not crud.user.is_active(current_user):
         return inactive_user_response()
-    if not whs:
-        raise Exception("No warehouses have been loaded")
-
     request = dict(request)
     pp(request)
-    wh = whs[warehouse_id]
+    wh = get_authorized_warehouse(db, current_user, whs, warehouse_id)
     replace_report_formula_display_names(wh, request)
     handle_shortcut_criteria(wh, request)
     display_names = request.get("display_names", False)
@@ -273,15 +308,13 @@ def execute_id(
     warehouse_id: int,
     request: ReportIDRequest,
     whs: Dict[str, Any] = Depends(deps.get_warehouses),
+    db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """Execute a report by ID"""
     if not crud.user.is_active(current_user):
         return inactive_user_response()
-    if not whs:
-        raise Exception("No warehouses have been loaded")
-
-    wh = whs[warehouse_id]
+    wh = get_authorized_warehouse(db, current_user, whs, warehouse_id)
     # HACK to handle saved shortcut criteria
     report = wh.load_report(request.spec_id)
     params = report.get_params()["kwargs"]
@@ -303,16 +336,14 @@ def execute_text(
     warehouse_id: int,
     request: ReportTextRequest,
     whs: Dict[str, Any] = Depends(deps.get_warehouses),
+    db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """Execute a report based on natural language text"""
     if not crud.user.is_active(current_user):
         return inactive_user_response()
-    if not whs:
-        raise Exception("No warehouses have been loaded")
-
     pp(request)
-    wh = whs[warehouse_id]
+    wh = get_authorized_warehouse(db, current_user, whs, warehouse_id)
     result = wh.execute_text(request.text, allow_partial=False)
     data = process_report_result(result, display_names=request.display_names)
     # Need to use a custom json response to handle numpy dtypes
@@ -343,15 +374,13 @@ def save(
     warehouse_id: int,
     request: ReportSaveRequest,
     whs: Dict[str, Any] = Depends(deps.get_warehouses),
+    db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """Save a report"""
     if not crud.user.is_active(current_user):
         return inactive_user_response()
-    if not whs:
-        raise Exception("No warehouses have been loaded")
-
-    wh = whs[warehouse_id]
+    wh = get_authorized_warehouse(db, current_user, whs, warehouse_id)
     request = dict(request)
     replace_report_formula_display_names(wh, request)
     handle_shortcut_criteria(wh, request)
@@ -374,21 +403,19 @@ def load(
     warehouse_id: int,
     spec_id: int,
     whs: Dict[str, Any] = Depends(deps.get_warehouses),
+    db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """Load a report given a warehouse ID and spec ID"""
     if not crud.user.is_active(current_user):
         return inactive_user_response()
-    if not whs:
-        raise Exception("No warehouses have been loaded")
-
-    wh = whs[warehouse_id]
+    wh = get_authorized_warehouse(db, current_user, whs, warehouse_id)
     report = wh.load_report(spec_id)
     params = report.get_params()["kwargs"]
-    params["meta"] = report.meta
-    if report.meta.get("ui_criteria", None):
+    params["meta"] = report.meta or {}
+    if params["meta"].get("ui_criteria", None):
         # Override the saved criteria with the specified UI criteria values
-        params["criteria"] = report.meta["ui_criteria"]
+        params["criteria"] = params["meta"]["ui_criteria"]
     return params
 
 
@@ -397,16 +424,14 @@ def load_from_text(
     warehouse_id: int,
     request: ReportFromTextRequest,
     whs: Dict[str, Any] = Depends(deps.get_warehouses),
+    db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """Get a report based on natural language text"""
     if not crud.user.is_active(current_user):
         return inactive_user_response()
-    if not whs:
-        raise Exception("No warehouses have been loaded")
-
     pp(request)
-    wh = whs[warehouse_id]
+    wh = get_authorized_warehouse(db, current_user, whs, warehouse_id)
 
     if not wh._get_embeddings_collection_name():
         print(f"Initializing Warehouse embeddings")
@@ -423,14 +448,12 @@ def init_embeddings(
     warehouse_id: int,
     force_recreate: bool = False,
     whs: Dict[str, Any] = Depends(deps.get_warehouses),
+    db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """Initialize embeddings for a Warehouse"""
     if not crud.user.is_active(current_user):
         return inactive_user_response()
-    if not whs:
-        raise Exception("No warehouses have been loaded")
-
-    wh = whs[warehouse_id]
+    wh = get_authorized_warehouse(db, current_user, whs, warehouse_id)
     wh.init_embeddings(force_recreate=force_recreate)
     return success_response()

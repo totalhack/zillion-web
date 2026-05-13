@@ -1,20 +1,20 @@
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
-import {
-  readActiveWarehouseId,
-  readWarehouses,
-  readDimensions,
-  readMetrics
-} from '@/store/main/getters';
+import { Component, Vue } from "vue-property-decorator";
+import { readActiveWarehouseId, readWarehouses, readDimensions, readMetrics } from "@/store/main/getters";
+import { commitSetUnsupportedGrainMetrics } from "@/store/main/mutations";
 import {
   dispatchSetActiveWarehouseId,
   dispatchSetDefaultWarehouseId,
   dispatchSetReportRequest,
-  dispatchSetReportResult
-} from '@/store/main/actions';
+  dispatchSetReportResult,
+} from "@/store/main/actions";
 
 @Component
 export default class WarehouseManagerMixin extends Vue {
+  clearUnsupportedGrainMetrics() {
+    commitSetUnsupportedGrainMetrics(this.$store, {});
+  }
+
   get activeWarehouseId() {
     return readActiveWarehouseId(this.$store);
   }
@@ -32,6 +32,7 @@ export default class WarehouseManagerMixin extends Vue {
 
   changeWarehouse(obj) {
     dispatchSetActiveWarehouseId(this.$store, obj.id);
+    this.clearUnsupportedGrainMetrics();
     dispatchSetReportRequest(this.$store, null);
     dispatchSetReportResult(this.$store, null);
   }
@@ -68,12 +69,12 @@ export default class WarehouseManagerMixin extends Vue {
   fieldType(field) {
     if (!field.type) {
       if (field.formula) {
-        return 'float';
+        return "float";
       } else {
-        return 'string';
+        return "string";
       }
     }
-    return field.type.split('(')[0].toLowerCase();
+    return field.type.split("(")[0].toLowerCase();
   }
 }
 </script>

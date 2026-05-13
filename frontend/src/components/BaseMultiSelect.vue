@@ -1,7 +1,13 @@
 <template>
   <div @focus.capture.prevent.stop="handleFocus">
-    <multiselect ref="multiselect" v-model="selectedOptions" :options="options" v-bind="multiSelectProps"
-      @tag="emitTag">
+    <multiselect
+      ref="multiselect"
+      v-model="selectedOptions"
+      :options="options"
+      v-bind="multiSelectProps"
+      @tag="emitTag"
+      @select="handleSelect"
+    >
       <template slot="selection" slot-scope="{ values, search, isOpen, remove }">
         <div class="multiselect__tags-wrap" v-show="values.length > 0">
           <template v-for="(option, index) of values">
@@ -13,8 +19,12 @@
                 <span class="pr-1" style="cursor: pointer" @mousedown.prevent @click="doPause(option)">
                   <v-icon size="22">pause</v-icon>
                 </span>
-                <span class="chiptext" @contextmenu.prevent="handleTagRightClick(option, $event)"
-                  @dblclick="handleTagDblClick(option, $event)">{{ option.display_name }}</span>
+                <span
+                  class="chiptext"
+                  @contextmenu.prevent="handleTagRightClick(option, $event)"
+                  @dblclick="handleTagDblClick(option, $event)"
+                  >{{ option.display_name }}</span
+                >
               </v-chip>
             </slot>
           </template>
@@ -28,15 +38,11 @@
       <template slot="option" slot-scope="props">
         <slot name="option" :option="props.option" :search="props.search" :index="props.index">
           <div class="option__desc">
-            <span v-if="props.option.$isLabel">{{
-                props.option.$groupLabel
-            }}</span>
+            <span v-if="props.option.$isLabel">{{ props.option.$groupLabel }}</span>
             <div v-else class="tooltip">
               <span class="option__title">{{ props.option.display_name }}</span>
               <span class="tooltiptext">{{
-                  props.option.description ||
-                  props.option.formula ||
-                  "No description"
+                props.option.description || props.option.formula || "No description"
               }}</span>
             </div>
           </div>
@@ -47,21 +53,23 @@
 </template>
 
 <script lang="ts">
-import { Component, Prop, Vue } from 'vue-property-decorator';
-import { sortBy } from '@/utils';
-import { omit } from 'lodash';
-import BaseSelect from './BaseSelect.vue';
+import { Component, Prop, Vue } from "vue-property-decorator";
+import { sortBy } from "@/utils";
+import { omit } from "lodash";
+import BaseSelect from "./BaseSelect.vue";
 
 @Component
 export default class BaseMultiSelect extends BaseSelect {
   @Prop({ default: {} }) rawOptionsMap!: object;
-  @Prop({ default: 'Options' }) defaultGroup!: string;
-  @Prop({ default: 'Select Options' }) placeholder!: string;
+  @Prop({ default: "Options" }) defaultGroup!: string;
+  @Prop({ default: "Select Options" }) placeholder!: string;
   @Prop({ default: 1000 }) maxHeight!: number;
   @Prop({ default: 5000 }) optionsLimit!: number;
   @Prop({ default: false }) taggable!: boolean;
-  @Prop({ default: 'Press enter to create' }) tagPlaceholder!: string;
-  @Prop({ default: 'Created Options' }) createdOptionsGroup!: string;
+  @Prop({ default: "Press enter to create" }) tagPlaceholder!: string;
+  @Prop({ default: "Created Options" }) createdOptionsGroup!: string;
+  @Prop({ default: () => [] }) highlightedOptionNames!: string[];
+  @Prop({ default: () => ({}) }) highlightReasons!: Record<string, any>;
 
   // Hack to get vue-multiselect to re-render after progammatically
   // adding a tag: https://michaelnthiessen.com/force-re-render/
@@ -69,37 +77,73 @@ export default class BaseMultiSelect extends BaseSelect {
 
   get multiSelectProps() {
     return {
-      'multiple': true,
-      'close-on-select': false,
-      'clear-on-select': false,
-      'max-height': this.maxHeight,
-      'options-limit': this.optionsLimit,
-      'track-by': 'name',
-      'label': 'display_name',
-      'placeholder': this.placeholder,
-      'group-values': 'groupValues',
-      'group-label': 'group',
-      'group-select': false,
-      'option-height': 24,
-      'show-labels': false,
-      'blockKeys': ['Delete'],
-      'taggable': this.taggable,
-      'tag-placeholder': this.tagPlaceholder,
-      'key': this.componentKey,
+      multiple: true,
+      "close-on-select": false,
+      "clear-on-select": false,
+      "max-height": this.maxHeight,
+      "options-limit": this.optionsLimit,
+      "track-by": "name",
+      label: "display_name",
+      placeholder: this.placeholder,
+      "group-values": "groupValues",
+      "group-label": "group",
+      "group-select": false,
+      "option-height": 24,
+      "show-labels": false,
+      blockKeys: ["Delete"],
+      taggable: this.taggable,
+      "tag-placeholder": this.tagPlaceholder,
+      key: this.componentKey,
     };
   }
 
   emitTag(tag) {
     // Propagate the tag event so parents can handle it if necessary
-    this.$emit('tag', tag);
+    this.$emit("tag", tag);
+  }
+
+  handleSelect() {
+    this.clearUnsupportedGrainMetrics();
   }
 
   handleTagDblClick(option, event) {
-    this.$emit('tagDblClick', { option, event });
+    this.$emit("tagDblClick", { option, event });
   }
 
   handleTagRightClick(option, event) {
-    this.$emit('tagRightClick', { option, event });
+    this.$emit("tagRightClick", { option, event });
+  }
+
+  getOptionName(option) {
+    if (typeof option === "string") {
+      return option;
+    }
+    return option?.name;
+  }
+
+  isOptionHighlighted(option) {
+    const optionName = this.getOptionName(option);
+    return !!optionName && this.highlightedOptionNames.indexOf(optionName) > -1;
+  }
+
+  getOptionHighlightReason(option) {
+    const optionName = this.getOptionName(option);
+    if (!optionName) {
+      return "";
+    }
+    const detail = this.highlightReasons[optionName];
+    if (detail === undefined || detail === null) {
+      return "";
+    }
+    if (Array.isArray(detail)) {
+      return detail.join("; ");
+    }
+    if (typeof detail === "object") {
+      return Object.entries(detail)
+        .map(([key, value]) => `${key.replace(/_/g, " ")}: ${value}`)
+        .join("; ");
+    }
+    return String(detail);
   }
 
   forceRerender() {
@@ -124,7 +168,7 @@ export default class BaseMultiSelect extends BaseSelect {
       if (!group) {
         continue;
       }
-      const sorted = groups[group].sort(sortBy('display_name'));
+      const sorted = groups[group].sort(sortBy("display_name"));
       result.push({
         group,
         groupValues: sorted,
@@ -139,7 +183,7 @@ export default class BaseMultiSelect extends BaseSelect {
     for (const selected of (this.rawSelected || []) as any[]) {
       if (selected.active) {
         if (selected.group === this.createdOptionsGroup) {
-          result.push(omit(selected, ['active', 'group']));
+          result.push(omit(selected, ["active", "group"]));
         } else {
           result.push(selected.name);
         }
@@ -148,12 +192,54 @@ export default class BaseMultiSelect extends BaseSelect {
     return result;
   }
 
+  get uiSelected() {
+    return ((this.rawSelected || []) as any[]).map((selected) => Object.assign({}, selected));
+  }
+
+  set uiSelected(selectedList) {
+    const rawOptions = this.rawOptionsMap as Record<string, any>;
+    const result: any[] = [];
+    for (const option of selectedList || []) {
+      if (typeof option === "string") {
+        const raw = Object.assign({}, rawOptions[option]);
+        raw.active = true;
+        result.push(raw);
+        continue;
+      }
+      if (!option) {
+        continue;
+      }
+
+      const isCreatedOption = !option.name || !(option.name in rawOptions) || option.group === this.createdOptionsGroup;
+      if (isCreatedOption) {
+        const raw = this.getCreatedOption(option);
+        raw.active = option.active !== false;
+        if (raw.name) {
+          if (this.hasCreatedOption(raw.name)) {
+            this.updateCreatedOption(raw);
+          } else {
+            this.addCreatedToOptions(raw);
+          }
+        }
+        result.push(raw);
+        continue;
+      }
+
+      const raw = Object.assign({}, rawOptions[option.name], option);
+      raw.active = option.active !== false;
+      result.push(raw);
+    }
+
+    this.rawSelected = result;
+  }
+
   set selected(selectedList) {
+    this.clearUnsupportedGrainMetrics();
     const result: any[] = [];
     const rawOptions = this.rawOptionsMap;
     for (const option of selectedList) {
       let raw: any = {};
-      if (typeof option === 'string') {
+      if (typeof option === "string") {
         raw = Object.assign({}, rawOptions[option]);
         raw.active = true;
       } else {
@@ -166,7 +252,7 @@ export default class BaseMultiSelect extends BaseSelect {
   }
 
   getCreatedOption(option) {
-    if (this.createdOptionsGroup === 'Ad Hoc Dimensions') {
+    if (this.createdOptionsGroup === "Ad Hoc Dimensions") {
       return Object.assign(
         {
           name: null,
@@ -176,7 +262,7 @@ export default class BaseMultiSelect extends BaseSelect {
           group: this.createdOptionsGroup,
           active: true,
         },
-        option,
+        option
       );
     }
 
@@ -188,11 +274,12 @@ export default class BaseMultiSelect extends BaseSelect {
         formula: null,
         rounding: null,
         technical: null,
+        weighting_metric: null,
         required_grain: null,
         group: this.createdOptionsGroup,
         active: true,
       },
-      option,
+      option
     );
   }
 
@@ -256,6 +343,7 @@ export default class BaseMultiSelect extends BaseSelect {
   }
 
   handlePointerDown(e) {
+    this.clearUnsupportedGrainMetrics();
     let target;
     if (e.explicitOriginalTarget) {
       // e.explicitOriginalTarget is firefox only!
@@ -263,10 +351,7 @@ export default class BaseMultiSelect extends BaseSelect {
     } else {
       target = e.target;
     }
-    if (target &&
-      target.closest &&
-      !target.closest('.tagchip') &&
-      !target.closest('.multiselect__select')) {
+    if (target && target.closest && !target.closest(".tagchip") && !target.closest(".multiselect__select")) {
       const ms = this.$refs.multiselect as any;
       if (!ms.isOpen) {
         // This doesn't work without setTimeout. Not sure why. Fun.
@@ -276,6 +361,7 @@ export default class BaseMultiSelect extends BaseSelect {
   }
 
   handleFocus(e) {
+    this.clearUnsupportedGrainMetrics();
     let target;
     if (e.explicitOriginalTarget) {
       // e.explicitOriginalTarget is firefox only!
@@ -283,16 +369,12 @@ export default class BaseMultiSelect extends BaseSelect {
     } else {
       target = e.target;
     }
-    if (target &&
-      target.closest &&
-      !target.closest('.tagchip') &&
-      !target.closest('.multiselect__select')) {
+    if (target && target.closest && !target.closest(".tagchip") && !target.closest(".multiselect__select")) {
       const ms = this.$refs.multiselect as any;
       if (!ms.isOpen) {
         ms.activate();
       }
     }
   }
-
 }
 </script>

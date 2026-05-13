@@ -8,7 +8,7 @@
         <template>
           <div class="my-3">
             <div class="subtitle-1 secondary--text text--lighten-2">Username</div>
-            <div class="text-body-1 text--darken-2" v-if="user">{{user.email}}</div>
+            <div class="text-body-1 text--darken-2" v-if="user">{{ user.email }}</div>
             <div class="text-body-1 text--darken-2" v-else>-----</div>
           </div>
           <v-form v-model="valid" ref="form" lazy-validation>
@@ -34,6 +34,18 @@
               <span v-else>(currently not active)</span>
             </div>
             <v-checkbox color="grey darken-3" label="Is Active" v-model="isActive"></v-checkbox>
+            <v-select
+              v-model="warehouseIds"
+              :items="warehouses"
+              item-text="name"
+              item-value="id"
+              label="Warehouse Access"
+              hint="Superusers can access all warehouses automatically."
+              persistent-hint
+              multiple
+              chips
+              deletable-chips
+            ></v-select>
             <v-layout align-center>
               <v-flex shrink>
                 <v-checkbox color="grey darken-3" v-model="setPassword" class="mr-2"></v-checkbox>
@@ -46,7 +58,7 @@
                   label="Set Password"
                   data-vv-name="password"
                   data-vv-delay="100"
-                  v-validate="{required: setPassword}"
+                  v-validate="{ required: setPassword }"
                   v-model="password1"
                   :error-messages="errors.first('password')"
                 ></v-text-field>
@@ -57,7 +69,7 @@
                   data-vv-name="password_confirmation"
                   data-vv-delay="100"
                   data-vv-as="password"
-                  v-validate="{required: setPassword, confirmed: 'password'}"
+                  v-validate="{ required: setPassword, confirmed: 'password' }"
                   v-model="password2"
                   :error-messages="errors.first('password_confirmation')"
                 ></v-text-field>
@@ -77,38 +89,49 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
-import { IUserProfile, IUserProfileUpdate } from '@/interfaces';
-import { dispatchGetUsers, dispatchUpdateUser } from '@/store/admin/actions';
-import { readAdminOneUser } from '@/store/admin/getters';
+import { Component, Vue, Watch } from "vue-property-decorator";
+import { IUserProfileUpdate } from "@/interfaces";
+import { dispatchGetUser, dispatchUpdateUser } from "@/store/admin/actions";
+import { readAdminOneUser } from "@/store/admin/getters";
+import { dispatchHydrateWarehouses } from "@/store/main/actions";
+import { readWarehouses } from "@/store/main/getters";
 
 @Component
 export default class EditUser extends Vue {
   public valid = true;
-  public fullName: string = '';
-  public email: string = '';
+  public fullName: string = "";
+  public email: string = "";
   public isActive: boolean = true;
   public isSuperuser: boolean = false;
+  public warehouseIds: number[] = [];
   public setPassword = false;
-  public password1: string = '';
-  public password2: string = '';
+  public password1: string = "";
+  public password2: string = "";
 
   public async mounted() {
-    await dispatchGetUsers(this.$store);
-    this.reset();
+    await dispatchHydrateWarehouses(this.$store);
+    await dispatchGetUser(this.$store, +this.$route.params.id);
+    this.hydrateForm();
   }
 
   public reset() {
     this.setPassword = false;
-    this.password1 = '';
-    this.password2 = '';
+    this.password1 = "";
+    this.password2 = "";
     this.$validator.reset();
-    if (this.user) {
-      this.fullName = this.user.full_name;
-      this.email = this.user.email;
-      this.isActive = this.user.is_active;
-      this.isSuperuser = this.user.is_superuser;
+    this.hydrateForm();
+  }
+
+  public hydrateForm() {
+    if (!this.user) {
+      return;
     }
+
+    this.fullName = this.user.full_name;
+    this.email = this.user.email;
+    this.isActive = this.user.is_active;
+    this.isSuperuser = this.user.is_superuser;
+    this.warehouseIds = [...(this.user.warehouse_ids || [])];
   }
 
   public cancel() {
@@ -126,16 +149,26 @@ export default class EditUser extends Vue {
       }
       updatedProfile.is_active = this.isActive;
       updatedProfile.is_superuser = this.isSuperuser;
+      updatedProfile.warehouse_ids = this.warehouseIds;
       if (this.setPassword) {
         updatedProfile.password = this.password1;
       }
       await dispatchUpdateUser(this.$store, { id: this.user!.id, user: updatedProfile });
-      this.$router.push('/main/admin/users');
+      this.$router.push("/main/admin/users");
     }
   }
 
   get user() {
-    return readAdminOneUser(this.$store)(+this.$router.currentRoute.params.id);
+    return readAdminOneUser(this.$store)(+this.$route.params.id);
+  }
+
+  get warehouses() {
+    return Object.values(readWarehouses(this.$store));
+  }
+
+  @Watch("user")
+  onUserChanged() {
+    this.hydrateForm();
   }
 }
 </script>

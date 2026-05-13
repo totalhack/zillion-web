@@ -1,12 +1,18 @@
-const env = process.env.VUE_APP_ENV;
+const env = process.env.VUE_APP_ENV || "development";
+const apiBaseUrl = process.env.VUE_APP_API_URL;
+const domain = process.env.VUE_APP_DOMAIN || "localhost";
 
-let envApiUrl = '';
+let envApiUrl = "";
 
-if (env === 'production' || env === 'staging') {
-    envApiUrl = `https://${process.env.VUE_APP_DOMAIN}`;
+if (apiBaseUrl) {
+  envApiUrl = apiBaseUrl;
+} else if (env === "development") {
+  envApiUrl = "";
+} else if (env === "production" || env === "staging") {
+  envApiUrl = `https://${domain}`;
 } else {
-    envApiUrl = `http://${process.env.VUE_APP_DOMAIN}`;
+  envApiUrl = `http://${domain}`;
 }
 
 export const apiUrl = envApiUrl;
-export const appName = process.env.VUE_APP_NAME;
+export const appName = process.env.VUE_APP_NAME || "Zillion";

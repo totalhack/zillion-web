@@ -31,6 +31,18 @@
                   <span v-else>(currently not active)</span>
                 </div>
                 <v-checkbox color="grey darken-3" label="Is Active" v-model="isActive"></v-checkbox>
+                <v-select
+                  v-model="warehouseIds"
+                  :items="warehouses"
+                  item-text="name"
+                  item-value="id"
+                  label="Warehouse Access"
+                  hint="Superusers can access all warehouses automatically."
+                  persistent-hint
+                  multiple
+                  chips
+                  deletable-chips
+                ></v-select>
                 <v-layout align-center>
                   <v-flex>
                     <v-text-field
@@ -39,7 +51,7 @@
                       label="Set Password"
                       data-vv-name="password"
                       data-vv-delay="100"
-                      v-validate="{required: true}"
+                      v-validate="{ required: true }"
                       v-model="password1"
                       :error-messages="errors.first('password')"
                     ></v-text-field>
@@ -49,7 +61,7 @@
                       data-vv-name="password_confirmation"
                       data-vv-delay="100"
                       data-vv-as="password"
-                      v-validate="{required: true, confirmed: 'password'}"
+                      v-validate="{ required: true, confirmed: 'password' }"
                       v-model="password2"
                       :error-messages="errors.first('password_confirmation')"
                     ></v-text-field>
@@ -71,37 +83,38 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
-import {
-  IUserProfile,
-  IUserProfileUpdate,
-  IUserProfileCreate,
-} from '@/interfaces';
-import { dispatchGetUsers, dispatchCreateUser } from '@/store/admin/actions';
+import { Component, Vue } from "vue-property-decorator";
+import { IUserProfile, IUserProfileUpdate, IUserProfileCreate } from "@/interfaces";
+import { dispatchGetUsers, dispatchCreateUser } from "@/store/admin/actions";
+import { dispatchHydrateWarehouses } from "@/store/main/actions";
+import { readWarehouses } from "@/store/main/getters";
 
 @Component
 export default class CreateUser extends Vue {
   public valid = false;
-  public fullName: string = '';
-  public email: string = '';
+  public fullName: string = "";
+  public email: string = "";
   public isActive: boolean = true;
   public isSuperuser: boolean = false;
+  public warehouseIds: number[] = [];
   public setPassword = false;
-  public password1: string = '';
-  public password2: string = '';
+  public password1: string = "";
+  public password2: string = "";
 
   public async mounted() {
+    await dispatchHydrateWarehouses(this.$store);
     await dispatchGetUsers(this.$store);
     this.reset();
   }
 
   public reset() {
-    this.password1 = '';
-    this.password2 = '';
-    this.fullName = '';
-    this.email = '';
+    this.password1 = "";
+    this.password2 = "";
+    this.fullName = "";
+    this.email = "";
     this.isActive = true;
     this.isSuperuser = false;
+    this.warehouseIds = [];
     this.$validator.reset();
   }
 
@@ -122,10 +135,15 @@ export default class CreateUser extends Vue {
       }
       updatedProfile.is_active = this.isActive;
       updatedProfile.is_superuser = this.isSuperuser;
+      updatedProfile.warehouse_ids = this.warehouseIds;
       updatedProfile.password = this.password1;
       await dispatchCreateUser(this.$store, updatedProfile);
-      this.$router.push('/main/admin/users');
+      this.$router.push("/main/admin/users");
     }
+  }
+
+  get warehouses() {
+    return Object.values(readWarehouses(this.$store));
   }
 }
 </script>

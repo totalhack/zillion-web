@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 # Shared properties
@@ -9,6 +9,7 @@ class UserBase(BaseModel):
     is_active: Optional[bool] = True
     is_superuser: bool = False
     full_name: Optional[str] = None
+    warehouse_ids: Optional[list[int]] = None
 
 
 # Properties to receive via API on creation
@@ -23,10 +24,10 @@ class UserUpdate(UserBase):
 
 
 class UserInDBBase(UserBase):
-    id: Optional[int] = None
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        orm_mode = True
+    id: Optional[int] = None
+    warehouse_ids: list[int] = Field(default_factory=list)
 
 
 # Additional properties to return via API

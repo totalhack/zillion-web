@@ -4,26 +4,25 @@
     "target": "esnext",
     "module": "esnext",
     "strict": true,
+    "skipLibCheck": true,
+    "useUnknownInCatchVariables": false,
     "jsx": "preserve",
     "importHelpers": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "experimentalDecorators": true,
+    "useDefineForClassFields": false,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
-    "baseUrl": ".",
-    "typeRoots": [
-      "./node_modules/@types",
-      "./node_modules/vuetify/types"
-    ],
     "types": [
-      "webpack-env",
-      "jest",
+      "vite/client",
+      "vitest/globals",
+      "node",
       "vuetify"
     ],
     "paths": {
       "@/*": [
-        "src/*"
+        "./src/*"
       ]
     },
     "lib": [
@@ -37,6 +36,7 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
+    "vite.config.mts",
     "tests/**/*.ts",
     "tests/**/*.tsx"
   ],

@@ -1,5 +1,5 @@
 <template>
-  <div @focus.capture.prevent.stop="handleFocus">
+  <div class="row-filter-select-scroll" @focus.capture.prevent.stop="handleFocus">
     <multiselect
       ref="multiselect"
       v-model="selectedOptions"
@@ -11,7 +11,7 @@
         <div class="multiselect__tags-wrap" v-show="values.length > 0">
           <table class="pa-0">
             <template v-for="(option, index) of values" @mousedown.prevent>
-              <tr :key="index" class="tagrow" style="height:40px" :style="option.active ? '' : { 'opacity': 0.5 }">
+              <tr :key="index" class="tagrow" style="height:40px" :style="option.active ? '' : { opacity: 0.5 }">
                 <td cols="12" sm="4">
                   <v-chip class="tagchip mr-2" label>
                     <span class="pr-1" style="cursor: pointer" @mousedown.prevent @click="doRemove(remove, option)">
@@ -66,30 +66,31 @@
 </template>
 
 <script lang="ts">
-import { Component, Prop, Vue } from 'vue-property-decorator';
-import { sortBy } from '@/utils';
-import CriteriaSelect from './CriteriaSelect.vue';
+import { Component, Prop, Vue } from "vue-property-decorator";
+import { sortBy } from "@/utils";
+import CriteriaSelect from "./CriteriaSelect.vue";
 
 @Component
 export default class RowFilterSelect extends CriteriaSelect {
   @Prop({ default: () => ({}) }) rawOptionsMap!: object;
   @Prop({ default: [] }) rowFilterOptions!: string[];
   @Prop({
-    default: () => (['=', '!=', '>', '>=', '<', '<='])
-  }) supportedOperations!: string[];
+    default: () => ["=", "!=", ">", ">=", "<", "<="],
+  })
+  supportedOperations!: string[];
 
   // Override because this doesn't use groups
   get multiSelectProps(): any {
     return {
-      'multiple': true,
-      'close-on-select': true,
-      'max-height': this.maxHeight,
-      'options-limit': this.optionsLimit,
-      'track-by': 'name',
-      'label': 'display_name',
-      'placeholder': this.placeholder,
-      'option-height': 24,
-      'show-labels': false,
+      multiple: true,
+      "close-on-select": true,
+      "max-height": this.maxHeight,
+      "options-limit": this.optionsLimit,
+      "track-by": "name",
+      label: "display_name",
+      placeholder: this.placeholder,
+      "option-height": 24,
+      "show-labels": false,
     };
   }
 
@@ -106,13 +107,13 @@ export default class RowFilterSelect extends CriteriaSelect {
           display_name: option.display_name,
           description: option.description,
           type: this.fieldType(option),
-          operation: '=',
+          operation: "=",
           component: null,
           value: null,
           active: true,
         });
       }
-      result.sort(sortBy('display_name'));
+      result.sort(sortBy("display_name"));
     }
 
     // Note: this is handling the case where fields are removed from options.
@@ -130,3 +131,27 @@ export default class RowFilterSelect extends CriteriaSelect {
   }
 }
 </script>
+
+<style>
+.row-filter-select-scroll .multiselect__tags {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+}
+
+.row-filter-select-scroll .multiselect__tags-wrap {
+  display: block;
+  min-width: max-content;
+  width: max-content;
+}
+
+.row-filter-select-scroll .multiselect__tags-wrap table {
+  min-width: max-content;
+  width: max-content;
+}
+
+.row-filter-select-scroll .tagrow td,
+.row-filter-select-scroll .tagchip {
+  white-space: nowrap;
+}
+</style>

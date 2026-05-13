@@ -1,7 +1,12 @@
 <template>
   <div @focus.capture.prevent.stop="handleFocus">
-    <multiselect ref="multiselect" v-model="selectedOptions" :options="options" v-bind="multiSelectProps"
-      @select="initComponent">
+    <multiselect
+      ref="multiselect"
+      v-model="selectedOptions"
+      :options="options"
+      v-bind="multiSelectProps"
+      @select="handleSelect"
+    >
       <template slot="selection" slot-scope="{ values, search, isOpen, remove }">
         <div class="multiselect__tags-wrap" v-show="values.length > 0">
           <v-simple-table class="criteriatable pa-0">
@@ -27,8 +32,13 @@
                       </v-chip>
                     </template>
                     <v-list>
-                      <v-list-item v-for="(operation, index) in supportedOperations" :key="index" class="operation-item"
-                        @mousedown.prevent @click="updateOperation(option, operation)">
+                      <v-list-item
+                        v-for="(operation, index) in supportedOperations"
+                        :key="index"
+                        class="operation-item"
+                        @mousedown.prevent
+                        @click="updateOperation(option, operation)"
+                      >
                         <v-list-item-title>{{ operation }}</v-list-item-title>
                       </v-list-item>
                     </v-list>
@@ -36,8 +46,14 @@
                 </td>
                 <td cols="12" sm="6">
                   <keep-alive>
-                    <component class="mx-2" v-if="option.component" :ref="option.name" :is="option.component"
-                      v-bind:value="option.value" v-on:update:value="option.value = $event"></component>
+                    <component
+                      class="mx-2"
+                      v-if="option.component"
+                      :ref="option.name"
+                      :is="option.component"
+                      v-bind:value="option.value"
+                      v-on:update:value="updateCriteriaValue(option, $event)"
+                    ></component>
                   </keep-alive>
                 </td>
               </tr>
@@ -47,14 +63,10 @@
       </template>
       <template slot="option" slot-scope="props">
         <div class="option__desc">
-          <span v-if="props.option.$isLabel">{{
-            props.option.$groupLabel
-          }}</span>
+          <span v-if="props.option.$isLabel">{{ props.option.$groupLabel }}</span>
           <div v-else class="tooltip">
             <span class="option__title">{{ props.option.display_name }}</span>
-            <span class="tooltiptext">{{
-              props.option.description || "No description"
-            }}</span>
+            <span class="tooltiptext">{{ props.option.description || "No description" }}</span>
           </div>
         </div>
       </template>
@@ -63,21 +75,23 @@
 </template>
 
 <script lang="ts">
-import { Component, Prop, Vue } from 'vue-property-decorator';
-import { sortBy, ValidationError } from '@/utils';
-import BaseSelect from './BaseSelect.vue';
-import DateTimeCriteriaValueSelect from './DateTimeCriteriaValueSelect.vue';
-import DateTimeRangeCriteriaValueSelect from './DateTimeRangeCriteriaValueSelect.vue';
-import DateCriteriaValueSelect from './DateCriteriaValueSelect.vue';
-import DateRangeCriteriaValueSelect from './DateRangeCriteriaValueSelect.vue';
-import FloatCriteriaValueSelect from './FloatCriteriaValueSelect.vue';
-import FloatBetweenCriteriaValueSelect from './FloatBetweenCriteriaValueSelect.vue';
-import IntegerCriteriaValueSelect from './IntegerCriteriaValueSelect.vue';
-import IntegerBetweenCriteriaValueSelect from './IntegerBetweenCriteriaValueSelect.vue';
-import TextCriteriaValueSelect from './TextCriteriaValueSelect.vue';
-import TextBetweenCriteriaValueSelect from './TextBetweenCriteriaValueSelect.vue';
-import TextAreaCriteriaValueSelect from './TextAreaCriteriaValueSelect.vue';
-import TextAreaListCriteriaValueSelect from './TextAreaListCriteriaValueSelect.vue';
+import { Component, Prop, Vue } from "vue-property-decorator";
+import { sortBy, ValidationError } from "@/utils";
+import BaseSelect from "./BaseSelect.vue";
+import DateTimeCriteriaValueSelect from "./DateTimeCriteriaValueSelect.vue";
+import DateTimeRangeCriteriaValueSelect from "./DateTimeRangeCriteriaValueSelect.vue";
+import DateCriteriaValueSelect from "./DateCriteriaValueSelect.vue";
+import DateRangeCriteriaValueSelect from "./DateRangeCriteriaValueSelect.vue";
+import DayNameCriteriaValueSelect from "./DayNameCriteriaValueSelect.vue";
+import DayOfMonthCriteriaValueSelect from "./DayOfMonthCriteriaValueSelect.vue";
+import FloatCriteriaValueSelect from "./FloatCriteriaValueSelect.vue";
+import FloatBetweenCriteriaValueSelect from "./FloatBetweenCriteriaValueSelect.vue";
+import IntegerCriteriaValueSelect from "./IntegerCriteriaValueSelect.vue";
+import IntegerBetweenCriteriaValueSelect from "./IntegerBetweenCriteriaValueSelect.vue";
+import TextCriteriaValueSelect from "./TextCriteriaValueSelect.vue";
+import TextBetweenCriteriaValueSelect from "./TextBetweenCriteriaValueSelect.vue";
+import TextAreaCriteriaValueSelect from "./TextAreaCriteriaValueSelect.vue";
+import TextAreaListCriteriaValueSelect from "./TextAreaListCriteriaValueSelect.vue";
 
 @Component({
   components: {
@@ -85,6 +99,8 @@ import TextAreaListCriteriaValueSelect from './TextAreaListCriteriaValueSelect.v
     DateTimeRangeCriteriaValueSelect,
     DateCriteriaValueSelect,
     DateRangeCriteriaValueSelect,
+    DayNameCriteriaValueSelect,
+    DayOfMonthCriteriaValueSelect,
     FloatCriteriaValueSelect,
     FloatBetweenCriteriaValueSelect,
     IntegerCriteriaValueSelect,
@@ -98,85 +114,106 @@ import TextAreaListCriteriaValueSelect from './TextAreaListCriteriaValueSelect.v
 export default class CriteriaSelect extends BaseSelect {
   @Prop({ default: () => ({}) }) rawOptionsMap!: object;
   @Prop({
-    default: () => (['=', '!=', '>', '>=', '<', '<=', 'in', 'not in', 'in report', 'not in report', 'like', 'not like', 'between', 'not between', 'is null', 'is not null'])
-  }) supportedOperations!: string[];
-  @Prop({ default: 'Fields' }) defaultGroup!: string;
-  @Prop({ default: 'Select Criteria' }) placeholder!: string;
+    default: () => [
+      "=",
+      "!=",
+      ">",
+      ">=",
+      "<",
+      "<=",
+      "in",
+      "not in",
+      "in report",
+      "not in report",
+      "like",
+      "not like",
+      "between",
+      "not between",
+      "is null",
+      "is not null",
+    ],
+  })
+  supportedOperations!: string[];
+  @Prop({ default: "Fields" }) defaultGroup!: string;
+  @Prop({ default: "Select Criteria" }) placeholder!: string;
   @Prop({ default: 1000 }) maxHeight!: number;
   @Prop({ default: 200 }) optionsLimit!: number;
 
+  private selectionKeyCount: number = 0;
+
   get multiSelectProps(): any {
     return {
-      'multiple': true,
-      'close-on-select': true,
-      'max-height': this.maxHeight,
-      'options-limit': this.optionsLimit,
-      'track-by': 'name',
-      'label': 'display_name',
-      'placeholder': this.placeholder,
-      'group-values': 'groupValues',
-      'group-label': 'group',
-      'group-select': false,
-      'option-height': 24,
-      'show-labels': false,
+      multiple: true,
+      "close-on-select": true,
+      "max-height": this.maxHeight,
+      "options-limit": this.optionsLimit,
+      "track-by": "selection_key",
+      label: "display_name",
+      placeholder: this.placeholder,
+      "group-values": "groupValues",
+      "group-label": "group",
+      "group-select": false,
+      "option-height": 24,
+      "show-labels": false,
     };
   }
 
   private textComponentOverrides: object = {
-    'between': TextBetweenCriteriaValueSelect,
-    'not between': TextBetweenCriteriaValueSelect,
-    'like': TextAreaListCriteriaValueSelect,
-    'not like': TextAreaListCriteriaValueSelect,
-    'in': TextAreaListCriteriaValueSelect,
-    'not in': TextAreaListCriteriaValueSelect,
-    'in report': IntegerCriteriaValueSelect,
-    'not in report': IntegerCriteriaValueSelect,
+    between: TextBetweenCriteriaValueSelect,
+    "not between": TextBetweenCriteriaValueSelect,
+    like: TextAreaListCriteriaValueSelect,
+    "not like": TextAreaListCriteriaValueSelect,
+    in: TextAreaListCriteriaValueSelect,
+    "not in": TextAreaListCriteriaValueSelect,
+    "in report": IntegerCriteriaValueSelect,
+    "not in report": IntegerCriteriaValueSelect,
   };
   private integerComponentOverrides: object = {
-    'between': IntegerBetweenCriteriaValueSelect,
-    'not between': IntegerBetweenCriteriaValueSelect,
-    'like': TextAreaListCriteriaValueSelect,
-    'not like': TextAreaListCriteriaValueSelect,
+    between: IntegerBetweenCriteriaValueSelect,
+    "not between": IntegerBetweenCriteriaValueSelect,
+    like: TextAreaListCriteriaValueSelect,
+    "not like": TextAreaListCriteriaValueSelect,
     // TODO: add one specific to int
-    'in': TextAreaListCriteriaValueSelect,
-    'not in': TextAreaListCriteriaValueSelect,
-    'in report': IntegerCriteriaValueSelect,
-    'not in report': IntegerCriteriaValueSelect,
+    in: TextAreaListCriteriaValueSelect,
+    "not in": TextAreaListCriteriaValueSelect,
+    "in report": IntegerCriteriaValueSelect,
+    "not in report": IntegerCriteriaValueSelect,
   };
   private floatComponentOverrides: object = {
-    'between': FloatBetweenCriteriaValueSelect,
-    'not between': FloatBetweenCriteriaValueSelect,
-    'like': TextAreaListCriteriaValueSelect,
-    'not like': TextAreaListCriteriaValueSelect,
+    between: FloatBetweenCriteriaValueSelect,
+    "not between": FloatBetweenCriteriaValueSelect,
+    like: TextAreaListCriteriaValueSelect,
+    "not like": TextAreaListCriteriaValueSelect,
     // TODO: add one specific to float
-    'in': TextAreaListCriteriaValueSelect,
-    'not in': TextAreaListCriteriaValueSelect,
-    'in report': IntegerCriteriaValueSelect,
-    'not in report': IntegerCriteriaValueSelect,
+    in: TextAreaListCriteriaValueSelect,
+    "not in": TextAreaListCriteriaValueSelect,
+    "in report": IntegerCriteriaValueSelect,
+    "not in report": IntegerCriteriaValueSelect,
   };
   private dateComponentOverrides: object = {
-    'between': DateRangeCriteriaValueSelect,
-    'not between': DateRangeCriteriaValueSelect,
-    'like': TextCriteriaValueSelect,
-    'not like': TextCriteriaValueSelect,
-    'in': TextAreaListCriteriaValueSelect,
-    'not in': TextAreaListCriteriaValueSelect,
-    'in report': IntegerCriteriaValueSelect,
-    'not in report': IntegerCriteriaValueSelect,
+    between: DateRangeCriteriaValueSelect,
+    "not between": DateRangeCriteriaValueSelect,
+    like: TextCriteriaValueSelect,
+    "not like": TextCriteriaValueSelect,
+    in: TextAreaListCriteriaValueSelect,
+    "not in": TextAreaListCriteriaValueSelect,
+    "in report": IntegerCriteriaValueSelect,
+    "not in report": IntegerCriteriaValueSelect,
   };
   private dateTimeComponentOverrides: object = {
-    'between': DateTimeRangeCriteriaValueSelect,
-    'not between': DateTimeRangeCriteriaValueSelect,
-    'like': TextCriteriaValueSelect,
-    'not like': TextCriteriaValueSelect,
-    'in': TextAreaListCriteriaValueSelect,
-    'not in': TextAreaListCriteriaValueSelect,
-    'in report': IntegerCriteriaValueSelect,
-    'not in report': IntegerCriteriaValueSelect,
+    between: DateTimeRangeCriteriaValueSelect,
+    "not between": DateTimeRangeCriteriaValueSelect,
+    like: TextCriteriaValueSelect,
+    "not like": TextCriteriaValueSelect,
+    in: TextAreaListCriteriaValueSelect,
+    "not in": TextAreaListCriteriaValueSelect,
+    "in report": IntegerCriteriaValueSelect,
+    "not in report": IntegerCriteriaValueSelect,
   };
 
   updateOperation(option, operation) {
     if (option.operation !== operation) {
+      this.clearUnsupportedGrainMetrics();
       option.operation = operation;
       this.setComponent(option);
       if (option.value !== null && (option as any).component) {
@@ -193,41 +230,49 @@ export default class CriteriaSelect extends BaseSelect {
 
   getComponent(fieldName, fieldType, operation) {
     let componentOverrides = {};
-    let defaultOperation = '=';
+    let defaultOperation = "=";
     let defaultComponent: any = TextCriteriaValueSelect;
 
-    if (operation === 'is null' || operation === 'is not null') {
+    if (operation === "is null" || operation === "is not null") {
       return { component: null, operation };
     }
 
-    switch (fieldType) {
-      case 'integer':
-      case 'smallinteger':
-      case 'biginteger':
-        componentOverrides = this.integerComponentOverrides;
-        defaultComponent = IntegerCriteriaValueSelect;
-        break;
-      case 'float':
-      case 'numeric':
-        componentOverrides = this.floatComponentOverrides;
-        defaultComponent = FloatCriteriaValueSelect;
-        break;
-      case 'date':
-        componentOverrides = this.dateComponentOverrides;
-        defaultOperation = 'between';
-        defaultComponent = DateCriteriaValueSelect;
-        break;
-      case 'datetime':
-        componentOverrides = this.dateTimeComponentOverrides;
-        defaultOperation = 'between';
-        defaultComponent = DateTimeCriteriaValueSelect;
-        break;
-      case 'string':
-      case 'varchar':
-      case 'text':
-      default:
-        componentOverrides = this.textComponentOverrides;
-        break;
+    if (fieldName === "day_name") {
+      componentOverrides = this.textComponentOverrides;
+      defaultComponent = DayNameCriteriaValueSelect;
+    } else if (fieldName === "day_of_month") {
+      componentOverrides = this.integerComponentOverrides;
+      defaultComponent = DayOfMonthCriteriaValueSelect;
+    } else {
+      switch (fieldType) {
+        case "integer":
+        case "smallinteger":
+        case "biginteger":
+          componentOverrides = this.integerComponentOverrides;
+          defaultComponent = IntegerCriteriaValueSelect;
+          break;
+        case "float":
+        case "numeric":
+          componentOverrides = this.floatComponentOverrides;
+          defaultComponent = FloatCriteriaValueSelect;
+          break;
+        case "date":
+          componentOverrides = this.dateComponentOverrides;
+          defaultOperation = "between";
+          defaultComponent = DateCriteriaValueSelect;
+          break;
+        case "datetime":
+          componentOverrides = this.dateTimeComponentOverrides;
+          defaultOperation = "between";
+          defaultComponent = DateTimeCriteriaValueSelect;
+          break;
+        case "string":
+        case "varchar":
+        case "text":
+        default:
+          componentOverrides = this.textComponentOverrides;
+          break;
+      }
     }
 
     const op = operation || defaultOperation;
@@ -247,8 +292,63 @@ export default class CriteriaSelect extends BaseSelect {
     }
   }
 
+  getBaseSelectionKey(fieldName) {
+    return `${fieldName}::__option`;
+  }
+
+  getNextSelectionKey(fieldName) {
+    this.selectionKeyCount += 1;
+    return `${fieldName}::${this.selectionKeyCount}`;
+  }
+
+  getSelectedOptionClone(selected) {
+    return Object.assign({}, selected, {
+      selection_key: this.getNextSelectionKey(selected.name),
+    });
+  }
+
+  normalizeSelectedRows(selectedRows = (this.rawSelected || []) as any[]) {
+    let didChange = false;
+    const normalizedRows = selectedRows.map((selected) => {
+      if (!selected) {
+        return selected;
+      }
+
+      let row = selected;
+      if (!row.selection_key || row.selection_key === this.getBaseSelectionKey(row.name)) {
+        row = this.getSelectedOptionClone(row);
+        didChange = true;
+      }
+
+      if (row.component == null) {
+        this.initComponent(row, null);
+        didChange = true;
+      }
+
+      return row;
+    });
+
+    if (didChange) {
+      this.rawSelected = normalizedRows;
+    }
+
+    return normalizedRows;
+  }
+
+  handleSelect(selected, id) {
+    this.clearUnsupportedGrainMetrics();
+    this.$nextTick(() => {
+      this.normalizeSelectedRows();
+    });
+  }
+
+  updateCriteriaValue(option, value) {
+    this.clearUnsupportedGrainMetrics();
+    option.value = value;
+  }
+
   get options() {
-    const groups: object = {};
+    const groups: Record<string, any[]> = {};
     for (const row of Object.values(this.rawOptionsMap)) {
       const option = Object.assign({}, row);
       option.group = option.meta?.group || this.defaultGroup;
@@ -259,6 +359,7 @@ export default class CriteriaSelect extends BaseSelect {
 
       groups[group].push({
         name: option.name,
+        selection_key: this.getBaseSelectionKey(option.name),
         display_name: option.display_name,
         description: option.description,
         type: this.fieldType(option),
@@ -269,12 +370,12 @@ export default class CriteriaSelect extends BaseSelect {
       });
     }
 
-    const result: object[] = [];
+    const result: any[] = [];
     for (const group in groups) {
       if (!group) {
         continue;
       }
-      const sorted = groups[group].sort(sortBy('display_name'));
+      const sorted = groups[group].sort(sortBy("display_name"));
       result.push({
         group,
         groupValues: sorted,
@@ -285,42 +386,49 @@ export default class CriteriaSelect extends BaseSelect {
   }
 
   get selected() {
+    return this.getCriteriaSelections("criteriaValue");
+  }
+
+  get uiSelected() {
+    return this.getCriteriaSelections("uiCriteriaValue");
+  }
+
+  getCriteriaSelections(valueProperty) {
     const result: any[] = [];
-    const inputCounts: object = {};
+    const inputCounts: Record<string, number> = {};
     for (const selected of (this.rawSelected || []) as any[]) {
       if (selected.active) {
-        if (selected.operation === 'is null') {
-          result.push([selected.name, '=', null]);
+        if (selected.operation === "is null") {
+          result.push([selected.name, "=", null]);
           continue;
         }
-        if (selected.operation === 'is not null') {
-          result.push([selected.name, '!=', null]);
+        if (selected.operation === "is not null") {
+          result.push([selected.name, "!=", null]);
           continue;
         }
 
-        // HACK: If we have a repeat, we need to index into the refs for
-        // this particular criteria dimension name. We normally don't have
-        // repeats since the dropdown doesnt allow it but it is possible
-        // if criteria were created on the backend or via NLP.
+        // Repeat criteria rows share the same field ref name, so index into
+        // the matching ref array for the current occurrence.
         const inputCount = inputCounts[selected.name] || 0;
-        const input = this.$refs[selected.name][inputCount] as any;
+        const inputs = (this.$refs[selected.name] as any[]) || [];
+        const input = inputs[inputCount] as any;
         inputCounts[selected.name] = inputCount + 1;
+        if (!input) {
+          throw new ValidationError(`Missing criteria input for ${selected.display_name || selected.name}`);
+        }
         const vresult = input.validate();
         if (!vresult.valid) {
           throw new ValidationError(vresult?.error);
         }
 
-        result.push([
-          selected.name,
-          selected.operation,
-          input.criteriaValue,
-        ]);
+        result.push([selected.name, selected.operation, input[valueProperty]]);
       }
     }
     return result;
   }
 
   set selected(criteriaList) {
+    this.clearUnsupportedGrainMetrics();
     this.rawSelected = [];
     if (!criteriaList) {
       return;
@@ -336,15 +444,16 @@ export default class CriteriaSelect extends BaseSelect {
         continue;
       }
 
-      if (operation === '=' && value === null) {
-        operation = 'is null';
+      if (operation === "=" && value === null) {
+        operation = "is null";
       }
-      if (operation === '!=' && value === null) {
-        operation = 'is not null';
+      if (operation === "!=" && value === null) {
+        operation = "is not null";
       }
 
       const option = {
         name: raw.name,
+        selection_key: this.getNextSelectionKey(raw.name),
         display_name: raw.display_name,
         description: raw.description,
         type: this.fieldType(raw),
@@ -354,7 +463,8 @@ export default class CriteriaSelect extends BaseSelect {
         value: null,
       };
       this.setComponent(option);
-      if ((option as any).component !== null) { // Can be null for certain operations
+      if ((option as any).component !== null) {
+        // Can be null for certain operations
         option.value = (option as any).component.criteriaToOptionValue(value);
       }
       this.rawSelected.push(option);
@@ -362,6 +472,7 @@ export default class CriteriaSelect extends BaseSelect {
   }
 
   handleFocus(e) {
+    this.clearUnsupportedGrainMetrics();
     let target;
     if (e.explicitOriginalTarget) {
       // e.explicitOriginalTarget is firefox only!
@@ -369,7 +480,7 @@ export default class CriteriaSelect extends BaseSelect {
     } else {
       target = e.target;
     }
-    if (target && target.closest && !target.closest('.tagrow')) {
+    if (target && target.closest && !target.closest(".tagrow")) {
       const ms = this.$refs.multiselect as any;
       if (!ms.isOpen) {
         ms.activate();

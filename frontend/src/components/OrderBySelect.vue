@@ -1,7 +1,17 @@
 <template>
-  <div @focus.capture.prevent.stop="handleFocus">
-    <multiselect v-model="selectedOptions" :options="options" :multiple="true" :close-on-select="true" track-by="name"
-      label="display_name" placeholder="Select Order By" :option-height="24" :show-labels="false" ref="multiselect">
+  <div class="order-by-select-scroll" @focus.capture.prevent.stop="handleFocus">
+    <multiselect
+      v-model="selectedOptions"
+      :options="options"
+      :multiple="true"
+      :close-on-select="true"
+      track-by="name"
+      label="display_name"
+      placeholder="Select Order By"
+      :option-height="24"
+      :show-labels="false"
+      ref="multiselect"
+    >
       <template slot="selection" slot-scope="{ values, search, isOpen, remove }">
         <div class="multiselect__tags-wrap" v-show="values.length > 0">
           <draggable :list="selectedOptions">
@@ -42,9 +52,9 @@
 </template>
 
 <script lang="ts">
-import { Component, Prop, Vue } from 'vue-property-decorator';
-import { sortBy } from '@/utils';
-import BaseSelect from './BaseSelect.vue';
+import { Component, Prop, Vue } from "vue-property-decorator";
+import { sortBy } from "@/utils";
+import BaseSelect from "./BaseSelect.vue";
 
 @Component
 export default class OrderBySelect extends BaseSelect {
@@ -60,10 +70,10 @@ export default class OrderBySelect extends BaseSelect {
           name: option,
           active: true,
           display_name: field.display_name,
-          order_by_type: 'asc',
+          order_by_type: "asc",
         });
       }
-      result.sort(sortBy('display_name'));
+      result.sort(sortBy("display_name"));
     }
 
     // This is handling case where fields are removed from options.
@@ -114,7 +124,7 @@ export default class OrderBySelect extends BaseSelect {
     } else {
       target = e.target;
     }
-    if (target && target.closest && !target.closest('.tagchip')) {
+    if (target && target.closest && !target.closest(".tagchip")) {
       const ms = this.$refs.multiselect as any;
       if (!ms.isOpen) {
         ms.activate();
@@ -123,3 +133,29 @@ export default class OrderBySelect extends BaseSelect {
   }
 }
 </script>
+
+<style>
+.order-by-select-scroll .multiselect__tags {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+}
+
+.order-by-select-scroll .multiselect__tags-wrap {
+  display: block;
+  min-width: max-content;
+  width: max-content;
+}
+
+.order-by-select-scroll .multiselect__tags-wrap > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: max-content;
+  width: max-content;
+}
+
+.order-by-select-scroll .tagchip {
+  white-space: nowrap;
+}
+</style>

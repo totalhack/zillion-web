@@ -48,26 +48,18 @@
       </template>
       <span>Stacked Area</span>
     </v-tooltip>
-    <v-tooltip bottom>
-      <template v-slot:activator="{ on, attrs }">
-        <v-btn v-bind="attrs" v-on="on" value="scatter">
-          <v-icon>scatter_plot</v-icon>
-        </v-btn>
-      </template>
-      <span>Scatter</span>
-    </v-tooltip>
   </v-btn-toggle>
 </template>
 
 <script lang="ts">
-import { Component, Prop, Vue } from 'vue-property-decorator';
+import { Component, Prop, Vue } from "vue-property-decorator";
 
 @Component
 export default class GraphSelect extends Vue {
   @Prop({ default: null }) value!: string | null;
 
   onChange(newValue) {
-    this.$emit('input', newValue);
+    this.$emit("input", newValue);
   }
 }
 </script>

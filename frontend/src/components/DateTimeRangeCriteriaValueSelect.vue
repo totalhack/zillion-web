@@ -4,23 +4,26 @@
     value-type="YYYY-MM-DD HH:mm:ss"
     format="YYYY-MM-DD HH:mm:ss"
     :type="dateType"
+    :editable="false"
+    :input-attr="{ readonly: true, inputmode: 'none' }"
+    popup-class="criteria-date-picker-popup"
     placeholder="Select Date/Time Range"
-    :show-time-panel="showTimeRangePanel"
+    :show-time-panel="timeRangePanelVisible"
     :shortcuts="rangeShortcuts.concat(rangeDateTimeShortcuts)"
     range
     @close="handleRangeClose"
   >
     <template v-slot:footer>
       <button class="mx-btn mx-btn-text" @click="toggleTimeRangePanel">
-        {{ showTimeRangePanel ? "select date" : "select time" }}
+        {{ timeRangePanelVisible ? "select date" : "select time" }}
       </button>
     </template>
   </date-picker>
 </template>
 
 <script lang="ts">
-import { Component } from 'vue-property-decorator';
-import BaseDateCriteriaValueSelect from './BaseDateCriteriaValueSelect.vue';
+import { Component } from "vue-property-decorator";
+import BaseDateCriteriaValueSelect from "./BaseDateCriteriaValueSelect.vue";
 
 @Component
 export default class DateTimeRangeCriteriaValueSelect extends BaseDateCriteriaValueSelect {
@@ -29,7 +32,7 @@ export default class DateTimeRangeCriteriaValueSelect extends BaseDateCriteriaVa
   }
 
   static ensureOptionValue(value) {
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       return value;
     }
     if (Array.isArray(value) && value.length === 2) {
@@ -38,25 +41,26 @@ export default class DateTimeRangeCriteriaValueSelect extends BaseDateCriteriaVa
     return null;
   }
 
+  get timeRangePanelVisible() {
+    return this.showTimeRangePanel;
+  }
+
   validate() {
-    if (typeof this.syncedValue === 'string') {
+    if (typeof this.syncedValue === "string") {
       // Assume its a shortcut string
-      return { valid: true, error: '' };
+      return { valid: true, error: "" };
     }
-    if (!this.syncedValue || (!this.syncedValue[0] || !this.syncedValue[1])) {
-      return { valid: false, error: 'Please select a valid date range' };
+    if (!this.syncedValue || !this.syncedValue[0] || !this.syncedValue[1]) {
+      return { valid: false, error: "Please select a valid date range" };
     }
-    return { valid: true, error: '' };
+    return { valid: true, error: "" };
   }
 
   get criteriaValue() {
-    if (typeof this.syncedValue === 'string') {
+    if (typeof this.syncedValue === "string") {
       return this.syncedValue;
     }
-    return [
-      this.formatDate(this.syncedValue[0]),
-      this.formatDate(this.syncedValue[1]),
-    ];
+    return [this.formatDate(this.syncedValue[0]), this.formatDate(this.syncedValue[1])];
   }
 
   getShortCuts() {

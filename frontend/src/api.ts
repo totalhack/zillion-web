@@ -1,5 +1,5 @@
-import axios from 'axios';
-import { apiUrl } from '@/env';
+import axios from "axios";
+import { apiUrl } from "@/env";
 import {
   IUserProfile,
   IUserProfileUpdate,
@@ -9,7 +9,7 @@ import {
   IReportResult,
   IReportSaveRequest,
   IReportSaveResult,
-} from './interfaces';
+} from "./interfaces";
 
 const DEFAULT_TIMEOUT = 30 * 1000; // in ms
 const REPORT_TIMEOUT = 10 * 60 * 1000; // in ms
@@ -26,8 +26,8 @@ function defaultConfig(token: string) {
 export const api = {
   async logInGetToken(username: string, password: string) {
     const params = new URLSearchParams();
-    params.append('username', username);
-    params.append('password', password);
+    params.append("username", username);
+    params.append("password", password);
     return axios.post(`${apiUrl}/api/v1/login/access-token`, params);
   },
   async getMe(token: string) {
@@ -38,6 +38,9 @@ export const api = {
   },
   async getUsers(token: string) {
     return axios.get<IUserProfile[]>(`${apiUrl}/api/v1/users/`, defaultConfig(token));
+  },
+  async getUser(token: string, userId: number) {
+    return axios.get<IUserProfile>(`${apiUrl}/api/v1/users/${userId}`, defaultConfig(token));
   },
   async updateUser(token: string, userId: number, data: IUserProfileUpdate) {
     return axios.put(`${apiUrl}/api/v1/users/${userId}`, data, defaultConfig(token));
@@ -62,18 +65,22 @@ export const api = {
   },
   async checkMetricFormula(token: string, warehouseId: number, data: ICheckFormulaRequest) {
     return axios.post<object>(
-      `${apiUrl}/api/v1/warehouse/${warehouseId}/check_metric_formula`, data, defaultConfig(token)
+      `${apiUrl}/api/v1/warehouse/${warehouseId}/check_metric_formula`,
+      data,
+      defaultConfig(token)
     );
   },
   async checkDimensionFormula(token: string, warehouseId: number, data: ICheckFormulaRequest) {
     return axios.post<object>(
-      `${apiUrl}/api/v1/warehouse/${warehouseId}/check_dimension_formula`, data, defaultConfig(token)
+      `${apiUrl}/api/v1/warehouse/${warehouseId}/check_dimension_formula`,
+      data,
+      defaultConfig(token)
     );
   },
   async executeReport(token: string, warehouseId: number, data: IReportRequest, cancelTokenSource) {
     const config = defaultConfig(token);
-    config['timeout'] = REPORT_TIMEOUT;
-    config['cancelToken'] = cancelTokenSource.token;
+    config["timeout"] = REPORT_TIMEOUT;
+    config["cancelToken"] = cancelTokenSource.token;
     return axios.post<IReportResult>(`${apiUrl}/api/v1/warehouse/${warehouseId}/execute`, data, config);
   },
   async saveReport(token: string, warehouseId: number, data: IReportSaveRequest) {
@@ -86,10 +93,6 @@ export const api = {
     );
   },
   async getReportFromText(token: string, warehouseId: number, text: string) {
-    return axios.post(
-      `${apiUrl}/api/v1/warehouse/${warehouseId}/load_from_text`,
-      { text },
-      defaultConfig(token)
-    );
+    return axios.post(`${apiUrl}/api/v1/warehouse/${warehouseId}/load_from_text`, { text }, defaultConfig(token));
   },
 };

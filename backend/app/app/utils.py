@@ -1,8 +1,24 @@
 import logging
+import collections
+from collections.abc import (
+    Callable,
+    Iterable,
+    Mapping as AbcMapping,
+    MutableMapping,
+    MutableSet,
+    Sequence,
+)
 from datetime import date, datetime, timedelta, time
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Union
+
+collections.Callable = getattr(collections, "Callable", Callable)
+collections.Iterable = getattr(collections, "Iterable", Iterable)
+collections.Mapping = getattr(collections, "Mapping", AbcMapping)
+collections.MutableMapping = getattr(collections, "MutableMapping", MutableMapping)
+collections.MutableSet = getattr(collections, "MutableSet", MutableSet)
+collections.Sequence = getattr(collections, "Sequence", Sequence)
 
 import emails
 from emails.template import JinjaTemplate
@@ -11,14 +27,14 @@ from marshmallow import Schema, fields, missing
 import numpy as np
 from pydantic import (
     BaseModel,
-    root_validator,
+    ConfigDict,
     create_model,
     AnyUrl,
     EmailStr,
     StrictFloat,
     StrictInt,
+    model_validator,
 )
-from pydantic.utils import validate_field_name
 from tlbx import json
 
 from app.core.config import settings
@@ -261,7 +277,7 @@ def handle_shortcut_criteria(warehouse, request):
     if has_shortcuts and "meta" in request:
         # Denotes that we had special criteria for the UI. Saved on the report
         # so we can take appropriate action on load.
-        request["meta"]["ui_criteria"] = ui_criteria
+        request["meta"]["ui_criteria"] = request["meta"].get("ui_criteria", ui_criteria)
     request["criteria"] = final_criteria
 
 
@@ -295,7 +311,10 @@ def get_list_type(x):
 
 def get_nested_model(x):
     """Return a model from a nested marshmallow schema"""
-    return pydantic_from_marshmallow(x.schema)
+    try:
+        return pydantic_from_marshmallow(x.schema)
+    except Exception:
+        return Dict[str, Any]
 
 
 FIELD_CONVERTERS = {
@@ -325,11 +344,17 @@ FIELD_CONVERTERS = {
 }
 
 
+def get_field_converter(field):
+    for field_type, converter in FIELD_CONVERTERS.items():
+        if isinstance(field, field_type):
+            return converter
+    return None
+
+
 def is_custom_field(field):
     """If this is a subclass of marshmallow's Field and not in our list, we
     assume its a custom field"""
-    ftype = type(field)
-    if issubclass(ftype, fields.Field) and ftype not in FIELD_CONVERTERS:
+    if isinstance(field, fields.Field) and get_field_converter(field) is None:
         return True
     return False
 
@@ -339,7 +364,7 @@ def get_pydantic_type(field):
     if is_custom_field(field):
         conv = Any
     else:
-        conv = FIELD_CONVERTERS[type(field)]
+        conv = get_field_converter(field)
 
     # TODO: Is there a cleaner way to check for annotation types?
     if isinstance(conv, type) or conv.__module__ == "typing":
@@ -353,11 +378,10 @@ def get_pydantic_type(field):
 
 
 def is_valid_field_name(bases, x):
-    try:
-        validate_field_name(bases, x)
-        return True
-    except NameError as e:
-        return False
+    reserved_names = set()
+    for base in bases:
+        reserved_names.update(dir(base))
+    return x not in reserved_names
 
 
 def get_alias(x):
@@ -369,16 +393,16 @@ def get_alias(x):
 class MarshmallowModel(BaseModel):
     """A pydantic model that uses a marshmallow schema for object-wide validation"""
 
+    model_config = ConfigDict(alias_generator=get_alias)
+
     _schema = None
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def _schema_validate(cls, values):
         if not cls._schema:
             raise AssertionError("Must define a marshmallow schema")
         return cls._schema().load(values)
-
-    class Config:
-        alias_generator = get_alias
 
 
 def pydantic_from_marshmallow(schema):

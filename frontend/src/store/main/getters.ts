@@ -1,12 +1,10 @@
-import { MainState } from './state';
-import { getStoreAccessors } from 'typesafe-vuex';
-import { State } from '../state';
+import { MainState } from "./state";
+import { getStoreAccessors } from "typesafe-vuex";
+import { State } from "../state";
 
 export const getters = {
   hasAdminAccess: (state: MainState) => {
-    return (
-      state.userProfile &&
-      state.userProfile.is_superuser && state.userProfile.is_active);
+    return state.userProfile && state.userProfile.is_superuser && state.userProfile.is_active;
   },
   loginError: (state: MainState) => state.logInError,
   explorerShowDrawer: (state: MainState) => state.explorerShowDrawer,
@@ -15,6 +13,7 @@ export const getters = {
   explorerShowSettingsDrawer: (state: MainState) => state.explorerShowSettingsDrawer,
   explorerShowLoadingOverlay: (state: MainState) => state.explorerShowLoadingOverlay,
   explorerReportState: (state: MainState) => state.explorerReportState,
+  explorerReportProgress: (state: MainState) => state.explorerReportProgress,
   explorerResultLayout: (state: MainState) => state.explorerResultLayout,
   userProfile: (state: MainState) => state.userProfile,
   token: (state: MainState) => state.token,
@@ -23,6 +22,7 @@ export const getters = {
   warehouses: (state: MainState) => state.warehouses,
   activeWarehouseId: (state: MainState) => state.activeWarehouseId,
   warehouseStructures: (state: MainState) => state.warehouseStructures,
+  unsupportedGrainMetrics: (state: MainState) => state.unsupportedGrainMetrics,
   dimensions: (state: MainState) => {
     if (!state.activeWarehouseId) {
       return {};
@@ -68,7 +68,7 @@ export const getters = {
   reportCancelToken: (state: MainState) => state.reportCancelToken,
 };
 
-const { read } = getStoreAccessors<MainState, State>('');
+const { read } = getStoreAccessors<MainState, State>("");
 
 export const readExplorerMiniDrawer = read(getters.explorerMiniDrawer);
 export const readExplorerShowDrawer = read(getters.explorerShowDrawer);
@@ -76,6 +76,7 @@ export const readExplorerExpandOnHover = read(getters.explorerExpandOnHover);
 export const readExplorerShowSettingsDrawer = read(getters.explorerShowSettingsDrawer);
 export const readExplorerShowLoadingOverlay = read(getters.explorerShowLoadingOverlay);
 export const readExplorerReportState = read(getters.explorerReportState);
+export const readExplorerReportProgress = read(getters.explorerReportProgress);
 export const readExplorerResultLayout = read(getters.explorerResultLayout);
 export const readHasAdminAccess = read(getters.hasAdminAccess);
 export const readIsLoggedIn = read(getters.isLoggedIn);
@@ -86,6 +87,7 @@ export const readFirstNotification = read(getters.firstNotification);
 export const readWarehouses = read(getters.warehouses);
 export const readActiveWarehouseId = read(getters.activeWarehouseId);
 export const readWarehouseStructures = read(getters.warehouseStructures);
+export const readUnsupportedGrainMetrics = read(getters.unsupportedGrainMetrics);
 export const readDimensions = read(getters.dimensions);
 export const readMetrics = read(getters.metrics);
 export const readReportResult = read(getters.reportResult);

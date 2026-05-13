@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 from pydantic import BaseModel
 from tlbx import st
 from zillion.configs import (
@@ -19,42 +21,43 @@ FormulaMetric = pydantic_from_marshmallow(FormulaMetricConfigSchema)
 class CheckMetricFormulaRequest(BaseModel):
     name: str
     formula: str
-    aggregation: str = None
-    rounding: int = None
-    technical: str = None
-    display_name: str = None
+    aggregation: Optional[str] = None
+    rounding: Optional[int] = None
+    technical: Optional[str] = None
+    display_name: Optional[str] = None
+    weighting_metric: Optional[str] = None
 
 
 class CheckDimensionFormulaRequest(BaseModel):
     name: str
     formula: str
-    display_name: str = None
+    display_name: Optional[str] = None
 
 
 class ReportRequest(BaseModel):
-    metrics: list = None
-    dimensions: list = None
-    criteria: list = None
-    row_filters: list = None
-    rollup: str = None
-    order_by: list = None
-    limit: int = None
+    metrics: Optional[list] = None
+    dimensions: Optional[list] = None
+    criteria: Optional[list] = None
+    row_filters: Optional[list] = None
+    rollup: Optional[Union[str, int]] = None
+    order_by: Optional[list] = None
+    limit: Optional[int] = None
     limit_first: bool = False
     display_names: bool = True
-    disabled_tables: list = None
+    disabled_tables: Optional[list] = None
 
 
 class ReportSaveRequest(BaseModel):
-    metrics: list = None
-    dimensions: list = None
-    criteria: list = None
-    row_filters: list = None
-    rollup: str = None
-    order_by: list = None
-    limit: int = None
+    metrics: Optional[list] = None
+    dimensions: Optional[list] = None
+    criteria: Optional[list] = None
+    row_filters: Optional[list] = None
+    rollup: Optional[Union[str, int]] = None
+    order_by: Optional[list] = None
+    limit: Optional[int] = None
     limit_first: bool = False
-    meta: dict = None
-    report_id: int = None
+    meta: Optional[dict] = None
+    report_id: Optional[int] = None
 
 
 class ReportIDRequest(BaseModel):

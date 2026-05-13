@@ -1,8 +1,8 @@
-import Vue from 'vue';
-import { IUserProfile, IReportResult, IReportRequest } from '@/interfaces';
-import { MainState, AppNotification } from './state';
-import { getStoreAccessors } from 'typesafe-vuex';
-import { State } from '../state';
+import Vue from "vue";
+import { IUserProfile, IReportResult, IReportRequest } from "@/interfaces";
+import { MainState, AppNotification } from "./state";
+import { getStoreAccessors } from "typesafe-vuex";
+import { State } from "../state";
 
 export const mutations = {
   setToken(state: MainState, payload: string) {
@@ -32,6 +32,9 @@ export const mutations = {
   setExplorerReportState(state: MainState, payload: string) {
     state.explorerReportState = payload;
   },
+  setExplorerReportProgress(state: MainState, payload: number | null) {
+    state.explorerReportProgress = payload;
+  },
   setExplorerResultLayout(state: MainState, payload: string) {
     state.explorerResultLayout = payload;
   },
@@ -54,6 +57,9 @@ export const mutations = {
   setWarehouseStructure(state: MainState, payload: any) {
     Vue.set(state.warehouseStructures, payload.id, payload.warehouse);
   },
+  setUnsupportedGrainMetrics(state: MainState, payload: Record<string, any>) {
+    state.unsupportedGrainMetrics = Object.freeze(payload || {});
+  },
   setReportResult(state: MainState, payload: IReportResult) {
     state.reportResult = Object.freeze(payload);
   },
@@ -65,13 +71,14 @@ export const mutations = {
   },
 };
 
-const { commit } = getStoreAccessors<MainState | any, State>('');
+const { commit } = getStoreAccessors<MainState | any, State>("");
 
 export const commitSetExplorerMiniDrawer = commit(mutations.setExplorerMiniDrawer);
 export const commitSetExplorerShowDrawer = commit(mutations.setExplorerShowDrawer);
 export const commitSetExplorerShowSettingsDrawer = commit(mutations.setExplorerShowSettingsDrawer);
 export const commitSetExplorerShowLoadingOverlay = commit(mutations.setExplorerShowLoadingOverlay);
 export const commitSetExplorerReportState = commit(mutations.setExplorerReportState);
+export const commitSetExplorerReportProgress = commit(mutations.setExplorerReportProgress);
 export const commitSetExplorerResultLayout = commit(mutations.setExplorerResultLayout);
 export const commitSetLoggedIn = commit(mutations.setLoggedIn);
 export const commitSetLogInError = commit(mutations.setLogInError);
@@ -83,6 +90,7 @@ export const commitClearNotifications = commit(mutations.clearNotifications);
 export const commitSetWarehouses = commit(mutations.setWarehouses);
 export const commitSetActiveWarehouseId = commit(mutations.setActiveWarehouseId);
 export const commitSetWarehouseStructure = commit(mutations.setWarehouseStructure);
+export const commitSetUnsupportedGrainMetrics = commit(mutations.setUnsupportedGrainMetrics);
 export const commitSetReportResult = commit(mutations.setReportResult);
 export const commitSetReportRequest = commit(mutations.setReportRequest);
 export const commitSetReportCancelToken = commit(mutations.setReportCancelToken);

@@ -13,3 +13,10 @@ class User(Base):
     hashed_password = Column(String(100), nullable=False)
     is_active = Column(Boolean(), default=True)
     is_superuser = Column(Boolean(), default=False)
+    warehouse_accesses = relationship(
+        "UserWarehouseAccess", back_populates="user", cascade="all, delete-orphan"
+    )
+
+    @property
+    def warehouse_ids(self):
+        return sorted(access.warehouse_id for access in self.warehouse_accesses)

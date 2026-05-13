@@ -1,0 +1,11 @@
+minimumReleaseAge: 10080
+minimumReleaseAgeStrict: true
+minimumReleaseAgeIgnoreMissingTime: false
+resolutionMode: time-based
+blockExoticSubdeps: true
+strictDepBuilds: true
+allowBuilds:
+  esbuild: true
+  "@parcel/watcher": false
+  core-js: false
+  cypress: false

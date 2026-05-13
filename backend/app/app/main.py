@@ -4,7 +4,7 @@ from fastapi import Response
 
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
 from zillion.core import (
     UnsupportedGrainException,
     InvalidDimensionValueException,
@@ -17,7 +17,6 @@ from tlbx import st
 from app import app
 from app.api.api_v1.api import api_router
 from app.core.config import settings
-from app.plugin import init_plugin
 
 
 if settings.ROLLBAR_ENABLED:
@@ -27,16 +26,37 @@ if settings.ROLLBAR_ENABLED:
     rollbar.init(settings.ROLLBAR_KEY, environment=settings.ROLLBAR_ENV)
 
 
+def _normalize_exception_detail(exc: Exception) -> str:
+    if len(exc.args) == 1:
+        detail = exc.args[0]
+        if isinstance(detail, (list, tuple)) and len(detail) == 1:
+            return str(detail[0])
+        return str(detail)
+    return str(exc)
+
+
 # https://github.com/tiangolo/fastapi/issues/775#issuecomment-592946834
 async def catch_exceptions_middleware(request: Request, call_next):
     try:
         return await call_next(request)
     except (InvalidFieldException, InvalidDimensionValueException) as e:
-        error(str(e))
-        return Response(str(e), status_code=400)
-    except (UnsupportedGrainException, ZillionException) as e:
-        error(str(e))
-        return Response(str(e), status_code=500)
+        detail = _normalize_exception_detail(e)
+        error(detail)
+        return Response(detail, status_code=400)
+    except UnsupportedGrainException as e:
+        detail = _normalize_exception_detail(e)
+        error(detail)
+        return JSONResponse(
+            {
+                "error_type": "unsupported_grain",
+                "detail": detail,
+            },
+            status_code=400,
+        )
+    except ZillionException as e:
+        detail = _normalize_exception_detail(e)
+        error(detail)
+        return Response(detail, status_code=500)
     except Exception as e:
         tb.print_exc()
         if settings.ROLLBAR_ENABLED:
@@ -62,6 +82,3 @@ if settings.BACKEND_CORS_ORIGINS:
     )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
-
-if settings.PLUGIN_TOKEN:
-    init_plugin(app)

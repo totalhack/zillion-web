@@ -42,11 +42,13 @@ export default class BaseSelect extends Mixins(WarehouseManagerMixin) {
   }
 
   doRemove(remove, option) {
+    this.clearUnsupportedGrainMetrics();
     option.active = true;
     remove(option);
   }
 
   doPause(option) {
+    this.clearUnsupportedGrainMetrics();
     if (option.active) {
       option.active = false;
     } else {

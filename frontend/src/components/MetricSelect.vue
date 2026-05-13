@@ -1,18 +1,27 @@
 <template>
   <div>
-    <draggable-multi-select ref="multiselect" :raw-options-map="rawOptionsMap" default-group="Metrics"
-      placeholder="Select Metrics" :created-options-group="createdOptionsGroup"
-      tag-placeholder="Press enter to create a metric" :taggable="true" @tag="openAdHocMetricDialog"
-      @tagDblClick="handleTagDblClick"></draggable-multi-select>
+    <draggable-multi-select
+      ref="multiselect"
+      :raw-options-map="rawOptionsMap"
+      default-group="Metrics"
+      :highlighted-option-names="unsupportedGrainMetricNames"
+      :highlight-reasons="unsupportedGrainMetrics"
+      placeholder="Select Metrics"
+      :created-options-group="createdOptionsGroup"
+      tag-placeholder="Press enter to create a metric"
+      :taggable="true"
+      @tag="openAdHocMetricDialog"
+      @tagDblClick="handleTagDblClick"
+    ></draggable-multi-select>
     <ad-hoc-metric-dialog @input="addAdHocMetric($event)" ref="adHocMetricDialog"></ad-hoc-metric-dialog>
   </div>
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
-import { readMetrics } from '@/store/main/getters';
-import DraggableMultiSelect from './DraggableMultiSelect.vue';
-import AdHocMetricDialog from './AdHocMetricDialog.vue';
+import { Component, Vue } from "vue-property-decorator";
+import { readMetrics, readUnsupportedGrainMetrics } from "@/store/main/getters";
+import DraggableMultiSelect from "./DraggableMultiSelect.vue";
+import AdHocMetricDialog from "./AdHocMetricDialog.vue";
 
 @Component({
   components: {
@@ -21,35 +30,95 @@ import AdHocMetricDialog from './AdHocMetricDialog.vue';
   },
 })
 export default class MetricSelect extends Vue {
-  createdOptionsGroup: string = 'Ad Hoc Metrics';
+  createdOptionsGroup: string = "Ad Hoc Metrics";
+  private pendingSelected: any = null;
+  private pendingUiSelected: any = null;
+
+  mounted() {
+    this.flushPendingSelections();
+  }
+
+  get multiselect() {
+    return (this.$refs.multiselect as any) || null;
+  }
+
+  flushPendingSelections() {
+    if (!this.multiselect) {
+      return;
+    }
+
+    if (this.pendingSelected !== null) {
+      this.multiselect.selected = this.pendingSelected;
+    }
+
+    if (this.pendingUiSelected !== null) {
+      this.multiselect.uiSelected = this.pendingUiSelected;
+    }
+  }
+
+  queuePendingSelectionFlush() {
+    this.$nextTick(() => {
+      this.flushPendingSelections();
+    });
+  }
 
   get rawOptionsMap() {
     return readMetrics(this.$store);
   }
 
+  get unsupportedGrainMetrics() {
+    return readUnsupportedGrainMetrics(this.$store);
+  }
+
+  get unsupportedGrainMetricNames() {
+    return Object.keys(this.unsupportedGrainMetrics || {});
+  }
+
   get selected() {
-    return (this.$refs.multiselect as any).selected;
+    return this.multiselect?.selected || [];
   }
 
   set selected(selectedList) {
-    (this.$refs.multiselect as any).selected = selectedList;
+    this.pendingSelected = Array.isArray(selectedList) ? [...selectedList] : [];
+    if (this.multiselect) {
+      this.multiselect.selected = selectedList;
+      return;
+    }
+    this.queuePendingSelectionFlush();
+  }
+
+  get uiSelected() {
+    return this.multiselect?.uiSelected || [];
+  }
+
+  set uiSelected(selectedList) {
+    this.pendingUiSelected = Array.isArray(selectedList)
+      ? selectedList.map((option) =>
+          option && typeof option === "object" ? Object.assign({}, option) : option
+        )
+      : [];
+    if (this.multiselect) {
+      this.multiselect.uiSelected = selectedList;
+      return;
+    }
+    this.queuePendingSelectionFlush();
   }
 
   ensureMetricSelected(metric) {
     let isSelected = false;
     let metricName;
 
-    if (typeof metric === 'string') {
+    if (typeof metric === "string") {
       metricName = metric;
     } else {
       metricName = metric.name;
     }
     for (const selectedMetric of this.selected) {
-      if (typeof selectedMetric === 'string' && selectedMetric === metricName) {
+      if (typeof selectedMetric === "string" && selectedMetric === metricName) {
         isSelected = true;
         break;
       }
-      if (typeof selectedMetric !== 'string' && selectedMetric.name === metricName) {
+      if (typeof selectedMetric !== "string" && selectedMetric.name === metricName) {
         isSelected = true;
         break;
       }
@@ -62,7 +131,7 @@ export default class MetricSelect extends Vue {
   }
 
   openAdHocMetricDialog(adHocMetricName) {
-    const ms = this.$refs.multiselect as any;
+    const ms = this.multiselect;
     if (ms.hasCreatedOption(adHocMetricName)) {
       return;
     }
@@ -70,7 +139,7 @@ export default class MetricSelect extends Vue {
   }
 
   addAdHocMetric(metric) {
-    const ms = this.$refs.multiselect as any;
+    const ms = this.multiselect;
     if (ms.hasCreatedOption(metric.name)) {
       ms.updateCreatedOption(metric);
     } else {
