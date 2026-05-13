@@ -399,7 +399,7 @@ export const actions = {
     const whs = Object.values(readWarehouses(context));
     if (whs.length) {
       // Just use the first warehouse as the default
-      dispatchSetActiveWarehouseId(context, whs[0].id);
+      await dispatchSetActiveWarehouseId(context, whs[0].id);
     }
   },
   async hydrateWarehouseStructure(context: MainContext, payload: number) {

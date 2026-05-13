@@ -450,6 +450,7 @@ import {
   saveSessionReportRequest,
   getSessionWarehouseId,
   saveSessionWarehouseId,
+  getToday,
   ValidationError,
 } from "@/utils";
 import {
@@ -1393,6 +1394,35 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     dispatchAddWarning(this.$store, "NLP Report is temporarily disabled");
   }
 
+  private hasInitialSelections() {
+    const metrics = (this.$refs.metrics as any)?.selected || [];
+    const dimensions = (this.$refs.dimensions as any)?.selected || [];
+    const criteria = (this.$refs.criteria as any)?.selected || [];
+    const rowFilters = (this.$refs.row_filters as any)?.selected || [];
+    const orderBy = (this.$refs.order_by as any)?.selected || [];
+    const rollup = (this.$refs.rollup as any)?.selected;
+
+    return !!(metrics.length || dimensions.length || criteria.length || rowFilters.length || orderBy.length || rollup);
+  }
+
+  private applyDefaultDateCriteriaIfEmpty() {
+    if (!this.warehouseActive || this.hasReportData() || this.hasInitialSelections()) {
+      return;
+    }
+
+    const criteriaRef = this.$refs.criteria as any;
+    if (!criteriaRef || !("selected" in criteriaRef)) {
+      return;
+    }
+
+    const dateField = (this.warehouseNonFormulaDimensions as Record<string, any>)?.date;
+    if (!dateField || this.fieldType(dateField) !== "date") {
+      return;
+    }
+
+    criteriaRef.selected = [[dateField.name, "=", getToday("date")]];
+  }
+
   async mounted() {
     await dispatchHydrateExplorerStore(this.$store);
     this.isHydrated = true;
@@ -1430,6 +1460,8 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     if (!this.activeWarehouseId) {
       await dispatchSetDefaultWarehouseId(this.$store);
     }
+
+    this.applyDefaultDateCriteriaIfEmpty();
 
     this.addKeyListener();
     this.addNotificationDismissListener();

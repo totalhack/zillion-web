@@ -9,12 +9,28 @@
       ></div>
     </div>
     <div class="graph-legend-area">
-      <div
-        id="legend"
-        @touchstart="hideToolTip"
-        @dblclick.stop="resetLegendSelections()"
-        class="legend-container"
-      ></div>
+      <div id="legend" @touchstart="hideToolTip" @dblclick.stop="resetLegendSelections()" class="legend-container">
+        <button
+          v-for="seriesId in visibleSeriesIdsByControls"
+          :key="seriesId"
+          :title="seriesId"
+          type="button"
+          :class="[
+            'bb-legend-item',
+            'legend-button',
+            legendItemClass,
+            isSeriesManuallyHidden(seriesId) ? manualHiddenLegendClass : '',
+          ]"
+          @click.stop="handleLegendItemClick(seriesId, $event.altKey)"
+          @mouseenter="handleLegendItemMouseEnter(seriesId)"
+          @mouseleave="handleLegendItemMouseLeave()"
+          @focus="handleLegendItemMouseEnter(seriesId)"
+          @blur="handleLegendItemMouseLeave()"
+        >
+          <span class="legend-color-box" :style="{ backgroundColor: getSeriesColor(seriesId) }"></span>
+          {{ seriesId }}
+        </button>
+      </div>
       <div v-if="seriesSearchTerm && visibleSeriesIdsByControls.length === 0" class="graph-legend-controls__empty">
         No matching series
       </div>
@@ -32,13 +48,14 @@ import { bb, line, bar, area, zoom, selection } from "billboard.js";
 import "billboard.js/dist/billboard.css";
 import "billboard.js/dist/theme/insight.css";
 
-import { scaleOrdinal } from "d3-scale";
 import { schemeTableau10 } from "d3-scale-chromatic";
-import { event as d3Event, select, mouse } from "d3-selection";
+import { select, mouse } from "d3-selection";
 
 // TODO: remove eventually: https://github.com/naver/billboard.js/issues/1619
 selection();
 line();
+
+const chartColorPattern = [...schemeTableau10];
 
 @Component
 export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
@@ -53,6 +70,8 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   public defaultChartHeight = 320;
   public defaultWideChartHeight = 380;
   public manuallyHiddenSeriesIds: string[] = [];
+  public manualHiddenLegendClass = "legend-item-manual-hidden";
+  public hoveredLegendSeriesId: string | null = null;
 
   get baseChartHeight() {
     return this.resultLayout === "tabs" ? this.defaultChartHeight : this.defaultWideChartHeight;
@@ -113,7 +132,6 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   resetLegendSelections() {
     this.manuallyHiddenSeriesIds = [];
     if (this.$chart) {
-      this.$chart.revert();
       this.applyLegendVisibilityFilters();
     }
   }
@@ -383,6 +401,34 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     return max;
   }
 
+  get legendItemClass() {
+    let legendItemClass = "legend-item-span";
+    if (this.maxBucketNameLength) {
+      const px = this.maxBucketNameLength * 7;
+      if (px > 550) {
+        legendItemClass = legendItemClass + " width-600";
+      } else if (px > 500) {
+        legendItemClass = legendItemClass + " width-550";
+      } else if (px > 450) {
+        legendItemClass = legendItemClass + " width-500";
+      } else if (px > 400) {
+        legendItemClass = legendItemClass + " width-450";
+      } else if (px > 350) {
+        legendItemClass = legendItemClass + " width-400";
+      } else if (px > 300) {
+        legendItemClass = legendItemClass + " width-350";
+      } else if (px > 250) {
+        legendItemClass = legendItemClass + " width-300";
+      } else if (px > 200) {
+        legendItemClass = legendItemClass + " width-250";
+      }
+    } else {
+      legendItemClass = legendItemClass + " width-200";
+    }
+
+    return legendItemClass;
+  }
+
   getMultiAxisAxesConfig(currentAxes) {
     const axes = currentAxes || {};
     let yAxis = "y";
@@ -501,30 +547,6 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   }
 
   getBaseChartOptions() {
-    let legendItemClass = "legend-item-span";
-    if (this.maxBucketNameLength) {
-      const px = this.maxBucketNameLength * 7;
-      if (px > 550) {
-        legendItemClass = legendItemClass + " width-600";
-      } else if (px > 500) {
-        legendItemClass = legendItemClass + " width-550";
-      } else if (px > 450) {
-        legendItemClass = legendItemClass + " width-500";
-      } else if (px > 400) {
-        legendItemClass = legendItemClass + " width-450";
-      } else if (px > 350) {
-        legendItemClass = legendItemClass + " width-400";
-      } else if (px > 300) {
-        legendItemClass = legendItemClass + " width-350";
-      } else if (px > 250) {
-        legendItemClass = legendItemClass + " width-300";
-      } else if (px > 200) {
-        legendItemClass = legendItemClass + " width-250";
-      }
-    } else {
-      legendItemClass = legendItemClass + " width-200";
-    }
-
     const options = {
       bindto: this.getGraphElement(),
       data: {
@@ -532,7 +554,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
         type: this.graphType,
       },
       color: {
-        pattern: scaleOrdinal(schemeTableau10).range(),
+        pattern: chartColorPattern,
       },
       transition: {
         duration: 0,
@@ -561,21 +583,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
         bottom: -10,
       },
       legend: {
-        show: this.showLegend,
-        item: {
-          onclick: (_id) => {
-            this.handleLegendItemClick(_id as any);
-          },
-        },
-        contents: {
-          bindto: this.getLegendElement(),
-          template:
-            '<span class="' +
-            legendItemClass +
-            '">' +
-            '<div class="legend-color-box" style="background-color:{=COLOR};"></div>' +
-            "{=TITLE}</span>",
-        },
+        show: false,
       },
       tooltip: {
         grouped: true,
@@ -881,6 +889,19 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     return !searchTerm || seriesId.toLowerCase().includes(searchTerm);
   }
 
+  isSeriesManuallyHidden(seriesId: string) {
+    return this.manuallyHiddenSeriesIds.includes(seriesId) && this.visibleSeriesIdsByControls.includes(seriesId);
+  }
+
+  getSeriesColor(seriesId: string) {
+    const seriesColumns = this.chartDataColumnsNoXDim || [];
+    const seriesIndex = seriesColumns.findIndex((column) => column[0] === seriesId);
+    if (seriesIndex < 0) {
+      return chartColorPattern[0];
+    }
+    return chartColorPattern[seriesIndex % chartColorPattern.length];
+  }
+
   updateManualSeriesSelection(seriesId: string, isolate = false) {
     if (!this.allSeriesIds.includes(seriesId)) {
       return;
@@ -905,8 +926,28 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     this.manuallyHiddenSeriesIds = Array.from(hiddenSeriesIds);
   }
 
-  handleLegendItemClick(seriesId: string) {
-    this.updateManualSeriesSelection(seriesId, !!(d3Event as any)?.altKey);
+  handleLegendItemClick(seriesId: string, isolate = false) {
+    this.handleLegendItemMouseLeave();
+    this.updateManualSeriesSelection(seriesId, isolate);
+    this.applyLegendVisibilityFilters();
+  }
+
+  handleLegendItemMouseEnter(seriesId: string) {
+    if (!this.$chart || this.isSeriesManuallyHidden(seriesId) || this.hoveredLegendSeriesId === seriesId) {
+      return;
+    }
+
+    this.hoveredLegendSeriesId = seriesId;
+    this.$chart.focus(seriesId);
+  }
+
+  handleLegendItemMouseLeave() {
+    if (!this.$chart || this.hoveredLegendSeriesId === null) {
+      return;
+    }
+
+    this.hoveredLegendSeriesId = null;
+    this.$chart.revert();
   }
 
   resetLegendFilterState() {
@@ -947,18 +988,18 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     const manuallyHiddenVisibleSeriesIds = this.manuallyHiddenSeriesIds.filter((seriesId) =>
       visibleSeriesSet.has(seriesId)
     );
+    const chartHiddenSeriesIds = Array.from(new Set(hiddenSeriesIds.concat(manuallyHiddenVisibleSeriesIds)));
+    const chartHiddenSeriesSet = new Set(chartHiddenSeriesIds);
+    const chartVisibleSeriesIds = this.allSeriesIds.filter((seriesId) => !chartHiddenSeriesSet.has(seriesId));
 
-    this.$chart.show(this.allSeriesIds, { withLegend: true });
-
-    if (hiddenSeriesIds.length) {
-      this.$chart.hide(hiddenSeriesIds, { withLegend: true });
+    if (chartVisibleSeriesIds.length) {
+      this.$chart.show(chartVisibleSeriesIds, { withLegend: false });
     }
 
-    if (manuallyHiddenVisibleSeriesIds.length) {
-      this.$chart.hide(manuallyHiddenVisibleSeriesIds, { withLegend: false });
+    if (chartHiddenSeriesIds.length) {
+      this.$chart.hide(chartHiddenSeriesIds, { withLegend: false });
     }
 
-    this.$chart.revert();
     this.$chart.flush();
     this.syncLegendAlignment(visibleSeriesIds.length);
 
@@ -992,7 +1033,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
 
 .bb-legend-item {
   font: normal 13px Helvetica;
-  color: #333;
+  color: #272727;
   letter-spacing: unset !important;
 }
 
@@ -1055,7 +1096,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   box-sizing: border-box;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: 2px 12px;
   justify-content: center;
   overflow-y: auto;
   overflow-x: unset;
@@ -1069,6 +1110,27 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   flex: 0 0 auto;
 }
 
+.legend-button {
+  align-items: center;
+  appearance: none;
+  background: none;
+  border: 0;
+  color: #272727;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  gap: 6px;
+  line-height: 1.15;
+  margin: 0;
+  padding: 0;
+}
+
+.legend-button:focus-visible {
+  outline: 1px solid rgba(39, 39, 39, 0.45);
+  outline-offset: 2px;
+}
+
 .legend-container.justify-center {
   justify-content: center;
 }
@@ -1077,23 +1139,22 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   justify-content: flex-start;
 }
 
-.legend-container .bb-legend-item-hidden {
-  display: none !important;
+.legend-container .legend-item-manual-hidden {
+  opacity: 0.45;
 }
 
 .legend-color-box {
+  display: block;
+  flex: 0 0 10px;
   width: 10px;
   height: 10px;
-  margin-right: 5px;
-  display: inline-block;
-  position: relative;
-  top: 1px;
+  margin-right: 0;
 }
 
 .legend-item-span {
   display: inline-flex;
   align-items: center;
-  padding-left: 10px;
+  padding-left: 8px;
   white-space: nowrap;
   overflow: hidden;
 }
@@ -1136,5 +1197,33 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
 
 .legend-item-span:hover {
   overflow: visible;
+}
+
+@media (max-width: 959px) {
+  .graph-legend-area {
+    padding: 0 12px 0 24px;
+  }
+
+  .legend-container {
+    align-items: stretch;
+    gap: 2px 0;
+    justify-content: flex-start;
+    overflow-x: hidden;
+  }
+
+  .legend-container .bb-legend-item {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+
+  .legend-container .legend-item-span {
+    justify-content: flex-start;
+    padding-left: 0;
+    width: 100%;
+  }
+
+  .legend-item-span:hover {
+    overflow: hidden;
+  }
 }
 </style>

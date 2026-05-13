@@ -109,6 +109,7 @@ describe("ReportResultGraph", () => {
 
     expect((wrapper.vm as any).hasLegendControls).toBe(true);
     expect(wrapper.find("#legend").exists()).toBe(true);
+    expect(wrapper.findAll("#legend .bb-legend-item").length).toBe(4);
   });
 
   it("emits the legend label count", () => {
@@ -160,7 +161,6 @@ describe("ReportResultGraph", () => {
       flush: vi.fn(),
       hide: vi.fn(),
       resize: vi.fn(),
-      revert: vi.fn(),
       show: vi.fn(),
     };
 
@@ -168,17 +168,12 @@ describe("ReportResultGraph", () => {
 
     expect(vm.visibleSeriesIdsByControls).toEqual(["H/Boston Red Sox", "R/Boston Red Sox"]);
     expect(vm.controlHiddenSeriesIds).toEqual(["H/Chicago Cubs", "R/Chicago Cubs"]);
-    expect(vm.$chart.show).toHaveBeenCalledWith(
-      ["H/Boston Red Sox", "H/Chicago Cubs", "R/Boston Red Sox", "R/Chicago Cubs"],
-      { withLegend: true }
-    );
-    expect(vm.$chart.hide).toHaveBeenNthCalledWith(1, ["H/Chicago Cubs", "R/Chicago Cubs"], {
-      withLegend: true,
-    });
-    expect(vm.$chart.hide).toHaveBeenNthCalledWith(2, ["H/Boston Red Sox"], {
+    expect(vm.$chart.show).toHaveBeenCalledWith(["R/Boston Red Sox"], {
       withLegend: false,
     });
-    expect(vm.$chart.revert).toHaveBeenCalled();
+    expect(vm.$chart.hide).toHaveBeenCalledWith(["H/Chicago Cubs", "R/Chicago Cubs", "H/Boston Red Sox"], {
+      withLegend: false,
+    });
     expect(vm.$chart.flush).toHaveBeenCalled();
   });
 
@@ -204,6 +199,51 @@ describe("ReportResultGraph", () => {
 
     vm.updateManualSeriesSelection("R/Boston Red Sox", true);
     expect(vm.manuallyHiddenSeriesIds).toEqual(["H/Boston Red Sox", "H/Chicago Cubs", "R/Chicago Cubs"]);
+  });
+
+  it("reapplies legend visibility after a legend click", () => {
+    const wrapper = mountGraph();
+    const vm = wrapper.vm as any;
+
+    vm.applyLegendVisibilityFilters = vi.fn();
+
+    vm.handleLegendItemClick("H/Boston Red Sox");
+
+    expect(vm.manuallyHiddenSeriesIds).toEqual(["H/Boston Red Sox"]);
+    expect(vm.applyLegendVisibilityFilters).toHaveBeenCalledTimes(1);
+  });
+
+  it("focuses and reverts chart series on legend hover", () => {
+    const wrapper = mountGraph("Boston");
+    const vm = wrapper.vm as any;
+
+    vm.$chart = {
+      focus: vi.fn(),
+      revert: vi.fn(),
+    };
+
+    vm.handleLegendItemMouseEnter("H/Boston Red Sox");
+
+    expect(vm.hoveredLegendSeriesId).toBe("H/Boston Red Sox");
+    expect(vm.$chart.focus).toHaveBeenCalledWith("H/Boston Red Sox");
+
+    vm.handleLegendItemMouseLeave();
+
+    expect(vm.hoveredLegendSeriesId).toBeNull();
+    expect(vm.$chart.revert).toHaveBeenCalledTimes(1);
+  });
+
+  it("greys manually hidden legend labels while keeping them visible", async () => {
+    const wrapper = mountGraph("Boston");
+    const vm = wrapper.vm as any;
+    vm.manuallyHiddenSeriesIds = ["H/Boston Red Sox", "R/Boston Red Sox"];
+
+    await wrapper.vm.$nextTick();
+
+    const legendItems = wrapper.findAll("#legend .bb-legend-item");
+    expect(legendItems.length).toBe(2);
+    expect(legendItems.at(0)?.classes()).toContain(vm.manualHiddenLegendClass);
+    expect(legendItems.at(1)?.classes()).toContain(vm.manualHiddenLegendClass);
   });
 
   it("centers the legend layout", () => {

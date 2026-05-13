@@ -213,6 +213,29 @@ describe("main store", () => {
     });
   });
 
+  it("awaits default warehouse activation before resolving", async () => {
+    const store = createStore({
+      token: "token-1",
+      warehouses: { 7: { id: 7, name: "Seven" } },
+    });
+
+    let activeWarehouseWhilePending = store.state.main.activeWarehouseId;
+    vi.mocked(api.getWarehouseStructure).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            activeWarehouseWhilePending = store.state.main.activeWarehouseId;
+            resolve(response({ id: 7, warehouse: { dimensions: {}, metrics: {}, datasources: [] } }));
+          }, 0);
+        }) as any
+    );
+
+    await store.dispatch("setDefaultWarehouseId");
+
+    expect(activeWarehouseWhilePending).toBeNull();
+    expect(store.state.main.activeWarehouseId).toBe(7);
+  });
+
   it("executes reports with cancel token handling and stores successful results", async () => {
     vi.useFakeTimers();
     const previousCancel = vi.fn();

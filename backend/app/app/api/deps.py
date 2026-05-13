@@ -24,6 +24,22 @@ reusable_oauth2 = OAuth2PasswordBearer(
 warehouses = {}
 
 
+def warehouse_is_disabled(warehouse_row: Warehouses) -> bool:
+    meta = warehouse_row.meta
+    if not meta:
+        return False
+
+    if isinstance(meta, dict):
+        meta_obj = meta
+    else:
+        try:
+            meta_obj = json.loads(meta)
+        except (TypeError, ValueError):
+            return False
+
+    return isinstance(meta_obj, dict) and meta_obj.get("disabled") is True
+
+
 @app.on_event("startup")
 async def init_warehouses():
     global warehouses
@@ -50,6 +66,11 @@ def get_warehouses() -> Dict[str, Any]:
     try:
         result = db.query(Warehouses).all()
         for row in result:
+            if warehouse_is_disabled(row):
+                print(
+                    f"Skipping warehouse {row.name} because warehouse.meta has disabled=true"
+                )
+                continue
             print(f"Loading warehouse {row.name}")
             warehouses[row.id] = Warehouse.load(row.id)
         pp(warehouses)

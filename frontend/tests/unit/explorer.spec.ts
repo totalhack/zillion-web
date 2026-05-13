@@ -126,7 +126,7 @@ const router = { replace: vi.fn() };
 const route = { hash: "", path: "/main/explorer", query: {} as Record<string, any> };
 
 async function mountExplorer({ mobile = false, name = mobile ? "xs" : "lg" } = {}) {
-  const wrapper = shallowMount(Explorer, {
+  const wrapper = shallowMount(Explorer as any, {
     mocks: {
       $route: route,
       $router: router,
@@ -140,6 +140,46 @@ async function mountExplorer({ mobile = false, name = mobile ? "xs" : "lg" } = {
   await Vue.nextTick();
   return wrapper;
 }
+
+const selectorStub = Vue.extend({
+  template: "<div />",
+  data() {
+    return {
+      selected: [],
+      uiSelected: [],
+    };
+  },
+});
+
+const nullSelectionStub = Vue.extend({
+  template: "<div />",
+  data() {
+    return {
+      selected: null,
+    };
+  },
+});
+
+const reportAbTestDialogStub = Vue.extend({
+  template: "<div />",
+  methods: {
+    hasCompleteConfig() {
+      return false;
+    },
+    loadConfig() {
+      return null;
+    },
+    open() {
+      return undefined;
+    },
+    readConfig() {
+      return null;
+    },
+    runAnalysis() {
+      return Promise.resolve();
+    },
+  },
+});
 
 function setSelectorRefs(wrapper, overrides: Record<string, any> = {}) {
   const refs = wrapper.vm.$refs as any;
@@ -442,6 +482,42 @@ describe("Explorer", () => {
     );
 
     expect((wrapper.vm.$refs.criteria as any).selected).toEqual([["day_name", "=", "today"]]);
+  });
+
+  it("adds a default current-date criterion when the explorer loads empty", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2024-05-15T12:34:56"));
+    vi.mocked(readDimensions).mockReturnValue({
+      date: { display_name: "Date", name: "date", type: "date" },
+    });
+
+    const wrapper = shallowMount(Explorer as any, {
+      mocks: {
+        $route: route,
+        $router: router,
+        $store: store,
+        $vuetify: { breakpoint: { mobile: false, name: "lg" } },
+      },
+      stubs: {
+        ...Object.fromEntries(stubs.map((stubName) => [stubName, true])),
+        "criteria-select": selectorStub,
+        "dimension-select": selectorStub,
+        "limit-select": nullSelectionStub,
+        "metric-select": selectorStub,
+        "order-by-select": selectorStub,
+        "report-ab-test-dialog": reportAbTestDialogStub,
+        "rollup-select": nullSelectionStub,
+        "row-filter-select": selectorStub,
+      },
+    });
+
+    await Vue.nextTick();
+    await Promise.resolve();
+    await Vue.nextTick();
+
+    expect((wrapper.vm.$refs.criteria as any).selected).toEqual([["date", "=", "2024-05-15"]]);
+
+    vi.useRealTimers();
   });
 
   it("strips ui-only fields from ad hoc metrics before saving", async () => {
