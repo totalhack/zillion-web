@@ -1,7 +1,5 @@
 /// <reference types="cypress" />
 
-const uiBaseUrl = "http://localhost:8080";
-
 describe("/explorer warehouse access", () => {
   it("shows an error when a user opens a warehouse they cannot access", () => {
     const email = `restricted-${Date.now()}@example.com`;
@@ -9,7 +7,7 @@ describe("/explorer warehouse access", () => {
 
     cy.createUser({ email, password, warehouse_ids: [] });
     cy.loginAs(email, password);
-    cy.visit(`${uiBaseUrl}/main/explorer?warehouse=1`);
+    cy.visit("/main/explorer?warehouse=1");
 
     cy.get(".notification-toast.notification-toast--error", { timeout: 10000 }).should(
       "contain",
@@ -28,7 +26,7 @@ describe("/explorer warehouse access", () => {
       spec: { metrics: ["hits"], dimensions: ["year"], meta: { title: "Warehouse Access Test" } },
     }).then((report) => {
       cy.loginAs(email, password);
-      cy.visit(`${uiBaseUrl}/main/explorer?warehouse=1&report=${report.spec_id}`);
+      cy.visit(`/main/explorer?warehouse=1&report=${report.spec_id}`);
 
       cy.get("[data-cy=metrics]").within(() => {
         cy.get(".multiselect__tags-wrap").should("contain", "H");
@@ -52,7 +50,7 @@ describe("/admin user forms", () => {
   });
 
   it("shows the warehouse access field on create user", () => {
-    cy.visit(`${uiBaseUrl}/main/admin/users/create`);
+    cy.visit("/main/admin/users/create");
 
     cy.contains("Warehouse Access");
     cy.contains("Superusers can access all warehouses automatically.");
@@ -64,7 +62,7 @@ describe("/admin user forms", () => {
     const full_name = "Editable User";
 
     cy.createUser({ email, password, full_name, warehouse_ids: [1] }).then((user) => {
-      cy.visit(`${uiBaseUrl}/main/admin/users/edit/${user.id}`);
+      cy.visit(`/main/admin/users/edit/${user.id}`);
 
       cy.contains(".text-body-1", email, { timeout: 10000 });
       cy.get('input[type="email"]').should("have.value", email);

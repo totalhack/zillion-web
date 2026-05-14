@@ -1,7 +1,5 @@
 /// <reference types="cypress" />
 
-const uiBaseUrl = "http://localhost:8080";
-
 describe("/login", () => {
   let adminUser;
   let adminPassword;
@@ -12,7 +10,7 @@ describe("/login", () => {
   });
 
   beforeEach(() => {
-    cy.visit(`${uiBaseUrl}/login`);
+    cy.visit("/login");
   });
 
   it("greets with login", () => {

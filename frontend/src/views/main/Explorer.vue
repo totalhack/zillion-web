@@ -552,6 +552,7 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
   private pageTitleBase: string = document.title || "Zillion";
   private reportExecutionPendingCompletion: boolean = false;
   private showBackgroundCompletionIndicator: boolean = false;
+  private pendingAutorun: boolean = false;
   private tab: string | null = null;
 
   get showSettingsDrawer() {
@@ -1351,10 +1352,19 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     }
 
     if (autorun) {
-      this.$nextTick(function() {
-        this.run();
-      });
+      await this.scheduleAutorun();
     }
+  }
+
+  private async scheduleAutorun() {
+    if (!this.isMounted) {
+      this.pendingAutorun = true;
+      return;
+    }
+
+    this.pendingAutorun = false;
+    await this.$nextTick();
+    await this.run();
   }
 
   async loadReportSpecId(specId, autorun = false) {
@@ -1420,7 +1430,8 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
       return;
     }
 
-    criteriaRef.selected = [[dateField.name, "=", getToday("date")]];
+    const today = getToday("date");
+    criteriaRef.selected = [[dateField.name, "between", [today, today]]];
   }
 
   async mounted() {
@@ -1477,6 +1488,9 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     }
 
     this.isMounted = true;
+    if (this.pendingAutorun) {
+      await this.scheduleAutorun();
+    }
   }
 
   beforeDestroy() {

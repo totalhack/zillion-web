@@ -9,6 +9,7 @@ import {
   dispatchAddWarning,
   dispatchClearNotifications,
   dispatchExecuteReport,
+  dispatchGetReportFromId,
   dispatchExplorerCloseLoadingOverlay,
   dispatchExplorerCloseSettingsDrawer,
   dispatchExplorerOpenLoadingOverlay,
@@ -515,9 +516,72 @@ describe("Explorer", () => {
     await Promise.resolve();
     await Vue.nextTick();
 
-    expect((wrapper.vm.$refs.criteria as any).selected).toEqual([["date", "=", "2024-05-15"]]);
+    expect((wrapper.vm.$refs.criteria as any).selected).toEqual([["date", "between", ["2024-05-15", "2024-05-15"]]]);
 
     vi.useRealTimers();
+  });
+
+  it("autoruns a saved report from the route after mount completes", async () => {
+    route.query = { autorun: "true", report: "77", warehouse: "5" };
+    vi.mocked(dispatchSetActiveWarehouseId).mockResolvedValue(true as any);
+    vi.mocked(dispatchGetReportFromId).mockResolvedValue({
+      criteria: [],
+      dimensions: ["franchise_name"],
+      limit: 100,
+      limit_first: false,
+      meta: {
+        graphOptions: { graphType: null, logYScale: false, multiAxis: false },
+        resultLayout: "wide",
+        title: "Saved Autorun Report",
+      },
+      metrics: ["hits"],
+      order_by: [],
+      rollup: null,
+      row_filters: [],
+    } as any);
+
+    const wrapper = shallowMount(Explorer as any, {
+      mocks: {
+        $route: route,
+        $router: router,
+        $store: store,
+        $vuetify: { breakpoint: { mobile: false, name: "lg" } },
+      },
+      stubs: {
+        ...Object.fromEntries(stubs.map((stubName) => [stubName, true])),
+        "criteria-select": selectorStub,
+        "dimension-select": selectorStub,
+        "limit-select": nullSelectionStub,
+        "metric-select": selectorStub,
+        "order-by-select": selectorStub,
+        "report-ab-test-dialog": reportAbTestDialogStub,
+        "rollup-select": nullSelectionStub,
+        "row-filter-select": selectorStub,
+      },
+    });
+
+    await Vue.nextTick();
+    await Promise.resolve();
+    await Vue.nextTick();
+    await Promise.resolve();
+    await Vue.nextTick();
+
+    expect(dispatchGetReportFromId).toHaveBeenCalledWith(store, "77");
+    await vi.waitFor(() => {
+      expect(dispatchExecuteReport).toHaveBeenCalledWith(
+        store,
+        expect.objectContaining({
+          criteria: [],
+          dimensions: ["franchise_name"],
+          limit_first: false,
+          metrics: ["hits"],
+        })
+      );
+    });
+    expect(saveSessionWarehouseId).toHaveBeenCalledWith(5);
+    expect(document.title).toBe("Saved Autorun Report");
+
+    wrapper.destroy();
   });
 
   it("strips ui-only fields from ad hoc metrics before saving", async () => {

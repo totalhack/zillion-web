@@ -14,33 +14,12 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
-    "types": [
-      "vite/client",
-      "vitest/globals",
-      "node",
-      "vuetify"
-    ],
+    "types": ["vite/client", "vitest/globals", "node", "vuetify"],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
-    "lib": [
-      "esnext",
-      "dom",
-      "dom.iterable",
-      "scripthost"
-    ]
+    "lib": ["esnext", "dom", "dom.iterable", "scripthost"]
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue",
-    "vite.config.mts",
-    "tests/**/*.ts",
-    "tests/**/*.tsx"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "vite.config.mts", "tests/**/*.ts", "tests/**/*.tsx"],
+  "exclude": ["node_modules"]
 }

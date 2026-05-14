@@ -24,7 +24,7 @@ const app = new Vue({
   router,
   store,
   vuetify: Vuetify,
-  render: (h) => h(App),
+  render: (h) => h(App as any),
 }).$mount("#app");
 
 if ((window as any).Cypress) {
