@@ -1404,15 +1404,42 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     dispatchAddWarning(this.$store, "NLP Report is temporarily disabled");
   }
 
-  private hasInitialSelections() {
-    const metrics = (this.$refs.metrics as any)?.selected || [];
-    const dimensions = (this.$refs.dimensions as any)?.selected || [];
-    const criteria = (this.$refs.criteria as any)?.selected || [];
-    const rowFilters = (this.$refs.row_filters as any)?.selected || [];
-    const orderBy = (this.$refs.order_by as any)?.selected || [];
-    const rollup = (this.$refs.rollup as any)?.selected;
+  private getSelectionCount(selectorName: string) {
+    const selectorRef = this.$refs[selectorName] as any;
+    if (!selectorRef) {
+      return 0;
+    }
 
-    return !!(metrics.length || dimensions.length || criteria.length || rowFilters.length || orderBy.length || rollup);
+    if (Array.isArray(selectorRef.rawSelected)) {
+      return selectorRef.rawSelected.length;
+    }
+
+    if (Array.isArray(selectorRef.pendingSelected)) {
+      return selectorRef.pendingSelected.length;
+    }
+
+    const multiselect = selectorRef.multiselect;
+    if (multiselect && Array.isArray(multiselect.rawSelected)) {
+      return multiselect.rawSelected.length;
+    }
+
+    const selected = selectorRef.selected;
+    if (Array.isArray(selected)) {
+      return selected.length;
+    }
+
+    return selected ? 1 : 0;
+  }
+
+  private hasInitialSelections() {
+    const metrics = this.getSelectionCount("metrics");
+    const dimensions = this.getSelectionCount("dimensions");
+    const criteria = this.getSelectionCount("criteria");
+    const rowFilters = this.getSelectionCount("row_filters");
+    const orderBy = this.getSelectionCount("order_by");
+    const rollup = this.getSelectionCount("rollup");
+
+    return !!(metrics || dimensions || criteria || rowFilters || orderBy || rollup);
   }
 
   private applyDefaultDateCriteriaIfEmpty() {
