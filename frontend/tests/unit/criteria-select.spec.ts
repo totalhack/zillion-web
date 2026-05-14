@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import CriteriaSelect from "@/components/CriteriaSelect.vue";
 import DayNameCriteriaValueSelect from "@/components/DayNameCriteriaValueSelect.vue";
 import DayOfMonthCriteriaValueSelect from "@/components/DayOfMonthCriteriaValueSelect.vue";
+import TextAreaListCriteriaValueSelect from "@/components/TextAreaListCriteriaValueSelect.vue";
 
 vi.mock("@/store/main/getters", () => ({
   readActiveWarehouseId: vi.fn(),
@@ -187,6 +188,28 @@ describe("CriteriaSelect", () => {
     expect(vm.uiSelected).toEqual([
       ["day_name", "=", "today"],
       ["day_of_month", "=", "today"],
+    ]);
+  });
+
+  it("rehydrates legacy scalar like criteria values for text list inputs", () => {
+    const wrapper = mountCriteriaSelect({
+      domain: {
+        display_name: "Domain",
+        name: "domain",
+        type: "varchar",
+      },
+    });
+    const vm = wrapper.vm as any;
+
+    vm.selected = [["domain", "like", "%custody%"]];
+
+    expect(vm.rawSelected).toEqual([
+      expect.objectContaining({
+        component: TextAreaListCriteriaValueSelect,
+        name: "domain",
+        operation: "like",
+        value: "%custody%",
+      }),
     ]);
   });
 });

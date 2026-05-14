@@ -29,6 +29,25 @@ describe("day shortcut criteria components", () => {
     expect((DayNameCriteriaValueSelect as any).criteriaToOptionValue(12)).toBeNull();
   });
 
+  it("recomputes day_name today when the app stays open overnight", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2024-05-15T23:59:50"));
+
+    const wrapper = shallowMount(DayNameCriteriaValueSelect, {
+      propsData: { value: "today" },
+      stubs: ["v-text-field"],
+    });
+    const vm = wrapper.vm as any;
+
+    expect(vm.criteriaValue).toBe("Wednesday");
+
+    vi.setSystemTime(new Date("2024-05-16T00:00:20"));
+    vi.advanceTimersByTime(30000);
+    await wrapper.vm.$nextTick();
+
+    expect(vm.criteriaValue).toBe("Thursday");
+  });
+
   it("resolves the today shortcut for day_of_month and validates it", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2024-05-15T12:34:56"));
@@ -42,5 +61,24 @@ describe("day shortcut criteria components", () => {
     expect(vm.criteriaValue).toBe(15);
     expect(vm.uiCriteriaValue).toBe("today");
     expect(vm.getRules()[1]("today")).toBe(true);
+  });
+
+  it("recomputes day_of_month today when the app stays open overnight", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2024-05-15T23:59:50"));
+
+    const wrapper = shallowMount(DayOfMonthCriteriaValueSelect, {
+      propsData: { value: "today" },
+      stubs: ["v-text-field"],
+    });
+    const vm = wrapper.vm as any;
+
+    expect(vm.criteriaValue).toBe(15);
+
+    vi.setSystemTime(new Date("2024-05-16T00:00:20"));
+    vi.advanceTimersByTime(30000);
+    await wrapper.vm.$nextTick();
+
+    expect(vm.criteriaValue).toBe(16);
   });
 });

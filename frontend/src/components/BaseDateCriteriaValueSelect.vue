@@ -4,8 +4,6 @@
     value-type="YYYY-MM-DD HH:mm:ss"
     format="YYYY-MM-DD HH:mm:ss"
     :type="dateType"
-    :editable="false"
-    :input-attr="{ readonly: true, inputmode: 'none' }"
     popup-class="criteria-date-picker-popup"
     placeholder="Select Date/Time"
     :show-time-panel="showTimeRangePanel"

@@ -4,8 +4,6 @@
     value-type="YYYY-MM-DD"
     format="YYYY-MM-DD"
     :type="dateType"
-    :editable="false"
-    :input-attr="{ readonly: true, inputmode: 'none' }"
     popup-class="criteria-date-picker-popup"
     placeholder="Select Date Range"
     :shortcuts="rangeShortcuts"
