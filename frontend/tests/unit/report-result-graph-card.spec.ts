@@ -45,7 +45,7 @@ describe("ReportResultGraphCard", () => {
     expect(wrapper.find('[data-cy="graphLegendSearch"]').exists()).toBe(true);
   });
 
-  it("passes the header filter term through to the graph component", async () => {
+  it("does not apply the header filter term until Enter is pressed", async () => {
     const wrapper = mountCard();
     const graph = wrapper.findComponent({ name: "ReportResultGraph" });
 
@@ -54,7 +54,38 @@ describe("ReportResultGraphCard", () => {
 
     await wrapper.find('[data-cy="graphLegendSearch"]').setValue("ctr");
 
+    expect(graph.props("seriesSearchTerm")).toBe("");
+  });
+
+  it("passes the header filter term through to the graph component on Enter", async () => {
+    const wrapper = mountCard();
+    const graph = wrapper.findComponent({ name: "ReportResultGraph" });
+
+    graph.vm.$emit("legend-label-count-change", 5);
+    await wrapper.vm.$nextTick();
+
+    const searchInput = wrapper.find('[data-cy="graphLegendSearch"]');
+    await searchInput.setValue("ctr");
+    await searchInput.trigger("keydown.enter");
+
     expect(graph.props("seriesSearchTerm")).toBe("ctr");
+  });
+
+  it("clears the applied filter immediately when the input is emptied", async () => {
+    const wrapper = mountCard();
+    const graph = wrapper.findComponent({ name: "ReportResultGraph" });
+
+    graph.vm.$emit("legend-label-count-change", 5);
+    await wrapper.vm.$nextTick();
+
+    const searchInput = wrapper.find('[data-cy="graphLegendSearch"]');
+    await searchInput.setValue("ctr");
+    await searchInput.trigger("keydown.enter");
+    expect(graph.props("seriesSearchTerm")).toBe("ctr");
+
+    await searchInput.setValue("");
+
+    expect(graph.props("seriesSearchTerm")).toBe("");
   });
 
   it("clears the filter when legend labels drop back to four or fewer", async () => {
@@ -63,7 +94,9 @@ describe("ReportResultGraphCard", () => {
 
     graph.vm.$emit("legend-label-count-change", 5);
     await wrapper.vm.$nextTick();
-    await wrapper.find('[data-cy="graphLegendSearch"]').setValue("ctr");
+    const searchInput = wrapper.find('[data-cy="graphLegendSearch"]');
+    await searchInput.setValue("ctr");
+    await searchInput.trigger("keydown.enter");
 
     graph.vm.$emit("legend-label-count-change", 4);
     await wrapper.vm.$nextTick();

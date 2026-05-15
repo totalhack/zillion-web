@@ -8,11 +8,13 @@
       <span v-if="showTitle" class="text-subtitle-2">Report Graph</span>
       <input
         v-if="showSeriesSearchInput"
-        v-model="seriesSearchTerm"
+        v-model="draftSeriesSearchTerm"
         class="report-result-graph-card__search"
         data-cy="graphLegendSearch"
         placeholder="Filter Chart"
         type="search"
+        @input="handleSeriesSearchInput"
+        @keydown.enter="applySeriesSearchTerm"
       />
     </div>
     <v-card-text class="px-0 pb-4 report-result-graph-card__body">
@@ -20,8 +22,9 @@
         ref="reportResultGraph"
         :graph-options="graphOptions"
         :result-layout="resultLayout"
-        :series-search-term.sync="seriesSearchTerm"
+        :series-search-term="appliedSeriesSearchTerm"
         :tab="tab"
+        @update:seriesSearchTerm="handleSeriesSearchTermUpdate"
         v-on:legend-label-count-change="updateLegendLabelCount"
         v-on:complete="emitComplete"
       ></report-result-graph>
@@ -42,7 +45,8 @@ export default class ReportResultGrapheCard extends Vue {
   @Prop({ default: null }) tab!: string | null;
   @Prop({ default: true }) showTitle!: boolean;
 
-  private seriesSearchTerm: string = "";
+  private appliedSeriesSearchTerm: string = "";
+  private draftSeriesSearchTerm: string = "";
   private legendLabelCount: number = 0;
 
   get showSeriesSearchInput() {
@@ -53,8 +57,23 @@ export default class ReportResultGrapheCard extends Vue {
     this.legendLabelCount = Number.isFinite(count) ? count : 0;
 
     if (!this.showSeriesSearchInput) {
-      this.seriesSearchTerm = "";
+      this.handleSeriesSearchTermUpdate("");
     }
+  }
+
+  applySeriesSearchTerm() {
+    this.appliedSeriesSearchTerm = this.draftSeriesSearchTerm;
+  }
+
+  handleSeriesSearchInput() {
+    if (this.draftSeriesSearchTerm === "") {
+      this.appliedSeriesSearchTerm = "";
+    }
+  }
+
+  handleSeriesSearchTermUpdate(value: string) {
+    this.appliedSeriesSearchTerm = value;
+    this.draftSeriesSearchTerm = value;
   }
 
   emitComplete(e) {

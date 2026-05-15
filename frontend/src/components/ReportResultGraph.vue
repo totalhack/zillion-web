@@ -578,9 +578,9 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
         },
       },
       padding: {
-        top: 10,
+        top: 2,
         right: 32 + (this.showY2 ? 40 : 0),
-        bottom: -10,
+        bottom: 8,
       },
       legend: {
         show: false,
