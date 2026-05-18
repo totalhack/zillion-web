@@ -49,15 +49,26 @@ export default class ReportResultGrapheCard extends Vue {
   private draftSeriesSearchTerm: string = "";
   private legendLabelCount: number = 0;
 
+  get reportResultGraph() {
+    return (this.$refs.reportResultGraph as any) || null;
+  }
+
   get showSeriesSearchInput() {
     return this.legendLabelCount > 4;
   }
 
   updateLegendLabelCount(count: number) {
+    const showSeriesSearchInput = this.showSeriesSearchInput;
     this.legendLabelCount = Number.isFinite(count) ? count : 0;
 
     if (!this.showSeriesSearchInput) {
       this.handleSeriesSearchTermUpdate("");
+    }
+
+    if (showSeriesSearchInput !== this.showSeriesSearchInput) {
+      this.$nextTick(() => {
+        this.reportResultGraph?.resize?.();
+      });
     }
   }
 

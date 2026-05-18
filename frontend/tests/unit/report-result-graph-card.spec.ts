@@ -12,7 +12,7 @@ vi.mock("@/components/ReportResultGraph.vue", () => ({
 import ReportResultGraphCard from "@/components/ReportResultGraphCard.vue";
 
 function mountCard(propsData = {}) {
-  return shallowMount(ReportResultGraphCard, {
+  return shallowMount(ReportResultGraphCard as any, {
     propsData: {
       graphOptions: { graphType: null, logYScale: false, multiAxis: false },
       resultLayout: null,
@@ -43,6 +43,19 @@ describe("ReportResultGraphCard", () => {
     await wrapper.vm.$nextTick();
 
     expect(wrapper.find('[data-cy="graphLegendSearch"]').exists()).toBe(true);
+  });
+
+  it("resizes the graph after showing the chart filter", async () => {
+    const wrapper = mountCard();
+    const graph = wrapper.findComponent({ name: "ReportResultGraph" });
+    const resizeSpy = vi.fn();
+    (wrapper.vm as any).$refs.reportResultGraph = { resize: resizeSpy };
+
+    graph.vm.$emit("legend-label-count-change", 5);
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    expect(resizeSpy).toHaveBeenCalledTimes(1);
   });
 
   it("does not apply the header filter term until Enter is pressed", async () => {
@@ -103,6 +116,24 @@ describe("ReportResultGraphCard", () => {
 
     expect(wrapper.find('[data-cy="graphLegendSearch"]').exists()).toBe(false);
     expect(graph.props("seriesSearchTerm")).toBe("");
+  });
+
+  it("resizes the graph after hiding the chart filter", async () => {
+    const wrapper = mountCard();
+    const graph = wrapper.findComponent({ name: "ReportResultGraph" });
+    const resizeSpy = vi.fn();
+    (wrapper.vm as any).$refs.reportResultGraph = { resize: resizeSpy };
+
+    graph.vm.$emit("legend-label-count-change", 5);
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+    resizeSpy.mockClear();
+
+    graph.vm.$emit("legend-label-count-change", 4);
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    expect(resizeSpy).toHaveBeenCalledTimes(1);
   });
 
   it("hides the chart filter when legend labels drop to two", async () => {

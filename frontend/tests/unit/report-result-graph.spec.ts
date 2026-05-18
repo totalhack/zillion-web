@@ -258,7 +258,7 @@ describe("ReportResultGraph", () => {
     expect(legend?.classList.contains("justify-left")).toBe(false);
   });
 
-  it("reserves x-axis label space when initializing the chart in tabs", () => {
+  it("keeps tab layout chart height constrained to the graph stage", () => {
     vi.mocked(readReportRequest).mockReturnValue({
       dimensions: ["debut_date"],
       metrics: ["hits"],
@@ -300,6 +300,6 @@ describe("ReportResultGraph", () => {
     vm.initChart();
 
     const chart = vi.mocked(bb.generate).mock.results.at(-1)?.value;
-    expect(chart.resize).toHaveBeenLastCalledWith({ height: 390 });
+    expect(chart.resize).toHaveBeenLastCalledWith({ height: 320 });
   });
 });
