@@ -73,6 +73,15 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   public manualHiddenLegendClass = "legend-item-manual-hidden";
   public hoveredLegendSeriesId: string | null = null;
 
+  get currentXAxisHeight() {
+    return (this.chartOptions as any).axis?.x?.height || 0;
+  }
+
+  getGraphResizeHeight(height: number | null = null, xAxisHeight: number = 0) {
+    const baseHeight = height || this.getGraphStageElement()?.clientHeight || this.baseChartHeight;
+    return baseHeight + xAxisHeight;
+  }
+
   get baseChartHeight() {
     return this.resultLayout === "tabs" ? this.defaultChartHeight : this.defaultWideChartHeight;
   }
@@ -137,9 +146,8 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   }
 
   resize(height: number | null = null) {
-    const graphStageHeight = this.getGraphStageElement()?.clientHeight || 0;
     this.$chart.resize({
-      height: height || graphStageHeight || this.baseChartHeight,
+      height: height === null ? this.getGraphResizeHeight(null, this.currentXAxisHeight) : height,
     });
   }
 
@@ -798,9 +806,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
 
     // TODO: It would be better if we could draw the right height initially
     // but it will require some work to get that working correctly.
-    if (this.resultLayout !== "tabs") {
-      height = (height || this.baseChartHeight) + (options.axis.x.height || 0);
-    }
+    height = this.getGraphResizeHeight(height, options.axis.x.height || 0);
     this.resize(height);
     this.$emit("complete");
   }

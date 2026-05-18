@@ -1,6 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { bb } from "billboard.js";
 import ReportResultGraph from "@/components/ReportResultGraph.vue";
 import { dispatchAddNotification } from "@/store/main/actions";
 import {
@@ -48,7 +49,7 @@ vi.mock("@/store/main/getters", () => ({
 const store = { id: "store" };
 
 function mountGraph(seriesSearchTerm = "") {
-  return mount(ReportResultGraph, {
+  return mount(ReportResultGraph as any, {
     attachTo: document.body,
     mocks: {
       $store: store,
@@ -255,5 +256,50 @@ describe("ReportResultGraph", () => {
     const legend = document.getElementById("legend");
     expect(legend?.classList.contains("justify-center")).toBe(true);
     expect(legend?.classList.contains("justify-left")).toBe(false);
+  });
+
+  it("reserves x-axis label space when initializing the chart in tabs", () => {
+    vi.mocked(readReportRequest).mockReturnValue({
+      dimensions: ["debut_date"],
+      metrics: ["hits"],
+    } as any);
+    vi.mocked(readReportResult).mockReturnValue({
+      columns: ["Debut Date", "H"],
+      data: Array.from({ length: 13 }, (_, index) => [`2024-01-${String(index + 1).padStart(2, "0")}`, index + 1]),
+      display_name_map: {
+        debut_date: "Debut Date",
+        hits: "H",
+      },
+      duration: 1,
+      is_partial: false,
+      query_summaries: [],
+      rollup_marker: "__ROLLUP__",
+      unsupported_grain_metrics: {},
+    } as any);
+
+    const wrapper = mount(ReportResultGraph as any, {
+      attachTo: document.body,
+      mocks: {
+        $store: store,
+        $vuetify: { breakpoint: { mobile: false } },
+      },
+      propsData: {
+        graphOptions: { graphType: "line", logYScale: false, multiAxis: false },
+        resultLayout: "tabs",
+        seriesSearchTerm: "",
+        tab: "graphTab",
+      },
+    });
+    const vm = wrapper.vm as any;
+
+    Object.defineProperty(document.getElementById("graph-stage"), "clientHeight", {
+      configurable: true,
+      value: 320,
+    });
+
+    vm.initChart();
+
+    const chart = vi.mocked(bb.generate).mock.results.at(-1)?.value;
+    expect(chart.resize).toHaveBeenLastCalledWith({ height: 390 });
   });
 });
