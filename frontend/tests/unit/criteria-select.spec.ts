@@ -100,6 +100,90 @@ describe("CriteriaSelect", () => {
     expect(vm.rawSelected[1].component).toBeTruthy();
   });
 
+  it("restores cached null-check operations when a later selection drops them", async () => {
+    const wrapper = mountCriteriaSelect({
+      domain: {
+        display_name: "Domain",
+        name: "domain",
+        type: "varchar",
+      },
+      date: {
+        display_name: "Date",
+        name: "date",
+        type: "date",
+      },
+    });
+    const vm = wrapper.vm as any;
+    const domainOption = vm.options[0].groupValues.find((option) => option.name === "domain");
+    const dateOption = vm.options[0].groupValues.find((option) => option.name === "date");
+
+    vm.rawSelected = [domainOption];
+    vm.normalizeSelectedRows();
+    vm.updateOperation(vm.rawSelected[0], "is not null");
+    await Vue.nextTick();
+
+    const domainCriteria = Object.assign({}, vm.rawSelected[0], {
+      operation: null,
+      component: null,
+    });
+    const normalizedRows = vm.normalizeSelectedRows([domainCriteria, dateOption]);
+
+    expect(normalizedRows).toHaveLength(2);
+    const normalizedDomainCriteria = normalizedRows.find((row) => row.name === "domain");
+    const normalizedDateCriteria = normalizedRows.find((row) => row.name === "date");
+
+    expect(normalizedDomainCriteria).toEqual(
+      expect.objectContaining({
+        name: "domain",
+        operation: "is not null",
+        component: null,
+      })
+    );
+    expect(normalizedDateCriteria).toEqual(
+      expect.objectContaining({
+        name: "date",
+        operation: "between",
+      })
+    );
+  });
+
+  it("preserves paused criteria rows when later normalization restores cached state", () => {
+    const wrapper = mountCriteriaSelect({
+      domain: {
+        display_name: "Domain",
+        name: "domain",
+        type: "varchar",
+      },
+      date: {
+        display_name: "Date",
+        name: "date",
+        type: "date",
+      },
+    });
+    const vm = wrapper.vm as any;
+    const domainOption = vm.options[0].groupValues.find((option) => option.name === "domain");
+    const dateOption = vm.options[0].groupValues.find((option) => option.name === "date");
+
+    vm.rawSelected = [domainOption];
+    vm.normalizeSelectedRows();
+    vm.doPause(vm.rawSelected[0]);
+
+    const domainCriteria = Object.assign({}, vm.rawSelected[0], {
+      active: true,
+      operation: null,
+      component: null,
+    });
+    const normalizedRows = vm.normalizeSelectedRows([domainCriteria, dateOption]);
+    const normalizedDomainCriteria = normalizedRows.find((row) => row.name === "domain");
+
+    expect(normalizedDomainCriteria).toEqual(
+      expect.objectContaining({
+        name: "domain",
+        active: false,
+      })
+    );
+  });
+
   it("uses shortcut-aware components for day_name and day_of_month fields", () => {
     const wrapper = mountCriteriaSelect({
       day_name: {

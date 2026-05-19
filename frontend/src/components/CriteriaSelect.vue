@@ -140,6 +140,7 @@ export default class CriteriaSelect extends BaseSelect {
   @Prop({ default: 200 }) optionsLimit!: number;
 
   private selectionKeyCount: number = 0;
+  private selectedRowStateByKey: Record<string, any> = {};
 
   get multiSelectProps(): any {
     return {
@@ -220,6 +221,7 @@ export default class CriteriaSelect extends BaseSelect {
         // Try to reuse the value if the new component can handle it
         option.value = (option as any).component.ensureOptionValue(option.value);
       }
+      this.cacheSelectedRowState();
     }
   }
 
@@ -307,9 +309,20 @@ export default class CriteriaSelect extends BaseSelect {
     });
   }
 
-  normalizeSelectedRows(selectedRows = (this.rawSelected || []) as any[]) {
+  private cacheSelectedRowState(selectedRows: any[] = (this.rawSelected || []) as any[]) {
+    const cachedRows: Record<string, any> = {};
+    for (const row of selectedRows) {
+      if (!row?.selection_key || row.selection_key === this.getBaseSelectionKey(row.name)) {
+        continue;
+      }
+      cachedRows[row.selection_key] = Object.assign({}, row);
+    }
+    this.selectedRowStateByKey = cachedRows;
+  }
+
+  normalizeSelectedRows(selectedRows: any[] = (this.rawSelected || []) as any[]) {
     let didChange = false;
-    const normalizedRows = selectedRows.map((selected) => {
+    const normalizedRows: any[] = selectedRows.map((selected) => {
       if (!selected) {
         return selected;
       }
@@ -320,7 +333,24 @@ export default class CriteriaSelect extends BaseSelect {
         didChange = true;
       }
 
-      if (row.component == null) {
+      const cachedRow = this.selectedRowStateByKey[row.selection_key];
+      const shouldRestoreCachedState =
+        !!cachedRow &&
+        (row.active !== cachedRow.active ||
+          row.component !== cachedRow.component ||
+          row.operation !== cachedRow.operation ||
+          row.value !== cachedRow.value);
+      if (shouldRestoreCachedState) {
+        row = Object.assign({}, row, {
+          active: cachedRow.active,
+          component: cachedRow.component,
+          operation: cachedRow.operation,
+          value: cachedRow.value,
+        });
+        didChange = true;
+      }
+
+      if (row.component == null && !row.operation) {
         this.initComponent(row, null);
         didChange = true;
       }
@@ -332,6 +362,8 @@ export default class CriteriaSelect extends BaseSelect {
       this.rawSelected = normalizedRows;
     }
 
+    this.cacheSelectedRowState(normalizedRows);
+
     return normalizedRows;
   }
 
@@ -342,9 +374,16 @@ export default class CriteriaSelect extends BaseSelect {
     });
   }
 
+  doPause(option) {
+    this.clearUnsupportedGrainMetrics();
+    option.active = !option.active;
+    this.cacheSelectedRowState();
+  }
+
   updateCriteriaValue(option, value) {
     this.clearUnsupportedGrainMetrics();
     option.value = value;
+    this.cacheSelectedRowState();
   }
 
   get options() {
@@ -430,6 +469,7 @@ export default class CriteriaSelect extends BaseSelect {
   set selected(criteriaList) {
     this.clearUnsupportedGrainMetrics();
     this.rawSelected = [];
+    this.selectedRowStateByKey = {};
     if (!criteriaList) {
       return;
     }
@@ -469,6 +509,8 @@ export default class CriteriaSelect extends BaseSelect {
       }
       this.rawSelected.push(option);
     }
+
+    this.cacheSelectedRowState();
   }
 
   handleFocus(e) {
