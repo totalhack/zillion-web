@@ -14,6 +14,7 @@ import {
 } from "./utils";
 
 type WarehouseFieldMap = Record<string, any>;
+type RequestField = string | Record<string, any>;
 type MetricRequest = string | Record<string, any>;
 type ExecutableReportRequest = IReportRequest & { meta?: Record<string, any> };
 type RowObject = Record<string, any>;
@@ -85,9 +86,7 @@ function getFieldType(field: any) {
     }
     return "string";
   }
-  return String(field.type)
-    .split("(")[0]
-    .toLowerCase();
+  return String(field.type).split("(")[0].toLowerCase();
 }
 
 function getDateFormat(fieldType: "date" | "datetime") {
@@ -141,28 +140,13 @@ function resolveRangeShortcut(value: string, fieldType: "date" | "datetime"): [s
     case "last 30 days":
       return [getNDaysAgo(30, fieldType), getNDaysAgoEnd(1, fieldType)];
     case "this week":
-      return [
-        moment()
-          .startOf("isoWeek")
-          .format(getDateFormat(fieldType)),
-        getDateEndOf("day", fieldType),
-      ];
+      return [moment().startOf("isoWeek").format(getDateFormat(fieldType)), getDateEndOf("day", fieldType)];
     case "this month":
-      return [
-        moment()
-          .startOf("month")
-          .format(getDateFormat(fieldType)),
-        getDateEndOf("day", fieldType),
-      ];
+      return [moment().startOf("month").format(getDateFormat(fieldType)), getDateEndOf("day", fieldType)];
     case "last month":
       return [getLastMonthStart(fieldType), getLastMonthEnd(fieldType)];
     case "this year":
-      return [
-        moment()
-          .startOf("year")
-          .format(getDateFormat(fieldType)),
-        getDateEndOf("day", fieldType),
-      ];
+      return [moment().startOf("year").format(getDateFormat(fieldType)), getDateEndOf("day", fieldType)];
     case "last 10 minutes":
       if (fieldType === "datetime") {
         return [getNMinutesAgo(10, fieldType), getNMinutesAgo(0, fieldType)];
@@ -199,10 +183,7 @@ function resolveCriterionRange(candidate: IChunkCriterionCandidate) {
     }
 
     const impliedExclusiveEnd = parseMomentBoundary(getTomorrow(candidate.fieldType), candidate.fieldType);
-    const inclusiveEnd = impliedExclusiveEnd
-      .clone()
-      .subtract(1, "day")
-      .startOf("day");
+    const inclusiveEnd = impliedExclusiveEnd.clone().subtract(1, "day").startOf("day");
     return [
       start.format(getDateFormat(candidate.fieldType)),
       inclusiveEnd.format(getDateFormat(candidate.fieldType)),
@@ -265,6 +246,34 @@ function getMetricName(metric: MetricRequest) {
     return metric;
   }
   return typeof metric?.name === "string" ? metric.name : null;
+}
+
+function getRequestFieldName(field: RequestField) {
+  if (typeof field === "string") {
+    return field;
+  }
+  return typeof field?.name === "string" ? field.name : null;
+}
+
+function resolveRequestFieldDisplayName(
+  field: RequestField,
+  displayNameMap: Record<string, any>,
+  fieldsByName: WarehouseFieldMap
+) {
+  const fieldName = getRequestFieldName(field);
+  if (!fieldName) {
+    return typeof field === "string" ? field : field?.display_name || String(field);
+  }
+
+  if (displayNameMap[fieldName]) {
+    return displayNameMap[fieldName];
+  }
+
+  if (typeof field !== "string" && typeof field.display_name === "string") {
+    return field.display_name;
+  }
+
+  return fieldsByName[fieldName]?.display_name || fieldName;
 }
 
 function getMetricAggregation(metric: MetricRequest, metricsByName: WarehouseFieldMap) {
@@ -886,8 +895,8 @@ export function mergeChunkedReportResults(
     return Object.assign(merged, result?.display_name_map || {});
   }, {} as Record<string, any>);
   const effectiveRequest = buildEffectiveChunkedRequest(request);
-  const dimensionDisplayColumns = (effectiveRequest.dimensions || []).map((dimensionName) => {
-    return displayNameMap[dimensionName] || dimensionsByName[dimensionName]?.display_name || dimensionName;
+  const dimensionDisplayColumns = (effectiveRequest.dimensions || []).map((dimension) => {
+    return resolveRequestFieldDisplayName(dimension as RequestField, displayNameMap, dimensionsByName);
   });
   const metricInfos = createMetricInfos(effectiveRequest, metricsByName, displayNameMap, hiddenWeightMetricNames);
   const rowAccumulators = new Map<string, IRowAccumulator>();

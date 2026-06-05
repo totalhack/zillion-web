@@ -222,4 +222,160 @@ describe("reportWindowing", () => {
     expect(totalsRow[1]).toBe(65);
     expect(totalsRow[2]).toBe(0.24);
   });
+
+  it("preserves ad hoc dimensions when merging chunked rows", () => {
+    const request = {
+      criteria: [["debut_date", "between", ["2024-01-01", "2024-01-02"]]],
+      dimensions: [
+        {
+          display_name: "Franchise Alias",
+          formula: "{franchise_name}",
+          name: "franchise_alias",
+        },
+        "debut_date",
+      ],
+      limit: 50000,
+      limit_first: false,
+      meta: {
+        windowing: { size: 1 },
+      },
+      metrics: ["hits"],
+      order_by: [
+        ["franchise_alias", "asc"],
+        ["debut_date", "asc"],
+      ],
+      row_filters: [],
+    };
+
+    const plan = buildChunkExecutionPlan(request as any, dimensionsByName as any);
+
+    const merged = mergeChunkedReportResults(
+      [
+        {
+          columns: ["Franchise Alias", "Debut Date", "H"],
+          data: [
+            ["Boston Red Sox", "2024-01-01", 30],
+            ["Chicago Cubs", "2024-01-01", 10],
+          ],
+          display_name_map: {
+            debut_date: "Debut Date",
+            franchise_alias: "Franchise Alias",
+            hits: "H",
+          },
+          duration: 1,
+          is_partial: false,
+          query_summaries: ["Backend window 2024-01-01"],
+          rollup_marker: "__ROLLUP__",
+          unsupported_grain_metrics: {},
+        },
+        {
+          columns: ["Franchise Alias", "Debut Date", "H"],
+          data: [
+            ["Boston Red Sox", "2024-01-02", 20],
+            ["Chicago Cubs", "2024-01-02", 5],
+          ],
+          display_name_map: {
+            debut_date: "Debut Date",
+            franchise_alias: "Franchise Alias",
+            hits: "H",
+          },
+          duration: 1.5,
+          is_partial: false,
+          query_summaries: ["Backend window 2024-01-02"],
+          rollup_marker: "__ROLLUP__",
+          unsupported_grain_metrics: {},
+        },
+      ] as any,
+      request as any,
+      metricsByName as any,
+      dimensionsByName as any,
+      plan as any
+    );
+
+    expect(merged.reportResult.columns).toEqual(["Franchise Alias", "Debut Date", "H"]);
+    expect(merged.reportResult.data).toEqual([
+      ["Boston Red Sox", "2024-01-01", 30],
+      ["Boston Red Sox", "2024-01-02", 20],
+      ["Chicago Cubs", "2024-01-01", 10],
+      ["Chicago Cubs", "2024-01-02", 5],
+    ]);
+  });
+
+  it("preserves ad hoc dimensions when chunking across windows without the date dimension in output", () => {
+    const request = {
+      criteria: [["debut_date", "between", ["2024-01-01", "2024-01-03"]]],
+      dimensions: [
+        {
+          display_name: "Player Alias",
+          formula: "{player_id}",
+          name: "player_alias",
+        },
+      ],
+      limit: 50000,
+      limit_first: false,
+      meta: {
+        windowing: { size: 1 },
+      },
+      metrics: ["hits"],
+      order_by: [],
+      row_filters: [],
+    };
+
+    const plan = buildChunkExecutionPlan(request as any, dimensionsByName as any);
+
+    const merged = mergeChunkedReportResults(
+      [
+        {
+          columns: ["Player Alias", "H"],
+          data: [["troutmi01", 163]],
+          display_name_map: {
+            hits: "H",
+            player_alias: "Player Alias",
+          },
+          duration: 1,
+          is_partial: false,
+          query_summaries: ["Backend window 2024-01-01"],
+          rollup_marker: "__ROLLUP__",
+          unsupported_grain_metrics: {},
+        },
+        {
+          columns: ["Player Alias", "H"],
+          data: [["judgeaa01", 335]],
+          display_name_map: {
+            hits: "H",
+            player_alias: "Player Alias",
+          },
+          duration: 1.5,
+          is_partial: false,
+          query_summaries: ["Backend window 2024-01-02"],
+          rollup_marker: "__ROLLUP__",
+          unsupported_grain_metrics: {},
+        },
+        {
+          columns: ["Player Alias", "H"],
+          data: [["ohtansh01", 298]],
+          display_name_map: {
+            hits: "H",
+            player_alias: "Player Alias",
+          },
+          duration: 2,
+          is_partial: false,
+          query_summaries: ["Backend window 2024-01-03"],
+          rollup_marker: "__ROLLUP__",
+          unsupported_grain_metrics: {},
+        },
+      ] as any,
+      request as any,
+      metricsByName as any,
+      dimensionsByName as any,
+      plan as any
+    );
+
+    expect(merged.reportResult.columns).toEqual(["Player Alias", "H"]);
+    expect(merged.reportResult.data).toEqual([
+      ["troutmi01", 163],
+      ["judgeaa01", 335],
+      ["ohtansh01", 298],
+    ]);
+  });
 });
