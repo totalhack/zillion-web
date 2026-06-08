@@ -258,6 +258,47 @@ describe("ReportResultGraph", () => {
     expect(legend?.classList.contains("justify-left")).toBe(false);
   });
 
+  it("sets explicit tick values for datetime x axes", async () => {
+    vi.mocked(readDimensions).mockReturnValue({
+      created_at: { name: "created_at", type: "datetime" },
+      hour_of_day: { name: "hour_of_day", type: "integer" },
+    });
+    vi.mocked(readMetrics).mockReturnValue({
+      avg_row_count: { aggregation: "avg", name: "avg_row_count", type: "integer" },
+    });
+    vi.mocked(readReportRequest).mockReturnValue({
+      dimensions: ["hour_of_day", "created_at"],
+      metrics: ["avg_row_count"],
+    } as any);
+    vi.mocked(readReportResult).mockReturnValue({
+      columns: ["Hour Of Day", "Datetime", "Partner Coverage Avg Row Count"],
+      data: [
+        [0, "2026-06-05 00:01:47", 631],
+        [1, "2026-06-05 00:16:32", 631],
+        [2, "2026-06-05 00:31:46", 631],
+      ],
+      display_name_map: {
+        avg_row_count: "Partner Coverage Avg Row Count",
+        created_at: "Datetime",
+        hour_of_day: "Hour Of Day",
+      },
+      duration: 1,
+      is_partial: false,
+      query_summaries: [],
+      rollup_marker: "__ROLLUP__",
+      unsupported_grain_metrics: {},
+    } as any);
+
+    const wrapper = mountGraph();
+    const vm = wrapper.vm as any;
+
+    expect(vm.xOptions.tick.values).toEqual([
+      "2026-06-05 00:01:47",
+      "2026-06-05 00:16:32",
+      "2026-06-05 00:31:46",
+    ]);
+  });
+
   it("keeps tab layout chart height constrained to the graph stage", () => {
     vi.mocked(readReportRequest).mockReturnValue({
       dimensions: ["debut_date"],

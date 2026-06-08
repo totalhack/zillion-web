@@ -65,6 +65,7 @@ import ContextMenu from "./ContextMenu.vue";
 })
 export default class ReportResultTable extends Mixins(ReportManagerMixin) {
   @Prop({ default: false }) showNormalizedValues!: boolean;
+  @Prop({ default: null }) normalizeMode!: string | null;
 
   filters = {};
 
@@ -72,17 +73,26 @@ export default class ReportResultTable extends Mixins(ReportManagerMixin) {
 
   @Watch("reportResult")
   onReportResultChanged() {
-    if (this.showNormalizedValues) {
-      this.$emit("update:showNormalizedValues", false);
+    if (this.activeNormalizeMode) {
+      this.resetNormalization();
     }
   }
 
-  @Watch("canNormalize", { immediate: true })
-  onCanNormalizeChanged(value: boolean) {
-    this.$emit("normalize-availability-change", value);
+  @Watch("normalizationAvailabilityKey", { immediate: true })
+  onNormalizationAvailabilityChanged() {
+    this.$emit("normalize-availability-change", this.normalizationAvailability);
 
-    if (!value && this.showNormalizedValues) {
+    if (this.activeNormalizeMode && !this.isNormalizeModeAvailable(this.activeNormalizeMode)) {
+      this.resetNormalization();
+    }
+  }
+
+  resetNormalization() {
+    if (this.showNormalizedValues) {
       this.$emit("update:showNormalizedValues", false);
+    }
+    if (this.normalizeMode) {
+      this.$emit("update:normalizeMode", null);
     }
   }
 
@@ -267,16 +277,77 @@ export default class ReportResultTable extends Mixins(ReportManagerMixin) {
     return null;
   }
 
+  get hasNormalizationMetrics() {
+    return !!this.reportRequest?.rollup && Object.keys(this.metricNormalizationModeByDisplayName).length > 0;
+  }
+
   get canNormalize() {
-    return (
-      !!this.reportRequest?.rollup &&
-      !!this.totalsRollupRow &&
-      Object.keys(this.metricNormalizationModeByDisplayName).length > 0
-    );
+    return this.canNormalizeTotal || this.canNormalizeByGroup;
+  }
+
+  get canNormalizeTotal() {
+    return this.hasNormalizationMetrics && !!this.totalsRollupRow;
+  }
+
+  get rollupRowsByDimensionKey() {
+    const result = new Map();
+
+    for (const row of this.reportData) {
+      if (!row._isRollup) {
+        continue;
+      }
+      result.set(this.getDimensionKey(row), row);
+    }
+
+    return result;
+  }
+
+  get canNormalizeByGroup() {
+    if (!this.hasNormalizationMetrics || this.reportDimensionsDisplay.length < 2) {
+      return false;
+    }
+
+    return this.reportData.some((row) => {
+      if (this.isTotalsRollupRow(row)) {
+        return false;
+      }
+
+      return !!this.getGroupNormalizationRow(row);
+    });
+  }
+
+  get activeNormalizeMode() {
+    const requestedMode = this.normalizeMode || (this.showNormalizedValues ? "total" : null);
+    if (!requestedMode) {
+      return null;
+    }
+
+    return this.isNormalizeModeAvailable(requestedMode) ? requestedMode : null;
+  }
+
+  get normalizationAvailability() {
+    return {
+      total: this.canNormalizeTotal,
+      group: this.canNormalizeByGroup,
+    };
+  }
+
+  get normalizationAvailabilityKey() {
+    return JSON.stringify(this.normalizationAvailability);
+  }
+
+  isNormalizeModeAvailable(mode) {
+    if (mode === "group") {
+      return this.canNormalizeByGroup;
+    }
+    if (mode === "total") {
+      return this.canNormalizeTotal;
+    }
+    return false;
   }
 
   get displayReportData() {
-    if (!this.showNormalizedValues || !this.canNormalize) {
+    if (!this.activeNormalizeMode) {
       return this.reportData;
     }
     return this.reportData.map((row) => this.getNormalizedRow(row));
@@ -310,7 +381,7 @@ export default class ReportResultTable extends Mixins(ReportManagerMixin) {
   }
 
   getCellDisplayValue(column, value, row = null) {
-    if (!this.isColumnNormalized(column) || this.isTotalsRollupRow(row)) {
+    if (!this.shouldFormatNormalizedValue(column, row)) {
       return value;
     }
     return this.formatNormalizedValue(value);
@@ -487,7 +558,7 @@ export default class ReportResultTable extends Mixins(ReportManagerMixin) {
   }
 
   isColumnNormalized(column) {
-    return this.showNormalizedValues && this.canNormalize && column in this.metricNormalizationModeByDisplayName;
+    return !!this.activeNormalizeMode && column in this.metricNormalizationModeByDisplayName;
   }
 
   getFilterValue(column, value) {
@@ -498,25 +569,25 @@ export default class ReportResultTable extends Mixins(ReportManagerMixin) {
   }
 
   getNormalizedRow(row) {
-    if (this.isTotalsRollupRow(row)) {
+    if (!this.hasNormalizationDenominator(row)) {
       return Object.assign({}, row);
     }
 
     const normalizedRow = Object.assign({}, row);
     for (const column of Object.keys(this.metricNormalizationModeByDisplayName)) {
-      normalizedRow[column] = this.normalizeMetricPercent(column, row[column]);
+      normalizedRow[column] = this.normalizeMetricPercent(column, row[column], row);
     }
     return normalizedRow;
   }
 
-  normalizeMetricPercent(column, value) {
-    const totalsRow = this.totalsRollupRow;
-    if (!totalsRow) {
+  normalizeMetricPercent(column, value, row) {
+    const denominatorRow = this.getNormalizationDenominatorRow(row);
+    if (!denominatorRow) {
       return value;
     }
 
     const numerator = Number(value);
-    const denominator = Number(totalsRow[column]);
+    const denominator = Number(denominatorRow[column]);
 
     if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) {
       return null;
@@ -539,15 +610,99 @@ export default class ReportResultTable extends Mixins(ReportManagerMixin) {
   }
 
   getExportRow(row) {
-    if (!this.showNormalizedValues || !this.canNormalize || this.isTotalsRollupRow(row)) {
+    if (!this.activeNormalizeMode) {
       return row;
     }
 
     const exportRow = Object.assign({}, row);
     for (const column of Object.keys(this.metricNormalizationModeByDisplayName)) {
-      exportRow[column] = this.formatNormalizedValue(exportRow[column]);
+      if (this.shouldFormatNormalizedValue(column, row)) {
+        exportRow[column] = this.formatNormalizedValue(exportRow[column]);
+      }
     }
     return exportRow;
+  }
+
+  shouldFormatNormalizedValue(column, row) {
+    if (!this.isColumnNormalized(column)) {
+      return false;
+    }
+
+    if (!row) {
+      return true;
+    }
+
+    return this.hasNormalizationDenominator(row);
+  }
+
+  hasNormalizationDenominator(row) {
+    return !!this.getNormalizationDenominatorRow(row);
+  }
+
+  getNormalizationDenominatorRow(row) {
+    if (!row) {
+      return null;
+    }
+
+    if (this.activeNormalizeMode === "group") {
+      return this.getGroupNormalizationRow(row);
+    }
+
+    if (this.activeNormalizeMode === "total" && !this.isTotalsRollupRow(row)) {
+      return this.totalsRollupRow;
+    }
+
+    return null;
+  }
+
+  getGroupNormalizationRow(row) {
+    if (!row || this.isTotalsRollupRow(row)) {
+      return null;
+    }
+
+    for (const parentKey of this.getAncestorRollupDimensionKeys(row)) {
+      const parentRow = this.rollupRowsByDimensionKey.get(parentKey);
+      if (parentRow) {
+        return parentRow;
+      }
+    }
+
+    return null;
+  }
+
+  getAncestorRollupDimensionKeys(row) {
+    const dimensions = this.reportDimensionsDisplay;
+    let lastConcreteIndex = -1;
+
+    for (let index = dimensions.length - 1; index >= 0; index -= 1) {
+      if (row[dimensions[index]] !== this.rollupMarker) {
+        lastConcreteIndex = index;
+        break;
+      }
+    }
+
+    if (lastConcreteIndex < 0) {
+      return [];
+    }
+
+    const ancestorKeys: string[] = [];
+
+    for (let ancestorIndex = lastConcreteIndex; ancestorIndex >= 0; ancestorIndex -= 1) {
+      const parentValues = dimensions.map((column, index) => {
+        if (index < ancestorIndex) {
+          return row[column];
+        }
+        return this.rollupMarker;
+      });
+
+      ancestorKeys.push(JSON.stringify(parentValues));
+    }
+
+    return ancestorKeys;
+  }
+
+  getDimensionKey(row) {
+    return JSON.stringify(this.reportDimensionsDisplay.map((column) => row[column]));
   }
 
   isTotalsRollupRow(row) {

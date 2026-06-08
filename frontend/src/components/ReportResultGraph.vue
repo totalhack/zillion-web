@@ -384,6 +384,10 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     return [];
   }
 
+  get chartDataXDimValues() {
+    return this.chartDataXDimColumn.slice(1);
+  }
+
   get chartDataMetricBuckets() {
     return (this.chartData as any).metricBuckets;
   }
@@ -458,6 +462,34 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
     return this.multiAxis && metrics.length > 1;
   }
 
+  get maxVisibleXAxisTickCount() {
+    return this.$vuetify.breakpoint.mobile ? 20 : 100;
+  }
+
+  get timeseriesTickValues() {
+    const xValues = this.chartDataXDimValues;
+    const maxTickCount = this.maxVisibleXAxisTickCount;
+
+    if (xValues.length <= maxTickCount) {
+      return xValues;
+    }
+
+    const tickValues: any[] = [];
+    const lastIndex = xValues.length - 1;
+    const step = lastIndex / (maxTickCount - 1);
+
+    for (let index = 0; index < maxTickCount; index += 1) {
+      const valueIndex = Math.min(lastIndex, Math.round(index * step));
+      const value = xValues[valueIndex];
+
+      if (tickValues[tickValues.length - 1] !== value) {
+        tickValues.push(value);
+      }
+    }
+
+    return tickValues;
+  }
+
   get xOptions() {
     if (!this.xDim) {
       return {};
@@ -493,6 +525,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
             multiline: false,
             format: "%Y-%m-%d",
             rotate: 60,
+            values: this.timeseriesTickValues,
             culling: {
               max: this.$vuetify.breakpoint.mobile ? 20 : 100,
             },
@@ -509,6 +542,7 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
             multiline: false,
             format: "%Y-%m-%d %H:%M:%S",
             rotate: 60,
+            values: this.timeseriesTickValues,
             culling: {
               max: this.$vuetify.breakpoint.mobile ? 20 : 100,
             },

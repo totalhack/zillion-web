@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/components/ReportResultTable.vue", () => ({
   default: {
     name: "ReportResultTable",
-    props: ["showNormalizedValues"],
+    props: ["normalizeMode"],
     template: '<div class="report-result-table-stub"></div>',
   },
 }));
@@ -17,7 +17,7 @@ function mountCard(propsData = {}) {
       showTitle: true,
       ...propsData,
     },
-    stubs: ["v-card", "v-card-subtitle", "v-switch"],
+    stubs: ["normalize-mode-select", "v-card", "v-card-subtitle"],
   });
 }
 
@@ -26,10 +26,10 @@ describe("ReportResultTableCard", () => {
     const wrapper = mountCard();
     const table = wrapper.findComponent({ name: "ReportResultTable" });
 
-    table.vm.$emit("normalize-availability-change", true);
+    table.vm.$emit("normalize-availability-change", { total: true, group: true });
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.find('[data-cy="normalizeToggle"]').exists()).toBe(true);
+    expect(wrapper.find('[data-cy="normalizeModeSelect"]').exists()).toBe(true);
     expect(wrapper.text()).toContain("Report Data");
   });
 
@@ -37,11 +37,25 @@ describe("ReportResultTableCard", () => {
     const wrapper = mountCard();
     const table = wrapper.findComponent({ name: "ReportResultTable" });
 
-    table.vm.$emit("normalize-availability-change", true);
+    table.vm.$emit("normalize-availability-change", { total: true, group: true });
     await wrapper.vm.$nextTick();
-    table.vm.$emit("normalize-availability-change", false);
+    table.vm.$emit("normalize-availability-change", { total: false, group: false });
     await wrapper.vm.$nextTick();
 
-    expect(wrapper.find('[data-cy="normalizeToggle"]').exists()).toBe(false);
+    expect(wrapper.find('[data-cy="normalizeModeSelect"]').exists()).toBe(false);
+  });
+
+  it("falls back to totals mode when group normalization becomes unavailable", async () => {
+    const wrapper = mountCard();
+    const table = wrapper.findComponent({ name: "ReportResultTable" });
+
+    table.vm.$emit("normalize-availability-change", { total: true, group: true });
+    await wrapper.vm.$nextTick();
+    (wrapper.vm as any).normalizeMode = "group";
+
+    table.vm.$emit("normalize-availability-change", { total: true, group: false });
+    await wrapper.vm.$nextTick();
+
+    expect((wrapper.vm as any).normalizeMode).toBe("total");
   });
 });

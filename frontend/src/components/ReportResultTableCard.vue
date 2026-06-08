@@ -2,17 +2,18 @@
   <v-card class="report-result-table-card">
     <v-card-subtitle v-if="showTitle || canNormalize" class="pt-3 pb-1 report-result-table-card__header">
       <span v-if="showTitle" class="text-subtitle-2">Report Data</span>
-      <v-switch
+      <div
         v-if="canNormalize"
-        v-model="showNormalizedValues"
-        class="report-result-table-card__normalize-toggle mt-0 pt-0"
-        color="grey darken-3"
-        data-cy="normalizeToggle"
-        dense
-        hide-details
-        inset
-        label="Normalize"
-      ></v-switch>
+        class="report-result-table-card__normalize-control mt-0 pt-0"
+        data-cy="normalizeModeSelect"
+      >
+        <span class="text-subtitle-2 report-result-table-card__normalize-label">Normalize</span>
+        <normalize-mode-select
+          v-model="normalizeMode"
+          :allow-total="normalizeAvailability.total"
+          :allow-group="normalizeAvailability.group"
+        ></normalize-mode-select>
+      </div>
     </v-card-subtitle>
     <report-result-table
       @addPartitionFromDimension="addPartitionFromDimension"
@@ -21,7 +22,7 @@
       @setAbControlFromDimension="setAbControlFromDimension"
       @setAbVariantFromDimension="setAbVariantFromDimension"
       class="pt-2 px-2"
-      :show-normalized-values.sync="showNormalizedValues"
+      :normalize-mode.sync="normalizeMode"
       ref="reportResultTable"
     >
     </report-result-table>
@@ -30,22 +31,50 @@
 
 <script lang="ts">
 import { Component, Prop, Vue } from "vue-property-decorator";
+import NormalizeModeSelect from "@/components/NormalizeModeSelect.vue";
 import ReportResultTable from "@/components/ReportResultTable.vue";
 
 @Component({
-  components: { ReportResultTable },
+  components: { NormalizeModeSelect, ReportResultTable },
 })
 export default class ReportResultTableCard extends Vue {
   @Prop({ default: true }) showTitle!: boolean;
 
-  private canNormalize = false;
-  private showNormalizedValues = false;
+  private normalizeAvailability = {
+    total: false,
+    group: false,
+  };
+  private normalizeMode: string | null = null;
+
+  get canNormalize() {
+    return this.normalizeAvailability.total || this.normalizeAvailability.group;
+  }
 
   updateNormalizeAvailability(value: boolean) {
-    this.canNormalize = !!value;
+    const nextAvailability =
+      value && typeof value === "object"
+        ? {
+            total: !!(value as any).total,
+            group: !!(value as any).group,
+          }
+        : {
+            total: !!value,
+            group: false,
+          };
+
+    this.normalizeAvailability = nextAvailability;
 
     if (!this.canNormalize) {
-      this.showNormalizedValues = false;
+      this.normalizeMode = null;
+      return;
+    }
+
+    if (this.normalizeMode === "group" && !this.normalizeAvailability.group) {
+      this.normalizeMode = this.normalizeAvailability.total ? "total" : null;
+    }
+
+    if (this.normalizeMode === "total" && !this.normalizeAvailability.total) {
+      this.normalizeMode = null;
     }
   }
 
@@ -87,10 +116,14 @@ export default class ReportResultTableCard extends Vue {
   gap: 8px 16px;
 }
 
-@media (max-width: 959px) {
-  .report-result-table-card__header {
-    align-items: flex-start;
-    justify-content: flex-start;
-  }
+.report-result-table-card__normalize-control {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.report-result-table-card__normalize-label {
+  margin: 0;
 }
 </style>

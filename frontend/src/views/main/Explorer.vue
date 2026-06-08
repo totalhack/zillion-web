@@ -97,7 +97,7 @@
                   class="mt-1 pt-1 mb-0 pb-0"
                   ref="rollup"
                   data-cy="rollup"
-                  :max-depth="selectedDimensions.length"
+                  :max-depth="selectedDimensionCount"
                 ></rollup-select>
               </div>
             </v-col>
@@ -113,9 +113,7 @@
               <div class="mx-1 px-1 mt-1 pt-1 mb-0 pb-0">
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on, attrs }">
-                    <p v-bind="attrs" v-on="on" class="text-subtitle-2 option-select-title">
-                      Limit First
-                    </p>
+                    <p v-bind="attrs" v-on="on" class="text-subtitle-2 option-select-title">Limit First</p>
                   </template>
                   <span>Apply limits and row filters before rollups/ordering</span>
                 </v-tooltip>
@@ -134,9 +132,7 @@
               <div class="mx-1 px-1 mt-1 pt-1 mb-0 pb-0">
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on, attrs }">
-                    <p v-bind="attrs" v-on="on" class="text-subtitle-2 option-select-title">
-                      Window Size
-                    </p>
+                    <p v-bind="attrs" v-on="on" class="text-subtitle-2 option-select-title">Window Size</p>
                   </template>
                   <span
                     >Chunk the report execution in windows of this size. Date ranges use day-sized chunks, datetime
@@ -161,9 +157,7 @@
               <div class="mx-1 px-1 mt-1 pt-1 mb-0 pb-0">
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on, attrs }">
-                    <p v-bind="attrs" v-on="on" class="text-subtitle-2 option-select-title">
-                      Row Filters
-                    </p>
+                    <p v-bind="attrs" v-on="on" class="text-subtitle-2 option-select-title">Row Filters</p>
                   </template>
                   <span>Metric value filters applied on the final result</span>
                 </v-tooltip>
@@ -219,9 +213,7 @@
               <div class="mx-1 px-1 my-0 py-0">
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on, attrs }">
-                    <p v-bind="attrs" v-on="on" class="text-subtitle-2 option-select-title">
-                      Multi-axis
-                    </p>
+                    <p v-bind="attrs" v-on="on" class="text-subtitle-2 option-select-title">Multi-axis</p>
                   </template>
                   <span>Graph right half of metrics list on a secondary Y axis</span>
                 </v-tooltip>
@@ -702,6 +694,15 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
       fields.push(dim);
     }
     return fields;
+  }
+
+  get selectedDimensionCount() {
+    if (!this.isMounted) {
+      return 0;
+    }
+
+    const dims = (this.$refs.dimensions as any).selected;
+    return Array.isArray(dims) ? dims.length : 0;
   }
 
   get selectedFields() {
