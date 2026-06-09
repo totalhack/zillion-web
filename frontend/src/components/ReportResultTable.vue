@@ -381,10 +381,10 @@ export default class ReportResultTable extends Mixins(ReportManagerMixin) {
   }
 
   getCellDisplayValue(column, value, row = null) {
-    if (!this.shouldFormatNormalizedValue(column, row)) {
+    if (!this.shouldFormatPercentValue(column, row)) {
       return value;
     }
-    return this.formatNormalizedValue(value);
+    return this.formatPercentValue(value);
   }
 
   get parentHeight() {
@@ -609,18 +609,40 @@ export default class ReportResultTable extends Mixins(ReportManagerMixin) {
     return `${numericValue.toFixed(2)}%`;
   }
 
+  isHistoricalPercentChangeColumn(column) {
+    const rawColumnName = this.reportReverseDisplayNameMap[column];
+    return typeof rawColumnName === "string" && rawColumnName.startsWith("historical_pct_change_");
+  }
+
+  formatPercentValue(value) {
+    return this.formatNormalizedValue(value);
+  }
+
   getExportRow(row) {
-    if (!this.activeNormalizeMode) {
+    if (
+      !this.activeNormalizeMode &&
+      !Object.keys(this.reportReverseDisplayNameMap || {}).some((column) =>
+        this.isHistoricalPercentChangeColumn(column)
+      )
+    ) {
       return row;
     }
 
     const exportRow = Object.assign({}, row);
-    for (const column of Object.keys(this.metricNormalizationModeByDisplayName)) {
-      if (this.shouldFormatNormalizedValue(column, row)) {
-        exportRow[column] = this.formatNormalizedValue(exportRow[column]);
+    for (const column of this.reportColumns) {
+      if (this.shouldFormatPercentValue(column, row)) {
+        exportRow[column] = this.formatPercentValue(exportRow[column]);
       }
     }
     return exportRow;
+  }
+
+  shouldFormatPercentValue(column, row) {
+    if (this.shouldFormatNormalizedValue(column, row)) {
+      return true;
+    }
+
+    return this.isHistoricalPercentChangeColumn(column);
   }
 
   shouldFormatNormalizedValue(column, row) {

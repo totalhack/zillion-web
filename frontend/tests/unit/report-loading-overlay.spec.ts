@@ -45,6 +45,15 @@ describe("ReportLoadingOverlay", () => {
     expect(wrapper.find(".report-loading-overlay__status-detail").text()).toBe("2021-05-01 to 2022-04-30");
   });
 
+  it("renders pulling-historical-period status in a separate detail line", () => {
+    vi.mocked(readExplorerReportState).mockReturnValue("Pulling historical period 2/4: 2021-05-08 to 2021-05-14");
+
+    const wrapper = mountOverlay();
+
+    expect(wrapper.find(".report-loading-overlay__status-label").text()).toBe("Status: Pulling historical period 2/4");
+    expect(wrapper.find(".report-loading-overlay__status-detail").text()).toBe("2021-05-08 to 2021-05-14");
+  });
+
   it("cancels the report and closes the overlay", () => {
     vi.mocked(readExplorerReportState).mockReturnValue("Combining windows...");
     const wrapper = mountOverlay();

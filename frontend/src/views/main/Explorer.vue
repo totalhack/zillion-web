@@ -157,6 +157,74 @@
               <div class="mx-1 px-1 mt-1 pt-1 mb-0 pb-0">
                 <v-tooltip bottom>
                   <template v-slot:activator="{ on, attrs }">
+                    <p v-bind="attrs" v-on="on" class="text-subtitle-2 option-select-title">Historical Comparison</p>
+                  </template>
+                  <span>Compare current results against prior periods of the same report shape.</span>
+                </v-tooltip>
+                <v-row dense class="historical-comparison-controls">
+                  <v-col class="py-1 historical-comparison-control" cols="12" sm="7" md="5" lg="4">
+                    <p class="text-caption option-select-subtitle">Compare Against</p>
+                    <v-select
+                      class="historical-comparison-input"
+                      v-model="historicalComparisonMode"
+                      :items="historicalComparisonModeOptions"
+                      item-text="text"
+                      item-value="value"
+                      data-cy="historicalComparisonMode"
+                      clearable
+                      hide-details="auto"
+                      placeholder="Off"
+                    >
+                      <template v-slot:selection="{ item }">
+                        <span>{{ item.text }}</span>
+                      </template>
+                      <template v-slot:item="{ item }">
+                        <div class="historical-comparison-option">
+                          <div class="historical-comparison-option__title">{{ item.text }}</div>
+                          <div class="historical-comparison-option__help">{{ item.help }}</div>
+                        </div>
+                      </template>
+                    </v-select>
+                  </v-col>
+                  <v-col class="py-1 historical-comparison-control" cols="12" sm="5" md="3" lg="2">
+                    <p class="text-caption option-select-subtitle">Periods</p>
+                    <v-text-field
+                      class="historical-comparison-input historical-comparison-period-input"
+                      v-model="historicalComparisonPeriods"
+                      data-cy="historicalComparisonPeriods"
+                      type="number"
+                      min="1"
+                      inputmode="numeric"
+                      hide-details="auto"
+                      :disabled="!historicalComparisonMode"
+                      placeholder="1"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col class="py-1 historical-comparison-control" cols="12" sm="12" md="4" lg="3">
+                    <v-tooltip bottom>
+                      <template v-slot:activator="{ on, attrs }">
+                        <p v-bind="attrs" v-on="on" class="text-caption option-select-subtitle">Show</p>
+                      </template>
+                      <span>Show either the historical baseline value or the percent change from that baseline.</span>
+                    </v-tooltip>
+                    <v-select
+                      class="historical-comparison-input"
+                      v-model="historicalComparisonValueMode"
+                      :items="historicalComparisonValueModeOptions"
+                      item-text="text"
+                      item-value="value"
+                      data-cy="historicalComparisonValueMode"
+                      hide-details="auto"
+                      :disabled="!historicalComparisonMode"
+                    ></v-select>
+                  </v-col>
+                </v-row>
+              </div>
+            </v-col>
+            <v-col class="py-1" cols="12">
+              <div class="mx-1 px-1 mt-1 pt-1 mb-0 pb-0">
+                <v-tooltip bottom>
+                  <template v-slot:activator="{ on, attrs }">
                     <p v-bind="attrs" v-on="on" class="text-subtitle-2 option-select-title">Row Filters</p>
                   </template>
                   <span>Metric value filters applied on the final result</span>
@@ -436,7 +504,7 @@
 <script lang="ts">
 import { Component, Mixins, Watch, Vue } from "vue-property-decorator";
 import FileSaver from "file-saver";
-import { buildChunkExecutionPlan } from "@/reportWindowing";
+import { buildChunkExecutionPlan, buildHistoricalComparisonPlan } from "@/reportWindowing";
 import {
   getSessionReportRequest,
   saveSessionReportRequest,
@@ -512,6 +580,28 @@ if (process.env.NODE_ENV !== "production") {
 })
 export default class Explorer extends Mixins(ReportManagerMixin) {
   private static readonly reportReadyTitleIndicator = "• ";
+  private historicalComparisonModeOptions = [
+    {
+      text: "Hour",
+      value: "hour",
+      help: "Compare each Hour Of Day row to the same hour in prior weeks. Requires Hour Of Day as a selected dimension.",
+    },
+    {
+      text: "Date",
+      value: "date",
+      help: "Compare each selected date to prior days using contiguous day shifts. Add a date dimension for multi-day ranges.",
+    },
+    { text: "Week", value: "week", help: "Compare selected rows against prior weeks using weekly shifts." },
+    {
+      text: "Day Of Week",
+      value: "day_of_week",
+      help: "Compare each selected weekday to the same weekday in prior weeks. Add a date dimension for multi-day ranges.",
+    },
+  ];
+  private historicalComparisonValueModeOptions = [
+    { text: "Raw Value", value: "absolute" },
+    { text: "% Change", value: "percent_change" },
+  ];
   private supportedGraphTypes: string[] = ["line", "bar", "stackedBar", "normalized", "area", "stackedArea"];
   // https://stackoverflow.com/questions/43531755/using-refs-in-a-computed-property
   private isHydrated: boolean = false;
@@ -534,6 +624,9 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
   ];
   private limitFirst = false;
   private chunkWindowSize: string | number | null = null;
+  private historicalComparisonMode: string | null = null;
+  private historicalComparisonPeriods: string | number = 1;
+  private historicalComparisonValueMode: string = "absolute";
   private graphOptions = {
     graphType: null,
     multiAxis: false,
@@ -752,6 +845,39 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     return parsed;
   }
 
+  get parsedHistoricalComparisonPeriods() {
+    if (!this.historicalComparisonMode) {
+      return null;
+    }
+
+    if (
+      this.historicalComparisonPeriods === null ||
+      this.historicalComparisonPeriods === undefined ||
+      String(this.historicalComparisonPeriods).trim() === ""
+    ) {
+      return null;
+    }
+
+    const parsed =
+      typeof this.historicalComparisonPeriods === "number"
+        ? this.historicalComparisonPeriods
+        : parseInt(String(this.historicalComparisonPeriods), 10);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      return null;
+    }
+
+    return parsed;
+  }
+
+  get historicalComparisonModeHelpText() {
+    const option = this.historicalComparisonModeOptions.find((entry) => entry.value === this.historicalComparisonMode);
+    return option?.help || "";
+  }
+
+  get normalizedHistoricalComparisonValueMode() {
+    return this.historicalComparisonValueMode === "percent_change" ? "percent_change" : "absolute";
+  }
+
   get uiCriteriaSelections() {
     const criteriaRef = this.$refs.criteria as any;
     if (!criteriaRef) {
@@ -783,6 +909,13 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     if (this.parsedChunkWindowSize !== null) {
       meta["windowing"] = { size: this.parsedChunkWindowSize };
     }
+    if (this.historicalComparisonMode) {
+      meta["historicalComparison"] = {
+        mode: this.historicalComparisonMode,
+        periods: this.parsedHistoricalComparisonPeriods ?? this.historicalComparisonPeriods,
+        valueMode: this.normalizedHistoricalComparisonValueMode,
+      };
+    }
     selections["meta"] = meta;
     return selections;
   }
@@ -799,6 +932,40 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     try {
       buildChunkExecutionPlan(
         Object.assign({}, this.reportSelections, { meta: { windowing: { size: this.parsedChunkWindowSize } } }),
+        this.warehouseDimensions as Record<string, any>
+      );
+    } catch (error) {
+      return { valid: false, error: new ValidationError((error as Error).message) };
+    }
+
+    return { valid: true, error: null };
+  }
+
+  validateHistoricalComparison() {
+    if (!this.historicalComparisonMode) {
+      return { valid: true, error: null };
+    }
+
+    if (this.parsedHistoricalComparisonPeriods === null) {
+      return { valid: false, error: new ValidationError("Historical comparison periods must be a positive integer.") };
+    }
+
+    const meta: Record<string, any> = {
+      historicalComparison: {
+        mode: this.historicalComparisonMode,
+        periods: this.parsedHistoricalComparisonPeriods,
+        valueMode: this.normalizedHistoricalComparisonValueMode,
+      },
+    };
+    if (this.parsedChunkWindowSize !== null) {
+      meta.windowing = { size: this.parsedChunkWindowSize };
+    }
+
+    try {
+      buildHistoricalComparisonPlan(
+        Object.assign({}, this.reportSelections, {
+          meta,
+        }),
         this.warehouseDimensions as Record<string, any>
       );
     } catch (error) {
@@ -869,7 +1036,11 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
   }
 
   buildSaveSelections(options, updatedMetricSelections: any[] = []) {
-    const selections = this.selections;
+    const currentSelections = this.selections as Record<string, any>;
+    const selections = {
+      ...currentSelections,
+      meta: { ...(currentSelections.meta || {}) },
+    } as Record<string, any>;
     const metricsRef = this.$refs.metrics as any;
     const createdOptionsGroup = metricsRef?.createdOptionsGroup || "Ad Hoc Metrics";
     const rawMetricsMap = metricsRef?.rawOptionsMap || readMetrics(this.$store) || {};
@@ -1032,6 +1203,10 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
       const chunkWindowingValidation = this.validateChunkWindowing();
       if (!chunkWindowingValidation.valid) {
         return chunkWindowingValidation;
+      }
+      const historicalComparisonValidation = this.validateHistoricalComparison();
+      if (!historicalComparisonValidation.valid) {
+        return historicalComparisonValidation;
       }
     } catch (err) {
       if (err instanceof ValidationError) {
@@ -1322,7 +1497,13 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     console.log("Load:", report);
     await this.$nextTick();
 
+    const deferredSelectors = new Set(["row_filters", "order_by"]);
+
     for (const selector of this.reportSelectors) {
+      if (deferredSelectors.has(selector)) {
+        continue;
+      }
+
       const selectorValue =
         selector === "criteria" && report.meta?.ui_criteria !== undefined ? report.meta.ui_criteria : report[selector];
       if (selectorValue === null || selectorValue === undefined) {
@@ -1332,6 +1513,10 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     }
     this.limitFirst = report["limit_first"];
     this.chunkWindowSize = report.meta?.windowing?.size ?? null;
+    this.historicalComparisonMode = report.meta?.historicalComparison?.mode ?? null;
+    this.historicalComparisonPeriods = report.meta?.historicalComparison?.periods ?? 1;
+    this.historicalComparisonValueMode =
+      report.meta?.historicalComparison?.valueMode === "percent_change" ? "percent_change" : "absolute";
 
     if (report.meta) {
       (this.$refs.reportAbTestDialog as any)?.loadConfig?.(report.meta.abTest || null);
@@ -1347,9 +1532,16 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
       if (report.meta.title) {
         this.reportTitle = report.meta.title;
       }
+
+      await this.restoreDeferredSelectors(report, deferredSelectors);
     } else {
       this.chunkWindowSize = null;
+      this.historicalComparisonMode = null;
+      this.historicalComparisonPeriods = 1;
+      this.historicalComparisonValueMode = "absolute";
       (this.$refs.reportAbTestDialog as any)?.loadConfig?.(null);
+
+      await this.restoreDeferredSelectors(report, deferredSelectors);
     }
 
     if (autorun) {
@@ -1366,6 +1558,44 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     this.pendingAutorun = false;
     await this.$nextTick();
     await this.run();
+  }
+
+  private deferredRowFilterFieldsReady(report) {
+    const rowFilters = Array.isArray(report?.row_filters) ? report.row_filters : [];
+    if (!rowFilters.length) {
+      return true;
+    }
+
+    const selectedMetricNames = new Set(this.selectedMetrics);
+    return rowFilters.every((rowFilter) => selectedMetricNames.has(rowFilter?.[0]));
+  }
+
+  private deferredOrderByFieldsReady(report) {
+    const orderBy = Array.isArray(report?.order_by) ? report.order_by : [];
+    if (!orderBy.length) {
+      return true;
+    }
+
+    const selectedFieldNames = new Set(this.selectedFields);
+    return orderBy.every((orderByValue) => selectedFieldNames.has(orderByValue?.[0]));
+  }
+
+  private async restoreDeferredSelectors(report, deferredSelectors: Set<string>) {
+    for (let attemptsRemaining = 8; attemptsRemaining > 0; attemptsRemaining -= 1) {
+      await this.$nextTick();
+      if (this.deferredRowFilterFieldsReady(report) && this.deferredOrderByFieldsReady(report)) {
+        break;
+      }
+    }
+
+    await this.$nextTick();
+    for (const selector of deferredSelectors) {
+      const selectorValue = report[selector];
+      if (selectorValue === null || selectorValue === undefined) {
+        continue;
+      }
+      (this.$refs[selector] as any).selected = selectorValue;
+    }
   }
 
   async loadReportSpecId(specId, autorun = false) {
@@ -1467,6 +1697,8 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
     this.isHydrated = true;
     await this.$nextTick();
 
+    this.isMounted = true;
+
     if (this.$route.query.warehouse) {
       const warehouseId = parseInt(this.$route.query.warehouse as any, 10);
       const activated = await dispatchSetActiveWarehouseId(this.$store, warehouseId);
@@ -1515,7 +1747,6 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
       this.resultLayout = "wide";
     }
 
-    this.isMounted = true;
     if (this.pendingAutorun) {
       await this.scheduleAutorun();
     }
@@ -1636,9 +1867,75 @@ export default class Explorer extends Mixins(ReportManagerMixin) {
   max-width: 7.5rem;
 }
 
+.option-select-subtitle {
+  color: rgba(0, 0, 0, 0.6);
+  margin-bottom: 0;
+}
+
+.historical-comparison-controls {
+  align-items: flex-start;
+  max-width: 36rem;
+}
+
+.historical-comparison-period-input {
+  max-width: 10rem;
+}
+
+.historical-comparison-input {
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.historical-comparison-option {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.historical-comparison-option__help,
+.historical-comparison-help {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.historical-comparison-option__help {
+  font-size: 0.75rem;
+  white-space: normal;
+}
+
+.historical-comparison-help {
+  margin: 0.25rem 0 0;
+  max-width: 44rem;
+}
+
+@media (min-width: 601px) {
+  .historical-comparison-control + .historical-comparison-control {
+    padding-left: 1.25rem;
+  }
+}
+
 @media (max-width: 600px) {
   .explorer-window-size-input {
     max-width: none;
+  }
+
+  .historical-comparison-controls,
+  .historical-comparison-period-input {
+    max-width: none;
+  }
+
+  .historical-comparison-control {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  .historical-comparison-control + .historical-comparison-control {
+    margin-top: 0.25rem;
+  }
+
+  .option-select-subtitle {
+    margin-bottom: 0.125rem;
   }
 }
 </style>

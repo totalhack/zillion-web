@@ -153,6 +153,37 @@ describe("ReportResultTable", () => {
     expect(vm.getActiveDataString()).toContain('"Boston Red Sox",10,5.25');
   });
 
+  it("formats historical percent change columns with a percent suffix", () => {
+    vi.mocked(readReportRequest).mockReturnValue({
+      dimensions: ["franchise_name"],
+      meta: { historicalComparison: { mode: "date", periods: 2, valueMode: "percent_change" } },
+      metrics: ["hits"],
+    } as any);
+    vi.mocked(readReportResult).mockReturnValue({
+      columns: ["Franchise Name", "H", "H vs Last 2 Same Days"],
+      data: [["Boston Red Sox", 10, 66.67]],
+      display_name_map: {
+        franchise_name: "Franchise Name",
+        hits: "H",
+        historical_pct_change_avg_2_hits: "H vs Last 2 Same Days",
+      },
+      duration: 1,
+      is_partial: false,
+      query_summaries: [],
+      rollup_marker: "__ROLLUP__",
+      unsupported_grain_metrics: {},
+    } as any);
+
+    const wrapper = mountTable();
+    const vm = wrapper.vm as any;
+    const displayRow = vm.displayReportData[0];
+
+    expect(vm.getCellDisplayValue("H vs Last 2 Same Days", displayRow["H vs Last 2 Same Days"], displayRow)).toBe(
+      "66.67%"
+    );
+    expect(vm.getExportRow(displayRow)["H vs Last 2 Same Days"]).toBe("66.67%");
+  });
+
   it("only offers total normalization when a grand-total rollup is present", () => {
     const wrapper = mountTable();
 

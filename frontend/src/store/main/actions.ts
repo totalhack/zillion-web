@@ -2,10 +2,14 @@ import { api } from "@/api";
 import { IReportResult } from "@/interfaces";
 import {
   IChunkExecutionPlan,
+  IHistoricalComparisonPlan,
+  buildHistoricalComparisonPlan,
+  buildHistoricalComparisonRequest,
   buildChunkExecutionPlan,
   buildChunkExecutionRequest,
   buildChunkExecutionWarnings,
   getHiddenWeightMetricNames,
+  mergeHistoricalComparisonReportResults,
   mergeChunkedReportResults,
   stripExecutionRequestMeta,
 } from "@/reportWindowing";
@@ -484,9 +488,11 @@ export const actions = {
       const dimensions = readDimensions(context) as Record<string, any>;
       const metrics = readMetrics(context) as Record<string, any>;
       let chunkPlan: IChunkExecutionPlan | null = null;
+      let historicalComparisonPlan: IHistoricalComparisonPlan | null = null;
 
       try {
         chunkPlan = buildChunkExecutionPlan(payload, dimensions);
+        historicalComparisonPlan = buildHistoricalComparisonPlan(payload, dimensions);
       } catch (error) {
         dispatchAddError(context, (error as Error).message);
         return false;
@@ -494,8 +500,15 @@ export const actions = {
 
       const reportStartedAtMs = performance.now();
 
-      commitSetExplorerReportState(context, chunkPlan ? "Preparing chunked report..." : "Querying backend...");
-      commitSetExplorerReportProgress(context, chunkPlan ? 0 : null);
+      commitSetExplorerReportState(
+        context,
+        historicalComparisonPlan
+          ? "Preparing historical comparison..."
+          : chunkPlan
+          ? "Preparing chunked report..."
+          : "Querying backend..."
+      );
+      commitSetExplorerReportProgress(context, chunkPlan || historicalComparisonPlan ? 0 : null);
       dispatchExplorerOpenLoadingOverlay(context);
       commitSetUnsupportedGrainMetrics(context, {});
 
@@ -577,6 +590,96 @@ export const actions = {
         if (mergedChunkReport.simpleAverageMetricDisplayNames.length) {
           dispatchAddNotification(context, {
             content: `Chunked execution used simple averages for mean metrics without available weights: ${mergedChunkReport.simpleAverageMetricDisplayNames.join(
+              ", "
+            )}`,
+            color: "warning",
+          });
+        }
+
+        return true;
+      }
+
+      if (historicalComparisonPlan) {
+        const hiddenWeightMetricNames = getHiddenWeightMetricNames(executionPayload, metrics);
+        const totalRequests = historicalComparisonPlan.periods.length + 1;
+        const historicalResults: IReportResult[] = [];
+
+        commitSetExplorerReportState(
+          context,
+          `Pulling historical period 1/${totalRequests}: ${historicalComparisonPlan.currentRangeStart} to ${historicalComparisonPlan.currentRangeEnd}`
+        );
+        const currentResponse = await api.executeReport(
+          context.state.token,
+          warehouseId,
+          executionPayload,
+          cancelToken
+        );
+        commitSetExplorerReportProgress(context, Math.round((1 / totalRequests) * 100));
+
+        for (let index = 0; index < historicalComparisonPlan.periods.length; index += 1) {
+          const period = historicalComparisonPlan.periods[index];
+          commitSetExplorerReportState(
+            context,
+            `Pulling historical period ${index + 2}/${totalRequests}: ${period.rangeStart} to ${period.rangeEnd}`
+          );
+
+          const comparisonRequest = buildHistoricalComparisonRequest(
+            payload,
+            historicalComparisonPlan,
+            period,
+            hiddenWeightMetricNames
+          );
+          const response = await api.executeReport(context.state.token, warehouseId, comparisonRequest, cancelToken);
+          historicalResults.push(response.data);
+          commitSetExplorerReportProgress(context, Math.round(((index + 2) / totalRequests) * 100));
+        }
+
+        dispatchSetReportCancelToken(context, null);
+        dispatchExplorerSetReportState(context, "Combining historical comparison...");
+
+        const mergedHistoricalReport = mergeHistoricalComparisonReportResults(
+          currentResponse.data,
+          historicalResults,
+          payload,
+          metrics,
+          dimensions,
+          historicalComparisonPlan,
+          hiddenWeightMetricNames
+        );
+        mergedHistoricalReport.reportResult = Object.assign({}, mergedHistoricalReport.reportResult, {
+          duration: getElapsedReportDurationSeconds(reportStartedAtMs),
+        });
+        commitSetUnsupportedGrainMetrics(context, mergedHistoricalReport.reportResult?.unsupported_grain_metrics || {});
+
+        setTimeout(() => {
+          dispatchSetReportRequest(context, payload);
+          dispatchSetReportResult(context, mergedHistoricalReport.reportResult);
+          if (mergedHistoricalReport.reportResult.data === undefined) {
+            console.warn("Unexpected merged historical response:");
+            console.warn(mergedHistoricalReport.reportResult);
+          }
+          if (mergedHistoricalReport.reportResult.data.length) {
+            dispatchExplorerCloseSettingsDrawer(context);
+          } else {
+            dispatchExplorerCloseLoadingOverlay(context);
+            dispatchExplorerSetReportState(context, "");
+          }
+        }, 0);
+
+        if (mergedHistoricalReport.reportResult.is_partial) {
+          dispatchAddNotification(context, {
+            content: formatUnsupportedGrainNotification(
+              context,
+              mergedHistoricalReport.reportResult.unsupported_grain_metrics
+            ),
+            color: "warning",
+            timeout: -1,
+          });
+        }
+
+        if (mergedHistoricalReport.simpleAverageMetricDisplayNames.length) {
+          dispatchAddNotification(context, {
+            content: `Historical comparison used simple averages for mean metrics without available weights: ${mergedHistoricalReport.simpleAverageMetricDisplayNames.join(
               ", "
             )}`,
             color: "warning",

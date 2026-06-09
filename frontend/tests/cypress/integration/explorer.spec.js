@@ -54,6 +54,13 @@ describe("/explorer", () => {
     createSavedReport().then((report) => {
       cy.visit(`/main/explorer?warehouse=1&report=${report.spec_id}`);
 
+      cy.get("[data-cy=metrics]").within(() => {
+        cy.get(".multiselect__tags-wrap").should("contain", "H");
+      });
+      cy.get("[data-cy=dimensions]").within(() => {
+        cy.get(".multiselect__tags-wrap").should("contain", "Year");
+      });
+
       cy.get("[data-cy=runButton]").click();
       cy.contains("[data-cy=reportResultTableCard]", "Report Data", { timeout: 10000 });
     });

@@ -360,6 +360,22 @@ describe("Explorer", () => {
     );
   });
 
+  it("persists historical comparison settings in report metadata", async () => {
+    const wrapper = await mountExplorer();
+    setSelectorRefs(wrapper);
+    (wrapper.vm as any).historicalComparisonMode = "date";
+    (wrapper.vm as any).historicalComparisonPeriods = "2";
+    (wrapper.vm as any).historicalComparisonValueMode = "percent_change";
+
+    expect((wrapper.vm as any).selections).toEqual(
+      expect.objectContaining({
+        meta: expect.objectContaining({
+          historicalComparison: { mode: "date", periods: 2, valueMode: "percent_change" },
+        }),
+      })
+    );
+  });
+
   it("saves reports, updates the URL, and applies the saved title", async () => {
     const wrapper = await mountExplorer();
     setSelectorRefs(wrapper);
@@ -483,6 +499,132 @@ describe("Explorer", () => {
     );
 
     expect((wrapper.vm.$refs.criteria as any).selected).toEqual([["day_name", "=", "today"]]);
+  });
+
+  it("loads saved historical comparison settings when report metadata includes them", async () => {
+    const wrapper = await mountExplorer();
+    setSelectorRefs(wrapper);
+
+    await (wrapper.vm as any).load(
+      {
+        criteria: [],
+        dimensions: ["franchise_name"],
+        limit: 100,
+        limit_first: false,
+        meta: {
+          graphOptions: { graphType: null, logYScale: false, multiAxis: false },
+          historicalComparison: { mode: "week", periods: 3, valueMode: "percent_change" },
+          resultLayout: "wide",
+        },
+        metrics: ["hits"],
+        order_by: [],
+        rollup: null,
+        row_filters: [],
+      },
+      false
+    );
+
+    expect((wrapper.vm as any).historicalComparisonMode).toBe("week");
+    expect((wrapper.vm as any).historicalComparisonPeriods).toBe(3);
+    expect((wrapper.vm as any).historicalComparisonValueMode).toBe("percent_change");
+  });
+
+  it("loads saved row filters and order by after metric and dimension options are ready", async () => {
+    const wrapper = await mountExplorer();
+    let dependentOptionsReady = false;
+    await wrapper.setData({ isMounted: false });
+    const metricsRef = {
+      _selected: ["hits"],
+      get selected() {
+        return this._selected;
+      },
+      set selected(value) {
+        this._selected = value;
+        Vue.nextTick(() => {
+          (wrapper.vm as any).isMounted = true;
+          dependentOptionsReady = true;
+        });
+      },
+      get uiSelected() {
+        return [{ active: true, display_name: "Hits", name: "hits" }];
+      },
+      set uiSelected(_value) {
+        Vue.nextTick(() => {
+          (wrapper.vm as any).isMounted = true;
+          dependentOptionsReady = true;
+        });
+      },
+    };
+    const rowFiltersRef = {
+      _selected: [] as any[],
+      get selected() {
+        return this._selected;
+      },
+      set selected(value) {
+        this._selected = dependentOptionsReady ? value : [];
+      },
+    };
+    const orderByRef = {
+      _selected: [] as any[],
+      get selected() {
+        return this._selected;
+      },
+      set selected(value) {
+        this._selected = dependentOptionsReady ? value : [];
+      },
+    };
+
+    setSelectorRefs(wrapper, {
+      metrics: metricsRef,
+      row_filters: rowFiltersRef,
+      order_by: orderByRef,
+    });
+
+    await (wrapper.vm as any).load(
+      {
+        criteria: [],
+        dimensions: ["franchise_name"],
+        limit: 100,
+        limit_first: false,
+        meta: {
+          graphOptions: { graphType: null, logYScale: false, multiAxis: false },
+          resultLayout: "wide",
+          ui_metrics: [{ active: true, display_name: "Hits", name: "hits" }],
+        },
+        metrics: ["hits"],
+        order_by: [["hits", "desc"]],
+        rollup: null,
+        row_filters: [["hits", ">", 5]],
+      },
+      false
+    );
+
+    expect((wrapper.vm.$refs.row_filters as any).selected).toEqual([["hits", ">", 5]]);
+    expect((wrapper.vm.$refs.order_by as any).selected).toEqual([["hits", "desc"]]);
+  });
+
+  it("rejects historical comparison when chunk windowing is also enabled", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2024-05-28T14:20:00"));
+    vi.mocked(readDimensions).mockReturnValue({
+      debut_date: { display_name: "Debut Date", name: "debut_date", type: "date" },
+      franchise_name: { display_name: "Franchise Name", name: "franchise_name", type: "varchar" },
+    });
+
+    const wrapper = await mountExplorer();
+    setSelectorRefs(wrapper, {
+      criteria: { selected: [["debut_date", "between", ["2024-05-28", "2024-05-28"]]] },
+    });
+    (wrapper.vm as any).historicalComparisonMode = "date";
+    (wrapper.vm as any).historicalComparisonPeriods = 2;
+    (wrapper.vm as any).chunkWindowSize = 1;
+
+    const result = (wrapper.vm as any).validate();
+
+    expect(result.valid).toBe(false);
+    expect(result.error.message).toBe(
+      "Historical comparison does not support Window Size yet. Turn off one of the two options."
+    );
   });
 
   it("adds a default current-date criterion when the explorer loads empty", async () => {

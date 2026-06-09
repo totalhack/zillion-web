@@ -155,6 +155,18 @@
       "description": "Year"
     },
     {
+      "name": "date",
+      "display_name": "Date",
+      "type": "date",
+      "description": "Game date for the batting event row"
+    },
+    {
+      "name": "hour_of_day",
+      "display_name": "Hour Of Day",
+      "type": "integer",
+      "description": "Hour bucket for the batting event row"
+    },
+    {
       "name": "stint",
       "display_name": "Stint",
       "type": "integer",
@@ -258,7 +270,7 @@
         "public.people": {
           "type": "dimension",
           "data_url": "/app/testdata/People.csv",
-          "if_exists": "ignore",
+          "if_exists": "replace",
           "primary_key": ["player_id"],
           "columns": {
             "playerID": {
@@ -292,14 +304,15 @@
               "fields": ["throws"]
             },
             "debut": {
-              "fields": ["debut_date"]
+              "fields": ["debut_date"],
+              "allow_type_conversions": true
             }
           }
         },
         "public.teams": {
           "type": "dimension",
           "data_url": "/app/testdata/Teams.csv",
-          "if_exists": "ignore",
+          "if_exists": "replace",
           "parent": "public.franchises",
           "primary_key": ["year", "league_id", "team_id"],
           "columns": {
@@ -323,7 +336,7 @@
         "public.franchises": {
           "type": "dimension",
           "data_url": "/app/testdata/TeamsFranchises.csv",
-          "if_exists": "ignore",
+          "if_exists": "replace",
           "primary_key": ["franchise_id"],
           "columns": {
             "franchID": {
@@ -337,14 +350,21 @@
         "public.batting": {
           "type": "metric",
           "data_url": "/app/testdata/Batting.csv",
-          "if_exists": "ignore",
-          "primary_key": ["player_id", "year", "stint"],
+          "if_exists": "replace",
+          "primary_key": ["player_id", "year", "stint", "date", "hour_of_day"],
           "columns": {
             "playerID": {
               "fields": ["player_id"]
             },
             "yearID": {
               "fields": ["year"]
+            },
+            "gameDate": {
+              "fields": ["date"],
+              "allow_type_conversions": true
+            },
+            "hourOfDay": {
+              "fields": ["hour_of_day"]
             },
             "stint": {
               "fields": ["stint"]

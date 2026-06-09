@@ -278,9 +278,7 @@ describe("main store", () => {
 
   it("stores chunked report wall time instead of backend durations", async () => {
     vi.useFakeTimers();
-    vi.spyOn(performance, "now")
-      .mockReturnValueOnce(1000)
-      .mockReturnValue(1357.5);
+    vi.spyOn(performance, "now").mockReturnValueOnce(1000).mockReturnValue(1357.5);
     const nextCancelSource = { cancel: vi.fn(), token: "chunk-token" };
     vi.spyOn(axios.CancelToken, "source").mockReturnValue(nextCancelSource as any);
     const store = createStore({
@@ -369,6 +367,150 @@ describe("main store", () => {
       columns: ["Franchise Name", "H"],
       data: [["Boston Red Sox", 5]],
       duration: 0.3575,
+    });
+  });
+
+  it("executes historical comparisons client-side and stores the merged result", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2024-05-28T14:20:00"));
+    vi.spyOn(performance, "now").mockReturnValueOnce(1000).mockReturnValue(1375);
+    const nextCancelSource = { cancel: vi.fn(), token: "historical-token" };
+    vi.spyOn(axios.CancelToken, "source").mockReturnValue(nextCancelSource as any);
+    const store = createStore({
+      activeWarehouseId: 5,
+      token: "token-1",
+      warehouseStructures: {
+        5: {
+          datasources: [],
+          dimensions: {
+            debut_date: { display_name: "Debut Date", name: "debut_date", type: "date" },
+            franchise_name: { display_name: "Franchise Name", name: "franchise_name", type: "varchar" },
+          },
+          metrics: {
+            hits: { aggregation: "sum", display_name: "H", name: "hits", type: "integer" },
+          },
+        },
+      },
+    });
+    const reportRequest = {
+      criteria: [["debut_date", "between", ["2024-05-28", "2024-05-28"]]],
+      dimensions: ["franchise_name", "debut_date"],
+      limit: 100,
+      limit_first: false,
+      meta: { historicalComparison: { mode: "date", periods: 2, valueMode: "percent_change" } },
+      metrics: ["hits"],
+      order_by: [
+        ["franchise_name", "asc"],
+        ["debut_date", "asc"],
+      ],
+      rollup: null,
+      row_filters: [],
+    };
+    vi.mocked(api.executeReport)
+      .mockResolvedValueOnce(
+        response({
+          columns: ["Franchise Name", "Debut Date", "H"],
+          data: [
+            ["Boston Red Sox", "2024-05-28", 10],
+            ["Chicago Cubs", "2024-05-28", 6],
+          ],
+          display_name_map: { debut_date: "Debut Date", franchise_name: "Franchise Name", hits: "H" },
+          duration: 999,
+          is_partial: false,
+          query_summaries: ["Current backend report"],
+          rollup_marker: "__ROLLUP__",
+          unsupported_grain_metrics: {},
+        })
+      )
+      .mockResolvedValueOnce(
+        response({
+          columns: ["Franchise Name", "Debut Date", "H"],
+          data: [
+            ["Boston Red Sox", "2024-05-27", 8],
+            ["Chicago Cubs", "2024-05-27", 9],
+          ],
+          display_name_map: { debut_date: "Debut Date", franchise_name: "Franchise Name", hits: "H" },
+          duration: 888,
+          is_partial: false,
+          query_summaries: ["Historical backend report 1"],
+          rollup_marker: "__ROLLUP__",
+          unsupported_grain_metrics: {},
+        })
+      )
+      .mockResolvedValueOnce(
+        response({
+          columns: ["Franchise Name", "Debut Date", "H"],
+          data: [
+            ["Boston Red Sox", "2024-05-26", 4],
+            ["Chicago Cubs", "2024-05-26", 3],
+          ],
+          display_name_map: { debut_date: "Debut Date", franchise_name: "Franchise Name", hits: "H" },
+          duration: 777,
+          is_partial: false,
+          query_summaries: ["Historical backend report 2"],
+          rollup_marker: "__ROLLUP__",
+          unsupported_grain_metrics: {},
+        })
+      );
+
+    const result = await store.dispatch("executeReport", reportRequest);
+
+    expect(result).toBe(true);
+    expect(api.executeReport).toHaveBeenNthCalledWith(
+      1,
+      "token-1",
+      5,
+      {
+        criteria: [["debut_date", "between", ["2024-05-28", "2024-05-28"]]],
+        dimensions: ["franchise_name", "debut_date"],
+        limit: 100,
+        limit_first: false,
+        metrics: ["hits"],
+        order_by: [
+          ["franchise_name", "asc"],
+          ["debut_date", "asc"],
+        ],
+        rollup: null,
+        row_filters: [],
+      },
+      nextCancelSource
+    );
+    expect(api.executeReport).toHaveBeenNthCalledWith(
+      2,
+      "token-1",
+      5,
+      {
+        criteria: [["debut_date", "between", ["2024-05-27", "2024-05-27"]]],
+        dimensions: ["franchise_name", "debut_date"],
+        metrics: ["hits"],
+        rollup: null,
+      },
+      nextCancelSource
+    );
+    expect(api.executeReport).toHaveBeenNthCalledWith(
+      3,
+      "token-1",
+      5,
+      {
+        criteria: [["debut_date", "between", ["2024-05-26", "2024-05-26"]]],
+        dimensions: ["franchise_name", "debut_date"],
+        metrics: ["hits"],
+        rollup: null,
+      },
+      nextCancelSource
+    );
+
+    vi.runAllTimers();
+    await Vue.nextTick();
+
+    expect(store.state.main.reportRequest).toEqual(reportRequest);
+    expect(store.state.main.reportResult).toMatchObject({
+      columns: ["Franchise Name", "Debut Date", "H", "H vs Last 2 Days"],
+      data: [
+        ["Boston Red Sox", "2024-05-28", 10, 66.67],
+        ["Chicago Cubs", "2024-05-28", 6, 0],
+      ],
+      duration: 0.375,
     });
   });
 

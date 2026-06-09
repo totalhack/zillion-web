@@ -137,6 +137,10 @@ export default class ReportResultGraph extends Mixins(ReportManagerMixin) {
   }
 
   resize(height: number | null = null) {
+    if (!this.$chart || typeof this.$chart.resize !== "function") {
+      return;
+    }
+
     const graphStageHeight = this.getGraphStageElement()?.clientHeight || 0;
     this.$chart.resize({
       height: height || graphStageHeight || this.baseChartHeight,

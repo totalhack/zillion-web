@@ -24,6 +24,17 @@ const DATETIME_FORMAT = "YYYY-MM-DD HH:mm:ss";
 const CHUNKING_CRITERIA_ERROR = "Chunk window size requires exactly one active date or datetime range criteria.";
 const CHUNKING_DATE_UPPER_BOUND_ERROR =
   "Chunk window size does not support date < or <= criteria. Please use a specific between date range.";
+const HISTORICAL_COMPARISON_CRITERIA_ERROR =
+  "Historical comparison requires exactly one active date or datetime range criteria.";
+const HISTORICAL_COMPARISON_WINDOWING_ERROR =
+  "Historical comparison does not support Window Size yet. Turn off one of the two options.";
+const HISTORICAL_COMPARISON_HOUR_DIMENSION_ERROR =
+  "Historical comparison mode Hour requires Hour Of Day as a selected dimension.";
+const HISTORICAL_COMPARISON_MULTI_DAY_DATE_DIMENSION_ERROR =
+  "Historical comparison modes Date and Day of Week require a selected date or datetime dimension when the active range spans multiple days.";
+
+type HistoricalComparisonMode = "hour" | "date" | "week" | "day_of_week";
+type HistoricalComparisonValueMode = "absolute" | "percent_change";
 
 interface IChunkCriterionCandidate {
   index: number;
@@ -77,6 +88,51 @@ export interface IMergedChunkedReport {
   effectiveRequest: IReportRequest;
   reportResult: IReportResult;
   simpleAverageMetricDisplayNames: string[];
+}
+
+export interface IHistoricalComparisonConfig {
+  mode: HistoricalComparisonMode;
+  periods: number;
+  valueMode: HistoricalComparisonValueMode;
+}
+
+export interface IHistoricalComparisonPeriod {
+  index: number;
+  label: string;
+  rangeStart: string;
+  rangeEnd: string;
+}
+
+export interface IHistoricalComparisonPlan {
+  config: IHistoricalComparisonConfig;
+  criterionIndex: number;
+  fieldName: string;
+  fieldType: "date" | "datetime";
+  currentRangeStart: string;
+  currentRangeEnd: string;
+  periods: IHistoricalComparisonPeriod[];
+}
+
+export interface IMergedHistoricalComparisonReport {
+  effectiveRequest: IReportRequest;
+  reportResult: IReportResult;
+  simpleAverageMetricDisplayNames: string[];
+}
+
+interface IHistoricalMetricAccumulator {
+  total: number;
+  count: number;
+  weightedTotal: number;
+  weightTotal: number;
+  rawValue: any;
+  sawNumeric: boolean;
+  sawSimpleAverage: boolean;
+}
+
+interface IHistoricalDimensionInfo {
+  displayName: string;
+  fieldType: string;
+  name: string;
 }
 
 function getFieldType(field: any) {
@@ -315,6 +371,11 @@ function getMetricRounding(metric: MetricRequest, metricsByName: WarehouseFieldM
     return metricDef.rounding;
   }
 
+  const metricType = getFieldType(typeof metric !== "string" ? metric : metricDef);
+  if (["integer", "smallinteger", "biginteger"].includes(metricType)) {
+    return 0;
+  }
+
   return null;
 }
 
@@ -355,8 +416,60 @@ function createMetricAccumulator(): IMetricAccumulator {
   };
 }
 
+function requestHasSelectedHourDimension(request: IReportRequest) {
+  return (request.dimensions || []).some((dimension) => {
+    const dimensionName = String(getRequestFieldName(dimension as RequestField) || "").toLowerCase();
+    return dimensionName.includes("hour_of_day");
+  });
+}
+
+function requestHasSelectedDateDimension(request: IReportRequest, dimensionsByName: WarehouseFieldMap) {
+  return (request.dimensions || []).some((dimension) => {
+    const dimensionName = getRequestFieldName(dimension as RequestField) || "";
+    const field =
+      (typeof dimension === "string" ? dimensionsByName[dimensionName] : dimension) ||
+      dimensionsByName[dimensionName] ||
+      {};
+    const fieldType = getFieldType(field);
+    return fieldType === "date" || fieldType === "datetime";
+  });
+}
+
+function rangeSpansMultipleDays(start: moment.Moment, end: moment.Moment) {
+  return !start.clone().startOf("day").isSame(end.clone().startOf("day"));
+}
+
 function readChunkWindowSize(request: ExecutableReportRequest) {
   return parsePositiveInteger(request?.meta?.windowing?.size);
+}
+
+function readHistoricalComparisonConfig(request: ExecutableReportRequest): IHistoricalComparisonConfig | null {
+  const rawConfig = request?.meta?.historicalComparison;
+  if (!rawConfig || typeof rawConfig !== "object") {
+    return null;
+  }
+
+  const rawMode = String((rawConfig as Record<string, any>).mode || "")
+    .trim()
+    .toLowerCase();
+  if (!["hour", "date", "week", "day_of_week"].includes(rawMode)) {
+    return null;
+  }
+
+  const periods = parsePositiveInteger((rawConfig as Record<string, any>).periods);
+  if (periods === null) {
+    throw new Error("Historical comparison periods must be a positive integer.");
+  }
+
+  const rawValueMode = String((rawConfig as Record<string, any>).valueMode || "absolute")
+    .trim()
+    .toLowerCase();
+
+  return {
+    mode: rawMode as HistoricalComparisonMode,
+    periods,
+    valueMode: rawValueMode === "percent_change" ? "percent_change" : "absolute",
+  };
 }
 
 function buildEffectiveChunkedRequest(request: ExecutableReportRequest) {
@@ -709,6 +822,324 @@ function buildTotalsRollupRow(
   return totalsRow;
 }
 
+function buildHistoricalComparisonPeriods(
+  config: IHistoricalComparisonConfig,
+  start: moment.Moment,
+  end: moment.Moment,
+  fieldType: "date" | "datetime"
+) {
+  const format = getDateFormat(fieldType);
+  const periods: IHistoricalComparisonPeriod[] = [];
+
+  if (config.mode === "date") {
+    for (let index = 1; index <= config.periods; index += 1) {
+      periods.push({
+        index: index - 1,
+        label: `Previous ${index}`,
+        rangeStart: start.clone().subtract(index, "day").format(format),
+        rangeEnd: end.clone().subtract(index, "day").format(format),
+      });
+    }
+
+    return periods;
+  }
+
+  for (let index = 1; index <= config.periods; index += 1) {
+    periods.push({
+      index: index - 1,
+      label: `Previous ${index}`,
+      rangeStart: start
+        .clone()
+        .subtract(index * 7, "day")
+        .format(format),
+      rangeEnd: end
+        .clone()
+        .subtract(index * 7, "day")
+        .format(format),
+    });
+  }
+
+  return periods;
+}
+
+function createHistoricalMetricAccumulator(): IHistoricalMetricAccumulator {
+  return {
+    total: 0,
+    count: 0,
+    weightedTotal: 0,
+    weightTotal: 0,
+    rawValue: null,
+    sawNumeric: false,
+    sawSimpleAverage: false,
+  };
+}
+
+function accumulateHistoricalMetricFromArrayRow(
+  accumulator: IHistoricalMetricAccumulator,
+  metricInfo: IMetricInfo,
+  row: any[],
+  columnIndexByName: Map<string, number>
+) {
+  const valueIndex = columnIndexByName.get(metricInfo.displayName);
+  if (valueIndex === undefined) {
+    return;
+  }
+
+  const rawValue = row[valueIndex];
+  if (rawValue !== null && rawValue !== undefined && accumulator.rawValue === null) {
+    accumulator.rawValue = rawValue;
+  }
+
+  const numericValue = toNumeric(rawValue);
+  if (numericValue === null) {
+    return;
+  }
+
+  accumulator.sawNumeric = true;
+
+  if (metricInfo.aggregation === "mean") {
+    const weightIndex = metricInfo.weightingMetricDisplayName
+      ? columnIndexByName.get(metricInfo.weightingMetricDisplayName)
+      : undefined;
+    const weightValue = weightIndex !== undefined ? toNumeric(row[weightIndex]) : null;
+    if (weightValue === null) {
+      accumulator.sawSimpleAverage = true;
+      accumulator.total += numericValue;
+      accumulator.count += 1;
+      return;
+    }
+
+    accumulator.weightedTotal += numericValue * weightValue;
+    accumulator.weightTotal += weightValue;
+    return;
+  }
+
+  accumulator.total += numericValue;
+  accumulator.count += 1;
+}
+
+function finalizeHistoricalMetricValue(accumulator: IHistoricalMetricAccumulator, metricInfo: IMetricInfo) {
+  if (metricInfo.aggregation === "mean") {
+    if (accumulator.weightTotal > 0) {
+      return accumulator.weightedTotal / accumulator.weightTotal;
+    }
+    if (accumulator.count > 0) {
+      return accumulator.total / accumulator.count;
+    }
+    return accumulator.rawValue;
+  }
+
+  if (accumulator.count > 0) {
+    return accumulator.total / accumulator.count;
+  }
+
+  return accumulator.rawValue;
+}
+
+function createHistoricalDimensionInfos(
+  request: IReportRequest,
+  dimensionsByName: WarehouseFieldMap,
+  displayNameMap: Record<string, any>
+) {
+  return (request.dimensions || []).map((dimension) => {
+    const name = getRequestFieldName(dimension as RequestField) || "";
+    const field = (typeof dimension === "string" ? dimensionsByName[name] : dimension) || dimensionsByName[name] || {};
+    return {
+      name,
+      displayName: resolveRequestFieldDisplayName(dimension as RequestField, displayNameMap, dimensionsByName),
+      fieldType: getFieldType(field),
+    } as IHistoricalDimensionInfo;
+  });
+}
+
+function normalizeHistoricalDimensionValue(
+  fieldName: string,
+  fieldType: string,
+  value: any,
+  periodStart: string,
+  periodFieldType: "date" | "datetime"
+) {
+  if (value === null || value === undefined || value === "") {
+    return value;
+  }
+
+  const normalizedFieldName = String(fieldName || "").toLowerCase();
+  if (
+    normalizedFieldName === "day_of_week" ||
+    normalizedFieldName === "day_name" ||
+    normalizedFieldName === "day_of_month" ||
+    normalizedFieldName === "week_of_year" ||
+    normalizedFieldName === "is_weekend" ||
+    normalizedFieldName === "is_weekday" ||
+    normalizedFieldName.includes("hour_of_day") ||
+    normalizedFieldName.includes("minute_of_hour")
+  ) {
+    const numericValue = toNumeric(value);
+    if (numericValue === null) {
+      return value;
+    }
+
+    if (normalizedFieldName === "week_of_year") {
+      const periodStartWeek = moment(periodStart, getDateFormat(periodFieldType), true).isoWeek();
+      let weekOffset = numericValue - periodStartWeek;
+      if (weekOffset > 26) {
+        weekOffset -= 53;
+      } else if (weekOffset < -26) {
+        weekOffset += 53;
+      }
+      return weekOffset;
+    }
+
+    return numericValue;
+  }
+
+  if (fieldType === "date") {
+    const parsed = moment(String(value), DATE_FORMAT, true);
+    if (!parsed.isValid()) {
+      return value;
+    }
+
+    return parsed.diff(moment(periodStart, getDateFormat(periodFieldType), true).startOf("day"), "day");
+  }
+
+  if (fieldType === "datetime") {
+    const parsed = moment(String(value), DATETIME_FORMAT, true);
+    if (!parsed.isValid()) {
+      return value;
+    }
+
+    return parsed.diff(moment(periodStart, getDateFormat(periodFieldType), true), "minute");
+  }
+
+  return value;
+}
+
+function getHistoricalDimensionKeyFromArrayRow(
+  row: any[],
+  columnIndexByName: Map<string, number>,
+  dimensionInfos: IHistoricalDimensionInfo[],
+  periodStart: string,
+  periodFieldType: "date" | "datetime",
+  rollupMarker: string
+) {
+  return JSON.stringify(
+    dimensionInfos.map((dimensionInfo) => {
+      const columnIndex = columnIndexByName.get(dimensionInfo.displayName);
+      const value = columnIndex === undefined ? null : row[columnIndex];
+      if (value === rollupMarker) {
+        return value;
+      }
+
+      return normalizeHistoricalDimensionValue(
+        dimensionInfo.name,
+        dimensionInfo.fieldType,
+        value,
+        periodStart,
+        periodFieldType
+      );
+    })
+  );
+}
+
+function getHistoricalDimensionKeyFromObjectRow(
+  row: RowObject,
+  dimensionInfos: IHistoricalDimensionInfo[],
+  periodStart: string,
+  periodFieldType: "date" | "datetime",
+  rollupMarker: string
+) {
+  return JSON.stringify(
+    dimensionInfos.map((dimensionInfo) => {
+      const value = row[dimensionInfo.displayName];
+      if (value === rollupMarker) {
+        return value;
+      }
+
+      return normalizeHistoricalDimensionValue(
+        dimensionInfo.name,
+        dimensionInfo.fieldType,
+        value,
+        periodStart,
+        periodFieldType
+      );
+    })
+  );
+}
+
+function buildHistoricalComparisonLabel(config: IHistoricalComparisonConfig) {
+  if (config.mode === "hour") {
+    return config.periods === 1 ? "Last Week" : `Last ${config.periods} Weeks`;
+  }
+
+  if (config.mode === "date") {
+    return config.periods === 1 ? "Last Day" : `Last ${config.periods} Days`;
+  }
+
+  if (config.mode === "week") {
+    return config.periods === 1 ? "Last Week" : `Last ${config.periods} Weeks`;
+  }
+
+  return config.periods === 1 ? "Last Same Weekday" : `Last ${config.periods} Same Weekdays`;
+}
+
+function buildHistoricalMetricDisplayName(metricInfo: IMetricInfo, config: IHistoricalComparisonConfig) {
+  return `${metricInfo.displayName} vs ${buildHistoricalComparisonLabel(config)}`;
+}
+
+function buildHistoricalMetricFieldName(
+  metricInfo: IMetricInfo,
+  periods: number,
+  valueMode: HistoricalComparisonValueMode
+) {
+  const sanitizedName = String(metricInfo.name || metricInfo.displayName || "metric")
+    .trim()
+    .replace(/[^a-zA-Z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toLowerCase();
+
+  if (valueMode === "percent_change") {
+    return periods === 1
+      ? `historical_pct_change_${sanitizedName}`
+      : `historical_pct_change_avg_${periods}_${sanitizedName}`;
+  }
+
+  return periods === 1 ? `historical_prev_${sanitizedName}` : `historical_prev_avg_${periods}_${sanitizedName}`;
+}
+
+function buildHistoricalMetricOutputRounding(metricInfo: IMetricInfo, config: IHistoricalComparisonConfig) {
+  if (config.valueMode === "percent_change") {
+    return Math.max(metricInfo.rounding ?? 0, 2);
+  }
+
+  if (config.periods > 1) {
+    return Math.max(metricInfo.rounding ?? 0, 2);
+  }
+
+  return metricInfo.rounding;
+}
+
+function buildHistoricalMetricOutputValue(
+  currentValue: any,
+  historicalValue: any,
+  config: IHistoricalComparisonConfig
+) {
+  if (config.valueMode !== "percent_change") {
+    return historicalValue;
+  }
+
+  const numericCurrentValue = toNumeric(currentValue);
+  const numericHistoricalValue = toNumeric(historicalValue);
+  if (numericCurrentValue === null || numericHistoricalValue === null) {
+    return null;
+  }
+
+  if (numericHistoricalValue === 0) {
+    return numericCurrentValue === 0 ? 0 : null;
+  }
+
+  return ((numericCurrentValue - numericHistoricalValue) / numericHistoricalValue) * 100;
+}
+
 export function stripExecutionRequestMeta(request: ExecutableReportRequest) {
   const nextRequest: any = {
     metrics: cloneRequestList(request.metrics),
@@ -811,6 +1242,84 @@ export function buildChunkExecutionPlan(request: ExecutableReportRequest, dimens
   } as IChunkExecutionPlan;
 }
 
+export function buildHistoricalComparisonPlan(request: ExecutableReportRequest, dimensionsByName: WarehouseFieldMap) {
+  const config = readHistoricalComparisonConfig(request);
+  if (!config) {
+    return null;
+  }
+
+  if (readChunkWindowSize(request) !== null) {
+    throw new Error(HISTORICAL_COMPARISON_WINDOWING_ERROR);
+  }
+
+  const criteria = Array.isArray(request.criteria) ? request.criteria : [];
+  const candidates = criteria
+    .map((criterion, index) => {
+      const fieldName = criterion?.[0];
+      const operation = criterion?.[1];
+      const value = criterion?.[2];
+      const field = dimensionsByName[fieldName];
+      const currentFieldType = getFieldType(field);
+
+      if ((currentFieldType !== "date" && currentFieldType !== "datetime") || typeof fieldName !== "string") {
+        return null;
+      }
+
+      return {
+        index,
+        name: fieldName,
+        fieldType: currentFieldType,
+        operation,
+        value,
+      } as IChunkCriterionCandidate;
+    })
+    .filter((candidate): candidate is IChunkCriterionCandidate => candidate !== null);
+
+  if (candidates.length !== 1) {
+    throw new Error(HISTORICAL_COMPARISON_CRITERIA_ERROR);
+  }
+
+  const candidate = candidates[0];
+  let rangeStart: string;
+  let rangeEnd: string;
+
+  try {
+    [rangeStart, rangeEnd] = resolveCriterionRange(candidate);
+  } catch (error) {
+    throw new Error(String((error as Error).message || "").replace(/^Chunk window size/, "Historical comparison"));
+  }
+
+  const start = parseMomentBoundary(rangeStart, candidate.fieldType);
+  const end = parseMomentBoundary(rangeEnd, candidate.fieldType);
+  if (end.isBefore(start)) {
+    throw new Error(
+      `Historical comparison requires the selected ${candidate.fieldType} range to start before it ends.`
+    );
+  }
+
+  if (config.mode === "hour" && !requestHasSelectedHourDimension(request)) {
+    throw new Error(HISTORICAL_COMPARISON_HOUR_DIMENSION_ERROR);
+  }
+
+  if (
+    ["date", "day_of_week"].includes(config.mode) &&
+    rangeSpansMultipleDays(start, end) &&
+    !requestHasSelectedDateDimension(request, dimensionsByName)
+  ) {
+    throw new Error(HISTORICAL_COMPARISON_MULTI_DAY_DATE_DIMENSION_ERROR);
+  }
+
+  return {
+    config,
+    criterionIndex: candidate.index,
+    fieldName: candidate.name,
+    fieldType: candidate.fieldType,
+    currentRangeStart: start.format(getDateFormat(candidate.fieldType)),
+    currentRangeEnd: end.format(getDateFormat(candidate.fieldType)),
+    periods: buildHistoricalComparisonPeriods(config, start, end, candidate.fieldType),
+  } as IHistoricalComparisonPlan;
+}
+
 export function buildChunkExecutionWarnings(request: IReportRequest) {
   const warnings: string[] = [];
 
@@ -877,6 +1386,34 @@ export function buildChunkExecutionRequest(
   delete chunkRequest.limit_first;
 
   return chunkRequest as IReportRequest;
+}
+
+export function buildHistoricalComparisonRequest(
+  request: ExecutableReportRequest,
+  plan: IHistoricalComparisonPlan,
+  period: IHistoricalComparisonPeriod,
+  hiddenWeightMetricNames: string[] = []
+) {
+  const comparisonRequest: any = stripExecutionRequestMeta(request);
+  const metrics = Array.isArray(comparisonRequest.metrics) ? [...comparisonRequest.metrics] : [];
+  const selectedMetricNames = new Set(metrics.map((metric) => getMetricName(metric)).filter(Boolean) as string[]);
+
+  for (const hiddenWeightMetricName of hiddenWeightMetricNames) {
+    if (!selectedMetricNames.has(hiddenWeightMetricName)) {
+      metrics.push(hiddenWeightMetricName);
+    }
+  }
+
+  comparisonRequest.metrics = metrics;
+  comparisonRequest.criteria = cloneRequestList(comparisonRequest.criteria) || [];
+  comparisonRequest.criteria[plan.criterionIndex] = [plan.fieldName, "between", [period.rangeStart, period.rangeEnd]];
+
+  delete comparisonRequest.row_filters;
+  delete comparisonRequest.order_by;
+  delete comparisonRequest.limit;
+  delete comparisonRequest.limit_first;
+
+  return comparisonRequest as IReportRequest;
 }
 
 export function mergeChunkedReportResults(
@@ -1003,4 +1540,158 @@ export function mergeChunkedReportResults(
       is_partial: results.some((result) => !!result?.is_partial),
     },
   } as IMergedChunkedReport;
+}
+
+export function mergeHistoricalComparisonReportResults(
+  baseResult: IReportResult,
+  comparisonResults: IReportResult[],
+  request: ExecutableReportRequest,
+  metricsByName: WarehouseFieldMap,
+  dimensionsByName: WarehouseFieldMap,
+  plan: IHistoricalComparisonPlan,
+  hiddenWeightMetricNames: string[] = []
+) {
+  const allResults = [baseResult, ...comparisonResults].filter(Boolean);
+  if (!allResults.length) {
+    throw new Error("Expected at least one historical comparison result.");
+  }
+
+  const displayNameMap = allResults.reduce((merged, result) => {
+    return Object.assign(merged, result?.display_name_map || {});
+  }, {} as Record<string, any>);
+  const effectiveRequest = stripExecutionRequestMeta(request);
+  const dimensionInfos = createHistoricalDimensionInfos(effectiveRequest, dimensionsByName, displayNameMap);
+  const metricInfos = createMetricInfos(effectiveRequest, metricsByName, displayNameMap, hiddenWeightMetricNames);
+  const metricAccumulatorByKey = new Map<string, Record<string, IHistoricalMetricAccumulator>>();
+  const simpleAverageMetricDisplayNames = new Set<string>();
+
+  comparisonResults.forEach((result, resultIndex) => {
+    const period = plan.periods[resultIndex];
+    if (!period) {
+      return;
+    }
+
+    const columnIndexByName = new Map<string, number>();
+    result.columns.forEach((columnName, index) => columnIndexByName.set(columnName, index));
+
+    for (const row of result.data || []) {
+      const rowKey = getHistoricalDimensionKeyFromArrayRow(
+        row,
+        columnIndexByName,
+        dimensionInfos,
+        period.rangeStart,
+        plan.fieldType,
+        result.rollup_marker
+      );
+
+      let accumulatorRecord = metricAccumulatorByKey.get(rowKey);
+      if (!accumulatorRecord) {
+        accumulatorRecord = {};
+        metricAccumulatorByKey.set(rowKey, accumulatorRecord);
+      }
+
+      for (const metricInfo of metricInfos) {
+        if (!accumulatorRecord[metricInfo.displayName]) {
+          accumulatorRecord[metricInfo.displayName] = createHistoricalMetricAccumulator();
+        }
+
+        const accumulator = accumulatorRecord[metricInfo.displayName];
+        accumulateHistoricalMetricFromArrayRow(accumulator, metricInfo, row, columnIndexByName);
+        if (accumulator.sawSimpleAverage && metricInfo.aggregation === "mean") {
+          simpleAverageMetricDisplayNames.add(metricInfo.displayName);
+        }
+      }
+    }
+  });
+
+  const outputMetricInfos = metricInfos.filter((metricInfo) => metricInfo.includeInOutput);
+  const historicalColumnMap = new Map<string, { displayName: string; fieldName: string; rounding: number | null }>();
+  for (const metricInfo of outputMetricInfos) {
+    const historicalDisplayName = buildHistoricalMetricDisplayName(metricInfo, plan.config);
+    historicalColumnMap.set(metricInfo.displayName, {
+      displayName: historicalDisplayName,
+      fieldName: buildHistoricalMetricFieldName(metricInfo, plan.config.periods, plan.config.valueMode),
+      rounding: buildHistoricalMetricOutputRounding(metricInfo, plan.config),
+    });
+  }
+
+  const baseRows = (baseResult.data || []).map((row) => {
+    return Object.fromEntries(baseResult.columns.map((columnName, index) => [columnName, row[index]])) as RowObject;
+  });
+  const roundedRows = baseRows.map((row) => {
+    const finalRow = Object.assign({}, row);
+    const rowKey = getHistoricalDimensionKeyFromObjectRow(
+      row,
+      dimensionInfos,
+      plan.currentRangeStart,
+      plan.fieldType,
+      baseResult.rollup_marker
+    );
+    const comparisonAccumulators = metricAccumulatorByKey.get(rowKey) || {};
+
+    for (const metricInfo of outputMetricInfos) {
+      const historicalColumn = historicalColumnMap.get(metricInfo.displayName)!;
+      const rawHistoricalValue = finalizeHistoricalMetricValue(
+        comparisonAccumulators[metricInfo.displayName] || createHistoricalMetricAccumulator(),
+        metricInfo
+      );
+      const historicalOutputValue = buildHistoricalMetricOutputValue(
+        row[metricInfo.displayName],
+        rawHistoricalValue,
+        plan.config
+      );
+      const numericHistoricalValue = toNumeric(historicalOutputValue);
+      finalRow[historicalColumn.displayName] =
+        numericHistoricalValue === null
+          ? historicalOutputValue
+          : roundNumericValue(numericHistoricalValue, historicalColumn.rounding);
+    }
+
+    return applyMetricRoundingToRow(finalRow, outputMetricInfos);
+  });
+
+  const finalColumns = baseResult.columns.reduce((columns, columnName) => {
+    columns.push(columnName);
+    const historicalColumn = historicalColumnMap.get(columnName);
+    if (historicalColumn) {
+      columns.push(historicalColumn.displayName);
+    }
+    return columns;
+  }, [] as string[]);
+  const finalData = roundedRows.map((row) => finalColumns.map((columnName) => row[columnName]));
+  const finalDisplayNameMap = Object.assign({}, displayNameMap);
+  historicalColumnMap.forEach((historicalColumn) => {
+    finalDisplayNameMap[historicalColumn.fieldName] = historicalColumn.displayName;
+  });
+
+  const querySummaries = [
+    `Client-side historical comparison (${plan.config.mode}) merged ${plan.config.periods} prior period${
+      plan.config.periods === 1 ? "" : "s"
+    } for ${plan.fieldName}: ${plan.currentRangeStart} to ${plan.currentRangeEnd}.`,
+    ...((baseResult.query_summaries || []).map((summary) => `Current: ${summary}`) as string[]),
+  ];
+  comparisonResults.forEach((result, index) => {
+    const period = plan.periods[index];
+    querySummaries.push(`Historical ${index + 1}/${plan.periods.length}: ${period.rangeStart} to ${period.rangeEnd}`);
+    querySummaries.push(...(Array.isArray(result.query_summaries) ? result.query_summaries : []));
+  });
+
+  return {
+    effectiveRequest,
+    simpleAverageMetricDisplayNames: [...simpleAverageMetricDisplayNames].sort((left, right) =>
+      left.localeCompare(right)
+    ),
+    reportResult: {
+      columns: finalColumns,
+      data: finalData,
+      rollup_marker: baseResult.rollup_marker,
+      display_name_map: finalDisplayNameMap,
+      query_summaries: querySummaries,
+      duration: allResults.reduce((sum, result) => sum + (Number(result.duration) || 0), 0),
+      unsupported_grain_metrics: allResults.reduce((merged, result) => {
+        return Object.assign(merged, result?.unsupported_grain_metrics || {});
+      }, {} as Record<string, any>),
+      is_partial: allResults.some((result) => !!result?.is_partial),
+    },
+  } as IMergedHistoricalComparisonReport;
 }

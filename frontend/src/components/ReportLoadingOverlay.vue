@@ -44,14 +44,24 @@ export default class ReportLoadingOverlay extends Vue {
     return readExplorerReportProgress(this.$store);
   }
 
+  get reportStatusParts() {
+    const match = this.reportState.match(/^(Pulling (?:window|historical period)\s+\d+\/\d+):\s*(.+)$/);
+    if (!match) {
+      return { detail: null, label: this.reportState };
+    }
+
+    return {
+      detail: match[2],
+      label: match[1],
+    };
+  }
+
   get reportStatusLabel() {
-    const match = this.reportState.match(/^(Pulling window\s+\d+\/\d+):\s*(.+)$/);
-    return match ? match[1] : this.reportState;
+    return this.reportStatusParts.label;
   }
 
   get reportStatusDetail() {
-    const match = this.reportState.match(/^(Pulling window\s+\d+\/\d+):\s*(.+)$/);
-    return match ? match[2] : null;
+    return this.reportStatusParts.detail;
   }
 
   closeLoadingOverlay() {
