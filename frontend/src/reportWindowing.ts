@@ -51,6 +51,7 @@ interface IMetricInfo {
   rounding: number | null;
   weightingMetricName: string | null;
   weightingMetricDisplayName: string | null;
+  zeroWeightMakesValueIndeterminate: boolean;
   includeInOutput: boolean;
 }
 
@@ -64,6 +65,7 @@ interface IMetricAccumulator {
   weightTotal: number;
   sawNumeric: boolean;
   sawSimpleAverage: boolean;
+  sawIndeterminateWeightedValue: boolean;
   rawValue: any;
 }
 
@@ -88,6 +90,7 @@ export interface IMergedChunkedReport {
   effectiveRequest: IReportRequest;
   reportResult: IReportResult;
   simpleAverageMetricDisplayNames: string[];
+  indeterminateWeightedMetricDisplayNames: string[];
 }
 
 export interface IHistoricalComparisonConfig {
@@ -117,6 +120,7 @@ export interface IMergedHistoricalComparisonReport {
   effectiveRequest: IReportRequest;
   reportResult: IReportResult;
   simpleAverageMetricDisplayNames: string[];
+  indeterminateWeightedMetricDisplayNames: string[];
 }
 
 interface IHistoricalMetricAccumulator {
@@ -127,6 +131,7 @@ interface IHistoricalMetricAccumulator {
   rawValue: any;
   sawNumeric: boolean;
   sawSimpleAverage: boolean;
+  sawIndeterminateWeightedValue: boolean;
 }
 
 interface IHistoricalDimensionInfo {
@@ -360,6 +365,40 @@ function getMetricWeightingMetric(metric: MetricRequest, metricsByName: Warehous
   return null;
 }
 
+function getMetricFormula(metric: MetricRequest, metricsByName: WarehouseFieldMap) {
+  if (typeof metric !== "string" && typeof metric?.formula === "string") {
+    return metric.formula;
+  }
+
+  const metricName = getMetricName(metric);
+  const metricDef = metricName ? metricsByName[metricName] : null;
+  if (typeof metricDef?.formula === "string") {
+    return metricDef.formula;
+  }
+
+  return null;
+}
+
+function metricUsesWeightingMetricAsDenominator(metric: MetricRequest, metricsByName: WarehouseFieldMap) {
+  const weightingMetricName = getMetricWeightingMetric(metric, metricsByName);
+  if (!weightingMetricName) {
+    return false;
+  }
+
+  const formula = getMetricFormula(metric, metricsByName);
+  if (!formula) {
+    return false;
+  }
+
+  const normalizedFormula = formula.replace(/\s+/g, "").toLowerCase();
+  const weightingMetricToken = `{${String(weightingMetricName).trim().toLowerCase()}}`;
+  return (
+    normalizedFormula.includes(`/${weightingMetricToken}`) ||
+    normalizedFormula.includes(`/nullif(${weightingMetricToken},0)`) ||
+    normalizedFormula.includes(`/nullif(${weightingMetricToken},0.0)`)
+  );
+}
+
 function getMetricRounding(metric: MetricRequest, metricsByName: WarehouseFieldMap) {
   if (typeof metric !== "string" && Number.isInteger(metric?.rounding)) {
     return metric.rounding;
@@ -412,6 +451,7 @@ function createMetricAccumulator(): IMetricAccumulator {
     weightTotal: 0,
     sawNumeric: false,
     sawSimpleAverage: false,
+    sawIndeterminateWeightedValue: false,
     rawValue: null,
   };
 }
@@ -515,6 +555,7 @@ function createMetricInfos(
         weightingMetricDisplayName: weightingMetricName
           ? resolveFieldDisplayName(weightingMetricName, displayNameMap, metricsByName)
           : null,
+        zeroWeightMakesValueIndeterminate: metricUsesWeightingMetricAsDenominator(metric, metricsByName),
         includeInOutput: !hiddenWeightMetricNames.includes(name),
       } as IMetricInfo;
     })
@@ -537,7 +578,22 @@ function accumulateMetricFromArrayRow(
     accumulator.rawValue = rawValue;
   }
 
+  const weightIndex = metricInfo.weightingMetricDisplayName
+    ? columnIndexByName.get(metricInfo.weightingMetricDisplayName)
+    : undefined;
+  const weightValue = weightIndex !== undefined ? toNumeric(row[weightIndex]) : null;
   const numericValue = toNumeric(rawValue);
+
+  if (
+    metricInfo.aggregation === "mean" &&
+    metricInfo.zeroWeightMakesValueIndeterminate &&
+    numericValue === null &&
+    weightValue === 0
+  ) {
+    accumulator.sawIndeterminateWeightedValue = true;
+    return;
+  }
+
   if (numericValue === null) {
     return;
   }
@@ -548,10 +604,6 @@ function accumulateMetricFromArrayRow(
     accumulator.averageTotal += numericValue;
     accumulator.averageCount += 1;
 
-    const weightIndex = metricInfo.weightingMetricDisplayName
-      ? columnIndexByName.get(metricInfo.weightingMetricDisplayName)
-      : undefined;
-    const weightValue = weightIndex !== undefined ? toNumeric(row[weightIndex]) : null;
     if (weightValue === null) {
       accumulator.sawSimpleAverage = true;
       return;
@@ -581,7 +633,21 @@ function accumulateMetricFromObjectRow(accumulator: IMetricAccumulator, metricIn
     accumulator.rawValue = rawValue;
   }
 
+  const weightValue = metricInfo.weightingMetricDisplayName
+    ? toNumeric(row[metricInfo.weightingMetricDisplayName])
+    : null;
   const numericValue = toNumeric(rawValue);
+
+  if (
+    metricInfo.aggregation === "mean" &&
+    metricInfo.zeroWeightMakesValueIndeterminate &&
+    numericValue === null &&
+    weightValue === 0
+  ) {
+    accumulator.sawIndeterminateWeightedValue = true;
+    return;
+  }
+
   if (numericValue === null) {
     return;
   }
@@ -592,9 +658,6 @@ function accumulateMetricFromObjectRow(accumulator: IMetricAccumulator, metricIn
     accumulator.averageTotal += numericValue;
     accumulator.averageCount += 1;
 
-    const weightValue = metricInfo.weightingMetricDisplayName
-      ? toNumeric(row[metricInfo.weightingMetricDisplayName])
-      : null;
     if (weightValue === null) {
       accumulator.sawSimpleAverage = true;
       return;
@@ -620,6 +683,9 @@ function accumulateMetricFromObjectRow(accumulator: IMetricAccumulator, metricIn
 
 function finalizeMetricValue(accumulator: IMetricAccumulator, metricInfo: IMetricInfo) {
   if (metricInfo.aggregation === "mean") {
+    if (accumulator.sawIndeterminateWeightedValue) {
+      return null;
+    }
     if (accumulator.weightTotal > 0) {
       return accumulator.weightedTotal / accumulator.weightTotal;
     }
@@ -871,6 +937,7 @@ function createHistoricalMetricAccumulator(): IHistoricalMetricAccumulator {
     rawValue: null,
     sawNumeric: false,
     sawSimpleAverage: false,
+    sawIndeterminateWeightedValue: false,
   };
 }
 
@@ -890,7 +957,22 @@ function accumulateHistoricalMetricFromArrayRow(
     accumulator.rawValue = rawValue;
   }
 
+  const weightIndex = metricInfo.weightingMetricDisplayName
+    ? columnIndexByName.get(metricInfo.weightingMetricDisplayName)
+    : undefined;
+  const weightValue = weightIndex !== undefined ? toNumeric(row[weightIndex]) : null;
   const numericValue = toNumeric(rawValue);
+
+  if (
+    metricInfo.aggregation === "mean" &&
+    metricInfo.zeroWeightMakesValueIndeterminate &&
+    numericValue === null &&
+    weightValue === 0
+  ) {
+    accumulator.sawIndeterminateWeightedValue = true;
+    return;
+  }
+
   if (numericValue === null) {
     return;
   }
@@ -898,10 +980,6 @@ function accumulateHistoricalMetricFromArrayRow(
   accumulator.sawNumeric = true;
 
   if (metricInfo.aggregation === "mean") {
-    const weightIndex = metricInfo.weightingMetricDisplayName
-      ? columnIndexByName.get(metricInfo.weightingMetricDisplayName)
-      : undefined;
-    const weightValue = weightIndex !== undefined ? toNumeric(row[weightIndex]) : null;
     if (weightValue === null) {
       accumulator.sawSimpleAverage = true;
       accumulator.total += numericValue;
@@ -920,6 +998,9 @@ function accumulateHistoricalMetricFromArrayRow(
 
 function finalizeHistoricalMetricValue(accumulator: IHistoricalMetricAccumulator, metricInfo: IMetricInfo) {
   if (metricInfo.aggregation === "mean") {
+    if (accumulator.sawIndeterminateWeightedValue) {
+      return null;
+    }
     if (accumulator.weightTotal > 0) {
       return accumulator.weightedTotal / accumulator.weightTotal;
     }
@@ -1083,7 +1164,8 @@ function buildHistoricalComparisonLabel(config: IHistoricalComparisonConfig) {
 }
 
 function buildHistoricalMetricDisplayName(metricInfo: IMetricInfo, config: IHistoricalComparisonConfig) {
-  return `${metricInfo.displayName} vs ${buildHistoricalComparisonLabel(config)}`;
+  const separator = config.valueMode === "percent_change" ? " vs " : " ";
+  return `${metricInfo.displayName}${separator}${buildHistoricalComparisonLabel(config)}`;
 }
 
 function buildHistoricalMetricFieldName(
@@ -1438,6 +1520,7 @@ export function mergeChunkedReportResults(
   const metricInfos = createMetricInfos(effectiveRequest, metricsByName, displayNameMap, hiddenWeightMetricNames);
   const rowAccumulators = new Map<string, IRowAccumulator>();
   const simpleAverageMetricDisplayNames = new Set<string>();
+  const indeterminateWeightedMetricDisplayNames = new Set<string>();
 
   for (const result of results) {
     const columnIndexByName = new Map<string, number>();
@@ -1472,6 +1555,9 @@ export function mergeChunkedReportResults(
         if (accumulator.sawSimpleAverage && metricInfo.aggregation === "mean") {
           simpleAverageMetricDisplayNames.add(metricInfo.displayName);
         }
+        if (accumulator.sawIndeterminateWeightedValue && metricInfo.aggregation === "mean") {
+          indeterminateWeightedMetricDisplayNames.add(metricInfo.displayName);
+        }
       }
     }
   }
@@ -1499,6 +1585,9 @@ export function mergeChunkedReportResults(
       results[0].rollup_marker
     );
     if (totalsRollupRow) {
+      for (const metricDisplayName of indeterminateWeightedMetricDisplayNames) {
+        totalsRollupRow[metricDisplayName] = null;
+      }
       mergedRows = [...mergedRows, totalsRollupRow];
     }
   }
@@ -1524,6 +1613,9 @@ export function mergeChunkedReportResults(
 
   return {
     effectiveRequest,
+    indeterminateWeightedMetricDisplayNames: [...indeterminateWeightedMetricDisplayNames].sort((left, right) =>
+      left.localeCompare(right)
+    ),
     simpleAverageMetricDisplayNames: [...simpleAverageMetricDisplayNames].sort((left, right) =>
       left.localeCompare(right)
     ),
@@ -1564,6 +1656,7 @@ export function mergeHistoricalComparisonReportResults(
   const metricInfos = createMetricInfos(effectiveRequest, metricsByName, displayNameMap, hiddenWeightMetricNames);
   const metricAccumulatorByKey = new Map<string, Record<string, IHistoricalMetricAccumulator>>();
   const simpleAverageMetricDisplayNames = new Set<string>();
+  const indeterminateWeightedMetricDisplayNames = new Set<string>();
 
   comparisonResults.forEach((result, resultIndex) => {
     const period = plan.periods[resultIndex];
@@ -1599,6 +1692,9 @@ export function mergeHistoricalComparisonReportResults(
         accumulateHistoricalMetricFromArrayRow(accumulator, metricInfo, row, columnIndexByName);
         if (accumulator.sawSimpleAverage && metricInfo.aggregation === "mean") {
           simpleAverageMetricDisplayNames.add(metricInfo.displayName);
+        }
+        if (accumulator.sawIndeterminateWeightedValue && metricInfo.aggregation === "mean") {
+          indeterminateWeightedMetricDisplayNames.add(metricInfo.displayName);
         }
       }
     }
@@ -1678,6 +1774,9 @@ export function mergeHistoricalComparisonReportResults(
 
   return {
     effectiveRequest,
+    indeterminateWeightedMetricDisplayNames: [...indeterminateWeightedMetricDisplayNames].sort((left, right) =>
+      left.localeCompare(right)
+    ),
     simpleAverageMetricDisplayNames: [...simpleAverageMetricDisplayNames].sort((left, right) =>
       left.localeCompare(right)
     ),

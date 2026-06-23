@@ -596,6 +596,15 @@ export const actions = {
           });
         }
 
+        if (mergedChunkReport.indeterminateWeightedMetricDisplayNames.length) {
+          dispatchAddNotification(context, {
+            content: `Chunked execution left weighted mean metrics blank when some windows had zero-denominator values: ${mergedChunkReport.indeterminateWeightedMetricDisplayNames.join(
+              ", "
+            )}`,
+            color: "warning",
+          });
+        }
+
         return true;
       }
 
@@ -680,6 +689,15 @@ export const actions = {
         if (mergedHistoricalReport.simpleAverageMetricDisplayNames.length) {
           dispatchAddNotification(context, {
             content: `Historical comparison used simple averages for mean metrics without available weights: ${mergedHistoricalReport.simpleAverageMetricDisplayNames.join(
+              ", "
+            )}`,
+            color: "warning",
+          });
+        }
+
+        if (mergedHistoricalReport.indeterminateWeightedMetricDisplayNames.length) {
+          dispatchAddNotification(context, {
+            content: `Historical comparison left weighted mean metrics blank when some prior periods had zero-denominator values: ${mergedHistoricalReport.indeterminateWeightedMetricDisplayNames.join(
               ", "
             )}`,
             color: "warning",

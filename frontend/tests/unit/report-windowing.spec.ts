@@ -372,6 +372,205 @@ describe("reportWindowing", () => {
     expect(totalsRow[2]).toBe(0.24);
   });
 
+  it("leaves ratio-style weighted means blank when a merged window has a zero denominator", () => {
+    const ratioMetricsByName = {
+      hits: {
+        aggregation: "sum",
+        display_name: "H",
+        name: "hits",
+        type: "float",
+      },
+      out_rate: {
+        aggregation: "mean",
+        display_name: "Out Rate",
+        formula: "100.0*(IFNULL({at_bats},0) - IFNULL({hits},0))/{at_bats}",
+        name: "out_rate",
+        rounding: 2,
+        type: "float",
+        weighting_metric: "at_bats",
+      },
+      at_bats: {
+        aggregation: "sum",
+        display_name: "AB",
+        name: "at_bats",
+        type: "float",
+      },
+    };
+    const request = {
+      ...createChunkedRequest(),
+      metrics: ["at_bats", "hits", ratioMetricsByName.out_rate],
+      rollup: "totals",
+    };
+    const plan = buildChunkExecutionPlan(request as any, dimensionsByName as any);
+
+    const merged = mergeChunkedReportResults(
+      [
+        {
+          columns: ["Franchise Name", "AB", "H", "Out Rate"],
+          data: [["Boston Red Sox", 100, 20, 80]],
+          display_name_map: {
+            at_bats: "AB",
+            debut_date: "Debut Date",
+            franchise_name: "Franchise Name",
+            hits: "H",
+            out_rate: "Out Rate",
+          },
+          duration: 1,
+          is_partial: false,
+          query_summaries: ["Backend window 2024-01-01"],
+          rollup_marker: "__ROLLUP__",
+          unsupported_grain_metrics: {},
+        },
+        {
+          columns: ["Franchise Name", "AB", "H", "Out Rate"],
+          data: [["Boston Red Sox", 0, 10, null]],
+          display_name_map: {
+            at_bats: "AB",
+            debut_date: "Debut Date",
+            franchise_name: "Franchise Name",
+            hits: "H",
+            out_rate: "Out Rate",
+          },
+          duration: 1.5,
+          is_partial: false,
+          query_summaries: ["Backend window 2024-01-02"],
+          rollup_marker: "__ROLLUP__",
+          unsupported_grain_metrics: {},
+        },
+      ] as any,
+      request as any,
+      ratioMetricsByName as any,
+      dimensionsByName as any,
+      plan as any
+    );
+
+    expect(merged.simpleAverageMetricDisplayNames).toEqual([]);
+    expect(merged.indeterminateWeightedMetricDisplayNames).toEqual(["Out Rate"]);
+    expect(merged.reportResult.columns).toEqual(["Franchise Name", "AB", "H", "Out Rate"]);
+    expect(merged.reportResult.data).toEqual([
+      ["Boston Red Sox", 100, 30, null],
+      ["__ROLLUP__", 100, 30, null],
+    ]);
+  });
+
+  it("leaves historical ratio-style weighted means blank when a prior period has a zero denominator", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2024-05-28T14:20:00"));
+
+    const ratioMetricsByName = {
+      hits: {
+        aggregation: "sum",
+        display_name: "H",
+        name: "hits",
+        type: "float",
+      },
+      out_rate: {
+        aggregation: "mean",
+        display_name: "Out Rate",
+        formula: "100.0*(IFNULL({at_bats},0) - IFNULL({hits},0))/{at_bats}",
+        name: "out_rate",
+        rounding: 2,
+        type: "float",
+        weighting_metric: "at_bats",
+      },
+      at_bats: {
+        aggregation: "sum",
+        display_name: "AB",
+        name: "at_bats",
+        type: "float",
+      },
+    };
+    const request = {
+      criteria: [["debut_date", "between", ["2024-05-28", "2024-05-28"]]],
+      dimensions: ["franchise_name", "debut_date"],
+      limit: 50000,
+      limit_first: false,
+      meta: {
+        historicalComparison: { mode: "date", periods: 2 },
+      },
+      metrics: ["at_bats", "hits", ratioMetricsByName.out_rate],
+      order_by: [
+        ["franchise_name", "asc"],
+        ["debut_date", "asc"],
+      ],
+      row_filters: [],
+    };
+    const hiddenWeightMetricNames = getHiddenWeightMetricNames(request as any, ratioMetricsByName as any);
+    const plan = buildHistoricalComparisonPlan(request as any, dimensionsByName as any);
+
+    const merged = mergeHistoricalComparisonReportResults(
+      {
+        columns: ["Franchise Name", "Debut Date", "AB", "H", "Out Rate"],
+        data: [["Boston Red Sox", "2024-05-28", 50, 20, 60]],
+        display_name_map: {
+          at_bats: "AB",
+          debut_date: "Debut Date",
+          franchise_name: "Franchise Name",
+          hits: "H",
+          out_rate: "Out Rate",
+        },
+        duration: 1,
+        is_partial: false,
+        query_summaries: ["Current backend report"],
+        rollup_marker: "__ROLLUP__",
+        unsupported_grain_metrics: {},
+      } as any,
+      [
+        {
+          columns: ["Franchise Name", "Debut Date", "AB", "H", "Out Rate"],
+          data: [["Boston Red Sox", "2024-05-27", 100, 20, 80]],
+          display_name_map: {
+            at_bats: "AB",
+            debut_date: "Debut Date",
+            franchise_name: "Franchise Name",
+            hits: "H",
+            out_rate: "Out Rate",
+          },
+          duration: 1.5,
+          is_partial: false,
+          query_summaries: ["Historical backend report 1"],
+          rollup_marker: "__ROLLUP__",
+          unsupported_grain_metrics: {},
+        },
+        {
+          columns: ["Franchise Name", "Debut Date", "AB", "H", "Out Rate"],
+          data: [["Boston Red Sox", "2024-05-26", 0, 10, null]],
+          display_name_map: {
+            at_bats: "AB",
+            debut_date: "Debut Date",
+            franchise_name: "Franchise Name",
+            hits: "H",
+            out_rate: "Out Rate",
+          },
+          duration: 1.25,
+          is_partial: false,
+          query_summaries: ["Historical backend report 2"],
+          rollup_marker: "__ROLLUP__",
+          unsupported_grain_metrics: {},
+        },
+      ] as any,
+      request as any,
+      ratioMetricsByName as any,
+      dimensionsByName as any,
+      plan as any,
+      hiddenWeightMetricNames
+    );
+
+    expect(merged.simpleAverageMetricDisplayNames).toEqual([]);
+    expect(merged.indeterminateWeightedMetricDisplayNames).toEqual(["Out Rate"]);
+    expect(merged.reportResult.columns).toEqual([
+      "Franchise Name",
+      "Debut Date",
+      "AB",
+      "AB Last 2 Days",
+      "H",
+      "H Last 2 Days",
+      "Out Rate",
+      "Out Rate Last 2 Days",
+    ]);
+    expect(merged.reportResult.data).toEqual([["Boston Red Sox", "2024-05-28", 50, 50, 20, 15, 60, null]]);
+  });
+
   it("merges historical comparison results by current row shape and adds comparison columns", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2024-05-28T14:20:00"));
@@ -474,9 +673,9 @@ describe("reportWindowing", () => {
       "Franchise Name",
       "Debut Date",
       "H",
-      "H vs Last 2 Days",
+      "H Last 2 Days",
       "AVG",
-      "AVG vs Last 2 Days",
+      "AVG Last 2 Days",
     ]);
     expect(merged.simpleAverageMetricDisplayNames).toEqual([]);
     expect(merged.reportResult.data).toEqual([
@@ -579,7 +778,7 @@ describe("reportWindowing", () => {
       plan as any
     );
 
-    expect(merged.reportResult.columns).toEqual(["Franchise Name", "Debut Date", "H", "H vs Last 3 Days"]);
+    expect(merged.reportResult.columns).toEqual(["Franchise Name", "Debut Date", "H", "H Last 3 Days"]);
     expect(merged.reportResult.data).toEqual([["Boston Red Sox", "2024-05-28", 10, 6.33]]);
   });
 
@@ -752,7 +951,7 @@ describe("reportWindowing", () => {
       plan as any
     );
 
-    expect(merged.reportResult.columns).toEqual(["Franchise Name", "Week Of Year", "H", "H vs Last Week"]);
+    expect(merged.reportResult.columns).toEqual(["Franchise Name", "Week Of Year", "H", "H Last Week"]);
     expect(merged.reportResult.data).toEqual([["Boston Red Sox", 20, 10, 8]]);
   });
 
