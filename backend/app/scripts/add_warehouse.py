@@ -1,6 +1,6 @@
 """
 Example:
-COMPOSE_FILE=docker-compose.light.dev.yml ./scripts/run-local.sh python /app/scripts/add_warehouse.py My_Warehouse /app/custom/my_warehouse.jdon
+COMPOSE_FILE=docker-compose.light.dev.yml ./scripts/run-local.sh python /app/scripts/add_warehouse.py My_Warehouse /app/custom/my_warehouse.json
 """
 
 import json
