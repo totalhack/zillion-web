@@ -1,5 +1,5 @@
 # Stage 0, "build-stage", based on Node.js, to build and compile the frontend
-FROM node:22-bookworm-slim as build-stage
+FROM node:22.23.4-bookworm-slim as build-stage
 
 WORKDIR /app
 
