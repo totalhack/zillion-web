@@ -17,8 +17,10 @@ const REPORT_TIMEOUT = 10 * 60 * 1000; // in ms
 function defaultConfig(token: string) {
   return {
     timeout: DEFAULT_TIMEOUT,
+    withCredentials: true,
     headers: {
-      Authorization: `Bearer ${token}`,
+      ...(token && token !== "cookie" ? { Authorization: `Bearer ${token}` } : {}),
+      "X-Zillion-CSRF": "1",
     },
   };
 }
@@ -28,7 +30,11 @@ export const api = {
     const params = new URLSearchParams();
     params.append("username", username);
     params.append("password", password);
-    return axios.post(`${apiUrl}/api/v1/login/access-token`, params);
+    params.append("use_cookie", "true");
+    return axios.post(`${apiUrl}/api/v1/login/access-token`, params, defaultConfig(""));
+  },
+  async logOut(token: string) {
+    return axios.post(`${apiUrl}/api/v1/logout`, {}, defaultConfig(token));
   },
   async getMe(token: string) {
     return axios.get<IUserProfile>(`${apiUrl}/api/v1/users/me`, defaultConfig(token));

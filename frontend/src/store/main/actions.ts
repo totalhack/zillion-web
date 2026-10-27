@@ -259,6 +259,8 @@ export const actions = {
       if (token) {
         try {
           const response = await api.getMe(token);
+          saveLocalToken("cookie");
+          commitSetToken(context, "cookie");
           commitSetLoggedIn(context, true);
           commitSetUserProfile(context, response.data);
         } catch (error) {
@@ -279,6 +281,14 @@ export const actions = {
     await dispatchRouteLogOut(context);
   },
   async actionUserLogOut(context: MainContext) {
+    try {
+      await api.logOut(context.state.token);
+    } catch (error) {
+      if (![401, 403, 404].includes((error as AxiosError).response?.status || 0)) {
+        await dispatchCheckApiError(context, error as AxiosError);
+        return;
+      }
+    }
     await dispatchLogOut(context);
   },
   actionRouteLogOut(context: MainContext) {

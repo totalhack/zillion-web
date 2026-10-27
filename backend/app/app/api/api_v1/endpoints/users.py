@@ -1,14 +1,16 @@
+import hmac
 from typing import Any, List
 
-from fastapi import APIRouter, Body, Depends, HTTPException
-from fastapi.encoders import jsonable_encoder
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response
 from pydantic.networks import EmailStr
 from sqlalchemy.orm import Session
 from zillion.core import ZillionException
 
 from app import crud, models, schemas
 from app.api import deps
+from app.core import security
 from app.core.config import settings
+from app.core.security import verify_password
 from app.utils import send_new_account_email
 
 router = APIRouter()
@@ -47,7 +49,9 @@ def create_user(
     user = crud.user.create(db, obj_in=user_in)
     if settings.EMAILS_ENABLED and user_in.email:
         send_new_account_email(
-            email_to=user_in.email, username=user_in.email, password=user_in.password
+            email_to=user.email,
+            username=user.email,
+            hashed_password=user.hashed_password,
         )
     return user
 
@@ -55,8 +59,11 @@ def create_user(
 @router.put("/me", response_model=schemas.User)
 def update_user_me(
     *,
+    request: Request,
+    response: Response,
     db: Session = Depends(deps.get_db),
     password: str = Body(None),
+    current_password: str = Body(None),
     full_name: str = Body(None),
     email: EmailStr = Body(None),
     current_user: models.User = Depends(deps.get_current_active_user),
@@ -64,12 +71,32 @@ def update_user_me(
     """
     Update own user.
     """
-    current_user_data = jsonable_encoder(current_user)
-    user_in = schemas.UserUpdate(**current_user_data)
-    if user_in.email.lower() == "demouser@example.com" and not crud.user.is_superuser(
-        current_user
+    authenticated_version = security.password_version(current_user.hashed_password)
+    current_user = (
+        db.query(models.User)
+        .filter(models.User.id == current_user.id)
+        .populate_existing()
+        .with_for_update()
+        .first()
+    )
+    if current_user is None or not hmac.compare_digest(
+        authenticated_version, security.password_version(current_user.hashed_password)
+    ):
+        raise HTTPException(status_code=401, detail="Session has expired")
+    if not crud.user.is_active(current_user):
+        raise HTTPException(status_code=400, detail="Inactive user")
+    user_in = schemas.UserUpdate()
+    if (
+        current_user.email.lower() == "demouser@example.com"
+        and not crud.user.is_superuser(current_user)
     ):
         raise ZillionException("Demo user can't be edited, silly!")
+    if password is not None or (email is not None and email != current_user.email):
+        security.enforce_auth_rate_limit(request, "reauth", str(current_user.id))
+        if current_password is None or not verify_password(
+            current_password, current_user.hashed_password
+        ):
+            raise HTTPException(status_code=400, detail="Current password is incorrect")
     if password is not None:
         user_in.password = password
     if full_name is not None:
@@ -77,6 +104,14 @@ def update_user_me(
     if email is not None:
         user_in.email = email
     user = crud.user.update(db, db_obj=current_user, obj_in=user_in)
+    if password is not None:
+        token = security.create_access_token(
+            user.id, hashed_password=user.hashed_password
+        )
+        payload = security.jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
+        )
+        security.set_session_cookie(response, token, payload["exp"])
     return user
 
 

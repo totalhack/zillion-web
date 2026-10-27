@@ -35,14 +35,18 @@ describe("utils", () => {
     vi.useRealTimers();
   });
 
-  it("reads, writes, and removes auth tokens from localStorage", () => {
-    expect(getLocalToken()).toBeNull();
+  it("reads legacy tokens for migration but never persists new tokens", () => {
+    expect(getLocalToken()).toBe("cookie");
 
-    saveLocalToken("abc123");
+    localStorage.setItem("token", "abc123");
     expect(getLocalToken()).toBe("abc123");
+    saveLocalToken("cookie");
+    expect(localStorage.getItem("token")).toBeNull();
+    expect(getLocalToken()).toBe("cookie");
 
+    localStorage.setItem("token", "abc123");
     removeLocalToken();
-    expect(getLocalToken()).toBeNull();
+    expect(localStorage.getItem("token")).toBeNull();
   });
 
   it("serializes report request and warehouse id in sessionStorage", () => {

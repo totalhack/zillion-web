@@ -10,13 +10,21 @@
             <template>
               <div class="my-3">
                 <div class="subtitle-1 secondary--text text--lighten-2">User</div>
-                <div
-                  class="text-body-1 grey--text text--darken-3"
-                  v-if="userProfile.full_name"
-                >{{userProfile.full_name}}</div>
-                <div class="text-body-1 grey--text text--darken-3" v-else>{{userProfile.email}}</div>
+                <div class="text-body-1 grey--text text--darken-3" v-if="userProfile.full_name">
+                  {{ userProfile.full_name }}
+                </div>
+                <div class="text-body-1 grey--text text--darken-3" v-else>{{ userProfile.email }}</div>
               </div>
               <v-form ref="form">
+                <v-text-field
+                  type="password"
+                  label="Current Password"
+                  autocomplete="current-password"
+                  data-vv-name="current_password"
+                  v-validate="'required'"
+                  v-model="currentPassword"
+                  :error-messages="errors.first('current_password')"
+                ></v-text-field>
                 <v-text-field
                   type="password"
                   ref="password"
@@ -55,25 +63,27 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
-import { Store } from 'vuex';
-import { IUserProfileUpdate } from '@/interfaces';
-import { readUserProfile } from '@/store/main/getters';
-import { dispatchUpdateUserProfile } from '@/store/main/actions';
+import { Component, Vue } from "vue-property-decorator";
+import { Store } from "vuex";
+import { IUserProfileUpdate } from "@/interfaces";
+import { readUserProfile } from "@/store/main/getters";
+import { dispatchUpdateUserProfile } from "@/store/main/actions";
 
 @Component
 export default class UserProfileEdit extends Vue {
   public valid = true;
-  public password1 = '';
-  public password2 = '';
+  public password1 = "";
+  public password2 = "";
+  public currentPassword = "";
 
   get userProfile() {
     return readUserProfile(this.$store);
   }
 
   public reset() {
-    this.password1 = '';
-    this.password2 = '';
+    this.password1 = "";
+    this.password2 = "";
+    this.currentPassword = "";
     this.$validator.reset();
   }
 
@@ -85,8 +95,9 @@ export default class UserProfileEdit extends Vue {
     if (await this.$validator.validateAll()) {
       const updatedProfile: IUserProfileUpdate = {};
       updatedProfile.password = this.password1;
+      updatedProfile.current_password = this.currentPassword;
       await dispatchUpdateUserProfile(this.$store, updatedProfile);
-      this.$router.push('/main/profile');
+      this.$router.push("/main/profile");
     }
   }
 }

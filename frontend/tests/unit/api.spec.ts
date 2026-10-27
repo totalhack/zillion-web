@@ -21,10 +21,15 @@ describe("api", () => {
 
     await api.logInGetToken("user@example.com", "secret");
 
-    expect(axios.post).toHaveBeenCalledWith("/api/v1/login/access-token", expect.any(URLSearchParams));
+    expect(axios.post).toHaveBeenCalledWith("/api/v1/login/access-token", expect.any(URLSearchParams), {
+      timeout: 30000,
+      withCredentials: true,
+      headers: { "X-Zillion-CSRF": "1" },
+    });
     const params = vi.mocked(axios.post).mock.calls[0][1] as URLSearchParams;
     expect(params.get("username")).toBe("user@example.com");
     expect(params.get("password")).toBe("secret");
+    expect(params.get("use_cookie")).toBe("true");
   });
 
   it("attaches bearer token config to authenticated GET requests", async () => {
@@ -34,9 +39,17 @@ describe("api", () => {
 
     expect(axios.get).toHaveBeenCalledWith("/api/v1/users/me", {
       timeout: 30000,
+      withCredentials: true,
       headers: {
         Authorization: "Bearer token-1",
+        "X-Zillion-CSRF": "1",
       },
+    });
+    await api.getMe("cookie");
+    expect(axios.get).toHaveBeenLastCalledWith("/api/v1/users/me", {
+      timeout: 30000,
+      withCredentials: true,
+      headers: { "X-Zillion-CSRF": "1" },
     });
   });
 
@@ -49,8 +62,10 @@ describe("api", () => {
 
     expect(axios.post).toHaveBeenCalledWith("/api/v1/warehouse/7/execute", request, {
       timeout: 600000,
+      withCredentials: true,
       headers: {
         Authorization: "Bearer token-2",
+        "X-Zillion-CSRF": "1",
       },
       cancelToken: "cancel-token",
     });

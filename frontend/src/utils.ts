@@ -1,8 +1,8 @@
 import moment from "moment";
 
-export const getLocalToken = () => localStorage.getItem("token");
+export const getLocalToken = () => localStorage.getItem("token") || "cookie";
 
-export const saveLocalToken = (token: string) => localStorage.setItem("token", token);
+export const saveLocalToken = (_token: string) => localStorage.removeItem("token");
 
 export const removeLocalToken = () => localStorage.removeItem("token");
 
@@ -146,49 +146,31 @@ function dateTypeToFormat(type) {
 }
 
 export function getNDaysAgo(N, type) {
-  return moment()
-    .subtract(N, "day")
-    .startOf("day")
-    .format(dateTypeToFormat(type));
+  return moment().subtract(N, "day").startOf("day").format(dateTypeToFormat(type));
 }
 
 export function getNDaysAgoEnd(N, type) {
-  return moment()
-    .subtract(N, "day")
-    .endOf("day")
-    .format(dateTypeToFormat(type));
+  return moment().subtract(N, "day").endOf("day").format(dateTypeToFormat(type));
 }
 
 export function getNHoursAgo(N, type) {
-  return moment()
-    .subtract(N, "hour")
-    .startOf("hour")
-    .format(dateTypeToFormat(type));
+  return moment().subtract(N, "hour").startOf("hour").format(dateTypeToFormat(type));
 }
 
 export function getNMinutesAgo(N, type) {
-  return moment()
-    .subtract(N, "minute")
-    .startOf("minute")
-    .format(dateTypeToFormat(type));
+  return moment().subtract(N, "minute").startOf("minute").format(dateTypeToFormat(type));
 }
 
 export function getDateStartOf(type, dateType) {
-  return moment()
-    .startOf(type)
-    .format(dateTypeToFormat(dateType));
+  return moment().startOf(type).format(dateTypeToFormat(dateType));
 }
 
 export function getDateEndOf(type, dateType) {
-  return moment()
-    .endOf(type)
-    .format(dateTypeToFormat(dateType));
+  return moment().endOf(type).format(dateTypeToFormat(dateType));
 }
 
 export function getToday(type) {
-  return moment()
-    .startOf("day")
-    .format(dateTypeToFormat(type));
+  return moment().startOf("day").format(dateTypeToFormat(type));
 }
 
 export function isTodayShortcutValue(value) {
@@ -204,28 +186,17 @@ export function getTodayDayOfMonth() {
 }
 
 export function getTomorrow(type) {
-  return moment()
-    .add(1, "day")
-    .startOf("day")
-    .format(dateTypeToFormat(type));
+  return moment().add(1, "day").startOf("day").format(dateTypeToFormat(type));
 }
 
 export function getThisHour(type) {
-  return moment()
-    .startOf("hour")
-    .format(dateTypeToFormat(type));
+  return moment().startOf("hour").format(dateTypeToFormat(type));
 }
 
 export function getLastMonthStart(type) {
-  return moment()
-    .startOf("month")
-    .subtract(1, "month")
-    .format(dateTypeToFormat(type));
+  return moment().startOf("month").subtract(1, "month").format(dateTypeToFormat(type));
 }
 
 export function getLastMonthEnd(type) {
-  return moment()
-    .subtract(1, "month")
-    .endOf("month")
-    .format(dateTypeToFormat(type));
+  return moment().subtract(1, "month").endOf("month").format(dateTypeToFormat(type));
 }

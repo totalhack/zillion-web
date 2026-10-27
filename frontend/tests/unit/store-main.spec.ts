@@ -18,6 +18,7 @@ vi.mock("@/api", () => ({
     getWarehouseStructure: vi.fn(),
     getWarehouses: vi.fn(),
     logInGetToken: vi.fn(),
+    logOut: vi.fn(),
     saveReport: vi.fn(),
   },
 }));
@@ -97,9 +98,9 @@ describe("main store", () => {
     vi.restoreAllMocks();
   });
 
-  it("logs in, stores the token, hydrates the profile, and routes to explorer", async () => {
+  it("logs in with a cookie, hydrates the profile, and revokes the session on logout", async () => {
     const store = createStore();
-    vi.mocked(api.logInGetToken).mockResolvedValue(response({ access_token: "token-1" }));
+    vi.mocked(api.logInGetToken).mockResolvedValue(response({ access_token: "cookie" }));
     vi.mocked(api.getMe).mockResolvedValue(
       response({
         email: "admin@example.com",
@@ -112,12 +113,17 @@ describe("main store", () => {
 
     await store.dispatch("actionLogIn", { username: "admin@example.com", password: "secret" });
 
-    expect(localStorage.getItem("token")).toBe("token-1");
-    expect(store.state.main.token).toBe("token-1");
+    expect(localStorage.getItem("token")).toBeNull();
+    expect(store.state.main.token).toBe("cookie");
     expect(store.state.main.isLoggedIn).toBe(true);
     expect(store.state.main.logInError).toBe(false);
     expect(store.state.main.userProfile).toMatchObject({ email: "admin@example.com", is_active: true });
     expect(router.push).toHaveBeenCalledWith("/main/explorer");
+    vi.mocked(api.logOut).mockResolvedValue(response({ msg: "Logged out" }));
+    await store.dispatch("actionUserLogOut");
+    expect(api.logOut).toHaveBeenCalledWith("cookie");
+    expect(store.state.main.isLoggedIn).toBe(false);
+    expect(store.state.main.token).toBe("");
   });
 
   it("only honors safe internal redirect paths after login", async () => {
@@ -140,7 +146,15 @@ describe("main store", () => {
     expect(router.push).toHaveBeenCalledWith("/main/explorer");
   });
 
-  it("removes login state when stored token validation fails", async () => {
+  it("migrates valid stored tokens to cookies and removes invalid login state", async () => {
+    localStorage.setItem("token", "legacy-token");
+    const migratedStore = createStore();
+    vi.mocked(api.getMe).mockResolvedValue(response({ email: "synthetic@example.com" }));
+    await migratedStore.dispatch("actionCheckLoggedIn");
+    expect(api.getMe).toHaveBeenCalledWith("legacy-token");
+    expect(localStorage.getItem("token")).toBeNull();
+    expect(migratedStore.state.main.token).toBe("cookie");
+    expect(migratedStore.state.main.isLoggedIn).toBe(true);
     localStorage.setItem("token", "bad-token");
     const store = createStore();
     vi.mocked(api.getMe).mockRejectedValue(new Error("unauthorized"));

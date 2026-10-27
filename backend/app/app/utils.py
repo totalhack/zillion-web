@@ -1,5 +1,6 @@
 import logging
 import collections
+import hmac
 from collections.abc import (
     Callable,
     Iterable,
@@ -12,6 +13,7 @@ from datetime import date, datetime, timedelta, time
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Union
+from urllib.parse import urlencode, urljoin
 
 collections.Callable = getattr(collections, "Callable", Callable)
 collections.Iterable = getattr(collections, "Iterable", Iterable)
@@ -22,7 +24,7 @@ collections.Sequence = getattr(collections, "Sequence", Sequence)
 
 import emails
 from emails.template import JinjaTemplate
-from jose import jwt
+import jwt
 from marshmallow import Schema, fields, missing
 import numpy as np
 from pydantic import (
@@ -38,6 +40,7 @@ from pydantic import (
 from tlbx import json
 
 from app.core.config import settings
+from app.core.security import password_version
 
 
 def send_email(
@@ -82,7 +85,8 @@ def send_reset_password_email(email_to: str, email: str, token: str) -> None:
     with open(Path(settings.EMAIL_TEMPLATES_DIR) / "reset_password.html") as f:
         template_str = f.read()
     server_host = settings.SERVER_HOST
-    link = f"{server_host}/reset-password?token={token}"
+    link = urljoin(str(server_host).rstrip("/") + "/", "reset-password")
+    link += "?" + urlencode({"token": token})
     send_email(
         email_to=email_to,
         subject_template=subject,
@@ -97,12 +101,16 @@ def send_reset_password_email(email_to: str, email: str, token: str) -> None:
     )
 
 
-def send_new_account_email(email_to: str, username: str, password: str) -> None:
+def send_new_account_email(email_to: str, username: str, hashed_password: str) -> None:
     project_name = settings.PROJECT_NAME
     subject = f"{project_name} - New account for user {username}"
-    with open(Path(settings.EMAIL_TEMPLATES_DIR) / "new_account.html") as f:
+    with open(Path(settings.EMAIL_TEMPLATES_DIR) / "reset_password.html") as f:
         template_str = f.read()
-    link = settings.SERVER_HOST
+    token = generate_password_reset_token(
+        email=username, hashed_password=hashed_password
+    )
+    link = urljoin(str(settings.SERVER_HOST).rstrip("/") + "/", "reset-password")
+    link += "?" + urlencode({"token": token})
     send_email(
         email_to=email_to,
         subject_template=subject,
@@ -110,29 +118,54 @@ def send_new_account_email(email_to: str, username: str, password: str) -> None:
         environment={
             "project_name": settings.PROJECT_NAME,
             "username": username,
-            "password": password,
             "email": email_to,
             "link": link,
+            "valid_hours": settings.EMAIL_RESET_TOKEN_EXPIRE_HOURS,
         },
     )
 
 
-def generate_password_reset_token(email: str) -> str:
+def generate_password_reset_token(email: str, hashed_password: str) -> str:
     delta = timedelta(hours=settings.EMAIL_RESET_TOKEN_EXPIRE_HOURS)
     now = datetime.utcnow()
     expires = now + delta
     exp = expires.timestamp()
     encoded_jwt = jwt.encode(
-        {"exp": exp, "nbf": now, "sub": email}, settings.SECRET_KEY, algorithm="HS256"
+        {
+            "exp": exp,
+            "nbf": now,
+            "sub": email,
+            "purpose": "password_reset",
+            "password_version": password_version(hashed_password),
+        },
+        settings.SECRET_KEY,
+        algorithm="HS256",
     )
     return encoded_jwt
 
 
-def verify_password_reset_token(token: str) -> Optional[str]:
+def verify_password_reset_token(
+    token: str, hashed_password: Optional[str] = None
+) -> Optional[str]:
     try:
-        decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        decoded_token = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=["HS256"],
+            options={"require": ["exp", "sub", "purpose", "password_version"]},
+        )
+        version = decoded_token["password_version"]
+        if (
+            decoded_token["purpose"] != "password_reset"
+            or not isinstance(version, str)
+            or (
+                hashed_password is not None
+                and not hmac.compare_digest(version, password_version(hashed_password))
+            )
+        ):
+            return None
         return decoded_token["sub"]
-    except jwt.JWTError:
+    except jwt.InvalidTokenError:
         return None
 
 

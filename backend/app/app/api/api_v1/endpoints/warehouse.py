@@ -36,7 +36,7 @@ def get_accessible_warehouse_ids(db: Session, current_user: models.User):
         .filter(models.UserWarehouseAccess.user_id == current_user.id)
         .all()
     )
-    return {warehouse_id for warehouse_id, in rows}
+    return {warehouse_id for (warehouse_id,) in rows}
 
 
 def get_authorized_warehouse(
@@ -356,12 +356,16 @@ def update_report(warehouse, report_id, meta=None, **kwargs):
     report = Report(warehouse, **kwargs)
     conn = zillion_engine.connect()
     try:
-        conn.execute(
-            ReportSpecs.update().where(ReportSpecs.columns.id == report_id),
-            warehouse_id=warehouse.id,
+        result = conn.execute(
+            ReportSpecs.update().where(
+                ReportSpecs.columns.id == report_id,
+                ReportSpecs.columns.warehouse_id == warehouse.id,
+            ),
             params=report.get_json(),
             meta=json.dumps(meta),
         )
+        if not result.rowcount:
+            raise HTTPException(status_code=404, detail="Report not found")
     finally:
         conn.close()
     report.spec_id = report_id

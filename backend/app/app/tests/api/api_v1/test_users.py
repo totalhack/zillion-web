@@ -137,15 +137,26 @@ def test_get_other_user_by_normal_user_forbidden(
 
 def test_update_user_me_updates_password_and_name(
     client: TestClient,
-    normal_user_token_headers: Dict[str, str],
+    db: Session,
     normal_user_email: str,
 ) -> None:
+    current_password = random_lower_string()
+    crud.user.create(
+        db, obj_in=UserCreate(email=normal_user_email, password=current_password)
+    )
+    normal_user_token_headers = user_authentication_headers(
+        client=client, email=normal_user_email, password=current_password
+    )
     new_password = random_lower_string()
     full_name = "Updated User"
     r = client.put(
         f"{settings.API_V1_STR}/users/me",
         headers=normal_user_token_headers,
-        json={"password": new_password, "full_name": full_name},
+        json={
+            "password": new_password,
+            "full_name": full_name,
+            "current_password": current_password,
+        },
     )
     assert r.status_code == 200
     result = r.json()

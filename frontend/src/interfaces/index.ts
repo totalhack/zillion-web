@@ -11,6 +11,7 @@ export interface IUserProfileUpdate {
   email?: string;
   full_name?: string;
   password?: string;
+  current_password?: string;
   is_active?: boolean;
   is_superuser?: boolean;
   warehouse_ids?: number[];

@@ -19,6 +19,14 @@
                   :error-messages="errors.collect('email')"
                   required
                 ></v-text-field>
+                <v-text-field
+                  v-if="userProfile && email !== userProfile.email"
+                  label="Current Password"
+                  type="password"
+                  autocomplete="current-password"
+                  v-model="currentPassword"
+                  :rules="[(value) => !!value || 'Current password is required']"
+                ></v-text-field>
               </v-form>
             </template>
           </v-card-text>
@@ -35,17 +43,18 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
-import { Store } from 'vuex';
-import { IUserProfileUpdate } from '@/interfaces';
-import { readUserProfile } from '@/store/main/getters';
-import { dispatchUpdateUserProfile } from '@/store/main/actions';
+import { Component, Vue } from "vue-property-decorator";
+import { Store } from "vuex";
+import { IUserProfileUpdate } from "@/interfaces";
+import { readUserProfile } from "@/store/main/getters";
+import { dispatchUpdateUserProfile } from "@/store/main/actions";
 
 @Component
 export default class UserProfileEdit extends Vue {
   public valid = true;
-  public fullName: string = '';
-  public email: string = '';
+  public fullName: string = "";
+  public email: string = "";
+  public currentPassword: string = "";
 
   public created() {
     const userProfile = readUserProfile(this.$store);
@@ -60,6 +69,7 @@ export default class UserProfileEdit extends Vue {
   }
 
   public reset() {
+    this.currentPassword = "";
     const userProfile = readUserProfile(this.$store);
     if (userProfile) {
       this.fullName = userProfile.full_name;
@@ -80,8 +90,11 @@ export default class UserProfileEdit extends Vue {
       if (this.email) {
         updatedProfile.email = this.email;
       }
+      if (this.userProfile && this.email !== this.userProfile.email) {
+        updatedProfile.current_password = this.currentPassword;
+      }
       await dispatchUpdateUserProfile(this.$store, updatedProfile);
-      this.$router.push('/main/profile');
+      this.$router.push("/main/profile");
     }
   }
 }

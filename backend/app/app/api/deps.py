@@ -1,8 +1,9 @@
-from typing import Generator, Dict, Any
+import hmac
+from typing import Generator, Dict, Any, Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt
+import jwt
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 from tlbx import json, pp
@@ -18,7 +19,7 @@ from app.db.session import SessionLocal
 
 
 reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/login/access-token"
+    tokenUrl=f"{settings.API_V1_STR}/login/access-token", auto_error=False
 )
 
 warehouses = {}
@@ -80,14 +81,30 @@ def get_warehouses() -> Dict[str, Any]:
 
 
 def get_current_user(
-    db: Session = Depends(get_db), token: str = Depends(reusable_oauth2)
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+    token: Optional[str] = Depends(reusable_oauth2),
 ) -> models.User:
+    bearer_token = token
+    token = token or request.cookies.get(security.SESSION_COOKIE)
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if (
+        not bearer_token
+        and request.method not in {"GET", "HEAD", "OPTIONS"}
+        and request.headers.get("X-Zillion-CSRF") != "1"
+    ):
+        raise HTTPException(status_code=403, detail="Missing CSRF header")
     try:
         payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
+            token,
+            settings.SECRET_KEY,
+            algorithms=[security.ALGORITHM],
+            options={"require": ["exp", "sub"]},
         )
         token_data = schemas.TokenPayload(**payload)
-    except (jwt.JWTError, ValidationError):
+    except (jwt.InvalidTokenError, ValidationError):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",
@@ -95,6 +112,23 @@ def get_current_user(
     user = crud.user.get(db, id=token_data.sub)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    version = payload.get("password_version")
+    if (
+        payload.get("purpose") is not None
+        or (version is None and ":" in user.hashed_password)
+        or (
+            version is not None
+            and (
+                not isinstance(version, str)
+                or not hmac.compare_digest(
+                    version, security.password_version(user.hashed_password)
+                )
+            )
+        )
+    ):
+        raise HTTPException(status_code=401, detail="Session has expired")
+    if bearer_token and request.headers.get("X-Zillion-CSRF") == "1":
+        security.set_session_cookie(response, token, payload["exp"])
     return user
 
 
@@ -107,7 +141,7 @@ def get_current_active_user(
 
 
 def get_current_active_superuser(
-    current_user: models.User = Depends(get_current_user),
+    current_user: models.User = Depends(get_current_active_user),
 ) -> models.User:
     if not crud.user.is_superuser(current_user):
         raise HTTPException(
