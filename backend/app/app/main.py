@@ -1,6 +1,8 @@
+import logging
 import traceback as tb
 
 from fastapi import Response
+from sqlalchemy.exc import OperationalError
 
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
@@ -23,7 +25,11 @@ if settings.ROLLBAR_ENABLED:
     print("Initializing Rollbar")
     import rollbar
 
-    rollbar.init(settings.ROLLBAR_KEY, environment=settings.ROLLBAR_ENV)
+    rollbar.init(
+        settings.ROLLBAR_KEY,
+        environment=settings.ROLLBAR_ENV,
+        locals={"enabled": False},
+    )
 
 
 def _normalize_exception_detail(exc: Exception) -> str:
@@ -58,6 +64,21 @@ async def catch_exceptions_middleware(request: Request, call_next):
         error(detail)
         return Response(detail, status_code=500)
     except Exception as e:
+        if (
+            isinstance(e, OperationalError)
+            and getattr(e.orig, "args", ())
+            and e.orig.args[0] == 1317
+        ):
+            logging.getLogger(__name__).warning(
+                "Report query interrupted (MySQL error 1317)"
+            )
+            return JSONResponse(
+                {
+                    "error_type": "query_interrupted",
+                    "detail": "Report query was interrupted.",
+                },
+                status_code=503,
+            )
         tb.print_exc()
         if settings.ROLLBAR_ENABLED:
             rollbar.report_exc_info()
